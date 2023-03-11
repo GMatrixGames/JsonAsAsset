@@ -25,3 +25,8 @@ The JSON format/file has to be from a program that fits the format of FModel's J
 > Not everything is supported for Unreal Engine 5
 
 _Physic assets aren't supported due to the lack of information we have on porting them into Unreal Engine, if you have knowledge on how to support Physic assets let me know or contribute to this project._
+
+## Contributors
+- [Tector](https://github.com/Tectors)
+- [Tajgames](https://github.com/)
+- [GMatrix](https://github.com/GMatrixGames)
