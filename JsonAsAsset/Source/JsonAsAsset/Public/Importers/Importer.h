@@ -3,6 +3,9 @@
 #pragma once
 #include "Dom/JsonObject.h"
 
+/*
+* Global handler for converting JSON to assets
+*/
 class IImporter
 {
 public:
@@ -16,13 +19,11 @@ public:
 		this->AllJsonObjects = AllJsonObjects;
 	}
 
-	virtual ~IImporter()
-	{
+	virtual ~IImporter() {
 	}
 
 	/** Import the data of the supported type, return if successful or not */
 	virtual bool ImportData() { return false; }
-
 private:
 	inline static TArray<FString> AcceptedTypes = {
 		"CurveFloat",
@@ -33,8 +34,7 @@ private:
 public:
 	static bool CanImport(const FString& ImporterType) { return AcceptedTypes.Contains(ImporterType); }
 
-	static bool CanImportAny(TArray<FString>& Types)
-	{
+	static bool CanImportAny(TArray<FString>& Types) {
 		for (FString& Type : Types)
 		{
 			if (!AcceptedTypes.Contains(Type)) continue;
@@ -46,8 +46,7 @@ public:
 
 protected:
 	template <typename T>
-	T LoadObject(const TSharedPtr<FJsonObject>* PackageIndex)
-	{
+	T LoadObject(const TSharedPtr<FJsonObject>* PackageIndex) {
 		FString Type;
 		FString Name;
 		PackageIndex->Get()->GetStringField("ObjectName").Split(" ", &Type, &Name);

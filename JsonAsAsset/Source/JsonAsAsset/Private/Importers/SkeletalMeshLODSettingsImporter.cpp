@@ -10,8 +10,7 @@
 
 bool USkeletalMeshLODSettingsImporter::ImportData()
 {
-	try
-	{
+	try {
 		UDataAssetFactory* DataAssetFactory = NewObject<UDataAssetFactory>();
 		USkeletalMeshLODSettingsDerived* LODDataAsset = Cast<USkeletalMeshLODSettingsDerived>(
 			DataAssetFactory->FactoryCreateNew(USkeletalMeshLODSettings::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public,
@@ -25,13 +24,11 @@ bool USkeletalMeshLODSettingsImporter::ImportData()
 
 		TArray<TSharedPtr<FJsonValue>> LODGroupsObject = JsonObject->GetObjectField("Properties")->GetArrayField("LODGroups");
 
-		for (int i = 0; i < LODGroupsObject.Num(); i++)
-		{
+		for (int i = 0; i < LODGroupsObject.Num(); i++) {
 			TSharedPtr<FJsonObject> LODDataObject = LODGroupsObject[i]->AsObject();
 			FSkeletalMeshLODGroupSettings SkeletalMeshLODGroup = FSkeletalMeshLODGroupSettings();
 
-			if (const TSharedPtr<FJsonObject>* BakePose; LODDataObject->TryGetObjectField("BakePose", BakePose) == true)
-			{
+			if (const TSharedPtr<FJsonObject>* BakePose; LODDataObject->TryGetObjectField("BakePose", BakePose) == true) {
 				SkeletalMeshLODGroup.BakePose = LoadObject<UAnimSequence*>(BakePose);
 			}
 
@@ -39,8 +36,7 @@ bool USkeletalMeshLODSettingsImporter::ImportData()
 			SkeletalMeshLODGroup.WeightOfPrioritization = LODDataObject->GetNumberField("WeightOfPrioritization");
 			SkeletalMeshLODGroup.ScreenSize = FPerPlatformFloat(LODDataObject->GetObjectField("ScreenSize")->GetNumberField("Default"));
 
-			if (i != 0)
-			{
+			if (i != 0) {
 				EBoneFilterActionOption BoneFilterActionOption;
 
 				FString StringBoneFilterActionOption = LODDataObject->GetStringField("BoneFilterActionOption");
@@ -63,9 +59,7 @@ bool USkeletalMeshLODSettingsImporter::ImportData()
 			}
 
 			for (const TSharedPtr<FJsonValue> BonePrioritized : LODDataObject->GetArrayField("BonesToPrioritize"))
-			{
 				SkeletalMeshLODGroup.BonesToPrioritize.Add(FName(*BonePrioritized->AsString()));
-			}
 
 			FSkeletalMeshOptimizationSettings OptimizationSettings;
 			TSharedPtr<FJsonObject> ReductionSettings = LODDataObject->GetObjectField("ReductionSettings");
@@ -163,9 +157,7 @@ bool USkeletalMeshLODSettingsImporter::ImportData()
 			SkeletalMeshLODGroup.ReductionSettings = OptimizationSettings;
 			LODDataAsset->AddLODGroup(SkeletalMeshLODGroup);
 		}
-	}
-	catch (const char* Exception)
-	{
+	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
 	}

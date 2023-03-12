@@ -8,8 +8,7 @@
 
 bool UCurveFloatImporter::ImportData()
 {
-	try
-	{
+	try {
 		TArray<TSharedPtr<FJsonValue>> Keys = JsonObject->GetObjectField("Properties")->GetObjectField("FloatCurve")->GetArrayField("Keys");
 
 		UCurveFloatFactory* CurveFactory = NewObject<UCurveFloatFactory>();
@@ -40,8 +39,7 @@ bool UCurveFloatImporter::ImportData()
 			CurveAsset->FloatCurve.Keys.Add(RichKey);
 		}
 	}
-	catch (const char* Exception)
-	{
+	catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
 	}

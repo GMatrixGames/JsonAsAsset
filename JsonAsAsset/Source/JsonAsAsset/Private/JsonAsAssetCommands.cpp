@@ -6,7 +6,7 @@
 
 void FJsonAsAssetCommands::RegisterCommands()
 {
-	UI_COMMAND(PluginAction, "JsonAsAsset", "Execute JsonAsAsset action", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(PluginAction, "JsonAsAsset", "Choose a JSON file to Convert", EUserInterfaceActionType::Button, FInputGesture());
 }
 
 #undef LOCTEXT_NAMESPACE

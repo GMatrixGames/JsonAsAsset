@@ -4,8 +4,7 @@
 
 #include "Importer.h"
 
-class USkeletalMeshLODSettingsImporter : public IImporter
-{
+class USkeletalMeshLODSettingsImporter : public IImporter {
 public:
 	USkeletalMeshLODSettingsImporter(const FString& FileName, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg):
 		IImporter(FileName, JsonObject, Package, OutermostPkg)

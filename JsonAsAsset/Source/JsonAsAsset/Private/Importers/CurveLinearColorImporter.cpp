@@ -10,8 +10,7 @@
 
 bool UCurveLinearColorImporter::ImportData()
 {
-	try
-	{
+	try {
 		TArray<TSharedPtr<FJsonValue>> FloatCurves = JsonObject->GetArrayField("FloatCurves");
 
 		UCurveLinearColorFactory* CurveFactory = NewObject<UCurveLinearColorFactory>();
