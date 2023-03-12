@@ -11,17 +11,11 @@
 #include "IContentBrowserSingleton.h"
 #include "Runtime/Engine/Classes/Engine/World.h"
 
-#include "IAssetTools.h"
-#include "Rendering/SkeletalMeshModel.h"
-#include "AnimationUtils.h"
-
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "EngineMinimal.h"
 #include "Engine/StaticMeshActor.h"
 
 #include "Factories/TextureFactory.h"
 
-#include "HAL/PlatformApplicationMisc.h"
 #include "Misc/MessageDialog.h"
 #include "Json.h"
 #include "Misc/FileHelper.h"
@@ -30,13 +24,10 @@
 // | ------------------------------------------------------
 
 // ----> Asset Classes
-#include "Animation/BlendSpaceBase.h"
-#include "Animation/BlendSpace.h"
 #include "Animation/BlendProfile.h"
 #include "Animation/MorphTarget.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/AnimMontage.h"
-#include "Animation/PoseAsset.h"
 #include "Animation/AnimCurveTypes.h"
 #include "Animation/AnimTypes.h"
 #include "PhysicsEngine/PhysicsAsset.h"
@@ -51,113 +42,31 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "Engine/SubsurfaceProfile.h"
 #include "Curves/CurveLinearColor.h"
-#include "Rendering/SkeletalMeshLODModel.h"
 #include "Sound/ReverbEffect.h"
-#include "Sound/SoundConcurrency.h"
 
 // ----> Factories
-#include "Factories/BlendSpaceFactoryNew.h"
-#include "Factories/PhysicsAssetFactory.h"
-#include "Factories/PhysicalMaterialFactoryNew.h"
-#include "Factories/SkeletonFactory.h"
-#include "Factories/SubsurfaceProfileFactory.h"
 #include "Factories/CurveFactory.h"
 #include "Factories/DataAssetFactory.h"
-#include "Particles/ParticleSystem.h"
 #include "Distributions.h"
+#include "DerivedAssets/SkeletalMeshLODSettingsDerived.h"
+#include "Importers/CurveFloatImporter.h"
+#include "Importers/CurveLinearColorImporter.h"
+#include "Importers/Importer.h"
+#include "Importers/SkeletalMeshLODSettingsImporter.h"
 
 // ------------------------------------------------------ |
 
-
-static const FName JsonAsAssetTabName("JsonAsAsset");
-
 #define LOCTEXT_NAMESPACE "FJsonAsAssetModule"
-
-
-// ---------------------------------------
-// ---------------------------------------
-/*|| THIS ARE USED TO OVERRIDE PROTECTED VARIABLES  ||*/
-/*|| AND ARE NEVER ACCESSED ||*/
-
-
-// We use this to set variables
-// in the LOD asset
-class LODAssetDerived : public USkeletalMeshLODSettings {
-	public:
-		void SetLODGroups(TArray<FSkeletalMeshLODGroupSettings> LODGroupsInput) {
-			this->LODGroups = LODGroupsInput;
-		}
-		void AddLODGroup(FSkeletalMeshLODGroupSettings LODGroupInput) {
-			this->LODGroups.Add(LODGroupInput);
-		}
-		void EmptyLODGroups() {
-			this->LODGroups.Empty();
-		}
-};
-
-// We use this to set variables
-// in the skeletal asset
-class SkeletonAssetDerived : public USkeleton {
-public:
-	bool AddVirtualBone(FName SourceBoneName, FName TargetBoneName, FName VirtualBoneRootName) {
-		for (const FVirtualBone& SSBone : VirtualBones)
-		{
-			if (SSBone.SourceBoneName == SourceBoneName &&
-				SSBone.TargetBoneName == TargetBoneName)
-			{
-				return false;
-			}
-		}
-		Modify();
-
-		FVirtualBone VirtualBone = FVirtualBone(SourceBoneName, TargetBoneName);
-		VirtualBone.VirtualBoneName = VirtualBoneRootName;
-
-		VirtualBones.Add(VirtualBone);
-
-		VirtualBoneGuid = FGuid::NewGuid();
-		check(VirtualBoneGuid.IsValid());
-
-		return true;
-	}
-};
-
-// We use this to set variables
-// in the blend space asset
-class BlendSpaceDerived : public UBlendSpace {
-public:
-	void SetAxisToScaleAnimationInput(EBlendSpaceAxis AxisToScaleAnimationInput) {
-		this->AxisToScaleAnimation = AxisToScaleAnimationInput;
-	}
-	void SetBlendParameterPrimary(FBlendParameter BlendParametersInput) {
-		this->BlendParameters[0] = BlendParametersInput;
-	}
-	void SetBlendParameterSecondary(FBlendParameter BlendParametersInput) {
-		this->BlendParameters[1] = BlendParametersInput;
-	}
-	void SetInterpolationParamPrimary(FInterpolationParameter InterpolationParamInput) {
-		this->InterpolationParam[0] = InterpolationParamInput;
-	}
-	void SetInterpolationParamSecondary(FInterpolationParameter InterpolationParamInput) {
-		this->InterpolationParam[1] = InterpolationParamInput;
-	}
-	void SetNotifyTriggerMode(ENotifyTriggerMode::Type NotifyTriggerModeInput) {
-		this->NotifyTriggerMode = NotifyTriggerModeInput;
-	}
-};
-
-// ---------------------------------------
-// ---------------------------------------
 
 void FJsonAsAssetModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-	
+
 	FJsonAsAssetStyle::Initialize();
 	FJsonAsAssetStyle::ReloadTextures();
 
 	FJsonAsAssetCommands::Register();
-	
+
 	PluginCommands = MakeShareable(new FUICommandList);
 
 	PluginCommands->MapAction(
@@ -184,15 +93,6 @@ void FJsonAsAssetModule::ShutdownModule()
 
 void FJsonAsAssetModule::PluginButtonClicked()
 {
-	// Put your "OnButtonClicked" stuff here
-	/*FText DialogText = FText::Format(
-							LOCTEXT("PluginButtonDialogText", "Add code to {0} in {1} to override this button's actions"),
-							FText::FromString(TEXT("FJsonAsAssetModule::PluginButtonClicked()")),
-							FText::FromString(TEXT("JsonAsAsset.cpp"))
-					   );
-	FMessageDialog::Open(EAppMsgType::Ok, DialogText);*/
-
-
 	TArray<FString> OutFileNames;
 
 	void* ParentWindowHandle = nullptr;
@@ -210,13 +110,15 @@ void FJsonAsAssetModule::PluginButtonClicked()
 	if (DesktopPlatform)
 	{
 		uint32 SelectionFlag = 0;
-		DesktopPlatform->OpenFileDialog(ParentWindowHandle, TEXT("Open a JSON file"), TEXT(""), FString(""), TEXT("JSON Files|*.json"), SelectionFlag, OutFileNames);
+		DesktopPlatform->OpenFileDialog(ParentWindowHandle, TEXT("Open a JSON file"), TEXT(""), FString(""), TEXT("JSON Files|*.json"), SelectionFlag,
+		                                OutFileNames);
 	}
 
-	if (OutFileNames.Num() != 0 && OutFileNames[0] != "") {
+	if (OutFileNames.Num() != 0 && OutFileNames[0] != "")
+	{
 		FString ContentBefore;
 		FFileHelper::LoadFileToString(ContentBefore, *OutFileNames[0]);
-		
+
 		// For some reason a array
 		// without it being in a object.
 		FString Content = FString(TEXT("{\"data\": "));
@@ -229,336 +131,55 @@ void FJsonAsAssetModule::PluginButtonClicked()
 		{
 			GLog->Log("JsonAsAsset: Deserialized file, reading the contents.");
 
+			TArray<FString> Types;
 			TArray<TSharedPtr<FJsonValue>> DataObjects = JsonParsed->GetArrayField("data");
-			for (int32 index = 0; index < DataObjects.Num(); index++)
+			for (TSharedPtr<FJsonValue>& Obj : DataObjects)
 			{
-				TSharedPtr<FJsonObject> DataObject = DataObjects[index]->AsObject();
+				Types.Add(Obj->AsObject()->GetStringField("Type"));
+			}
+
+			if (!IImporter::CanImportAny(Types))
+			{
+				FText DialogText = FText::FromString("No exports from \"" + OutFileNames[0] + "\" can be imported!");
+				FMessageDialog::Open(EAppMsgType::Ok, DialogText);
+			}
+			
+			for (TSharedPtr<FJsonValue>& Obj : DataObjects)
+			{
+				TSharedPtr<FJsonObject> DataObject = Obj->AsObject();
 
 				FString Type = DataObject->GetStringField("Type");
 				FString Name = DataObject->GetStringField("Name");
 
-				// If it's a curve float
-				// since those are supported
-				// at the moment.
-				if (Type == "CurveFloat") {
-					GLog->Log("JsonAsAsset: Found a curve by the name of " + Name + ", parsing..");
+				if (IImporter::CanImport(Type))
+				{
+					UPackage* OutermostPkg;
+					UPackage* Package = CreateAssetPackage(Name, OutFileNames, OutermostPkg);
+					IImporter* Importer;
 
-					// Get the curves by the object
-					// tree.
-					TArray<TSharedPtr<FJsonValue>> Keys = DataObject->GetObjectField("Properties")->GetObjectField("FloatCurve")->GetArrayField("Keys");
+					// Curves
+					if (Type == "CurveFloat") Importer = new UCurveFloatImporter(Name, DataObject, Package, OutermostPkg);
+					// else if (Type == "CurveVector") Importer = new UCurveVectorImporter(Name, DataObject, Package, OutermostPkg); // TODO
+					else if (Type == "CurveLinearColor") Importer = new UCurveLinearColorImporter(Name, DataObject, Package, OutermostPkg);
 
-					// Let's create the curve now
-					// to add the keys.
+					// Skeletal
+					else if (Type == "SkeletalMeshLODSettings") Importer = new USkeletalMeshLODSettingsImporter(Name, DataObject, Package, OutermostPkg);
+					else Importer = nullptr;
 
-					// The path that the file
-					// was imported from (RAW)
-					FString IMPath = OutFileNames[0];
-					FString Path;
-
-					IMPath.Split("FortniteGame/Content/", nullptr, &Path);
-					Path.Split("/", &Path, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-					
-					FString PathWithGame = "/Game/" + Path + "/" + Name;
-					UPackage* Package = CreatePackage(NULL, *PathWithGame);
-					UPackage* OutermostPkg = Package->GetOutermost();
-
-					auto CurveFactory = NewObject<UCurveFloatFactory>();
-					UCurveFloat* CurveAsset = Cast<UCurveFloat>(CurveFactory->FactoryCreateNew(UCurveFloat::StaticClass(), OutermostPkg, *Name, RF_Standalone | RF_Public, NULL, GWarn));
-
-					FAssetRegistryModule::AssetCreated(CurveAsset);
-					CurveAsset->MarkPackageDirty();
-					Package->SetDirtyFlag(true);
-					CurveAsset->PostEditChange();
-					CurveAsset->AddToRoot();
-					
-					for (int32 key_index = 0; key_index < Keys.Num(); key_index++)
+					if (Importer != nullptr && Importer->ImportData())
 					{
-						// RCIM_Cubic
-						TSharedPtr<FJsonObject> Key = Keys[key_index]->AsObject();
-						ERichCurveInterpMode InterpMode =
-							Key->GetStringField("InterpMode") == "RCIM_Linear" ? ERichCurveInterpMode::RCIM_Linear : // Linear
-							Key->GetStringField("InterpMode") == "RCIM_Cubic" ? ERichCurveInterpMode::RCIM_Cubic : // Cubic
-							Key->GetStringField("InterpMode") == "RCIM_Constant" ? ERichCurveInterpMode::RCIM_Constant : // Constant
-							ERichCurveInterpMode::RCIM_None;
-
-						FRichCurveKey RichKey = FRichCurveKey(float(Key->GetNumberField("Time")), float(Key->GetNumberField("Value")), float(Key->GetNumberField("ArriveTangent")), float(Key->GetNumberField("LeaveTangent")), InterpMode);
-
-						CurveAsset->FloatCurve.Keys.Add(RichKey);
+						UE_LOG(LogJson, Log, TEXT("Successfully imported \"%s\" as \"%s\""), *Name, *Type)
+					}
+					else
+					{
+						FText DialogText = FText::FromString("The \"" + Type + "\" cannot be imported!");
+						FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 					}
 				}
-				else if (Type == "CurveLinearColor") {
-					GLog->Log("JsonAsAsset: Found a linear curve by the name of " + Name + ", parsing..");
 
-					FString ReConstructed = Content;
-					int FCIndex = Content.Find("FloatCurves");
-
-					// I spent hours of thinking
-					// the ways I could fix FModel's
-					// JSON data.
-
-					// Basically FModel doesn't care if
-					// a property has the same name, it
-					// adds it anyways so there would be
-					// two properties with the same name.
-					// JSON Don't Work Like That!
-
-					// So that's why we have these lines that
-					// split them into RGBA.
-
-					ReConstructed.RemoveAt(FCIndex, 11);
-					ReConstructed.InsertAt(FCIndex, "InputR");
-
-					FCIndex = ReConstructed.Find("FloatCurves");
-					ReConstructed.RemoveAt(FCIndex, 11);
-					ReConstructed.InsertAt(FCIndex, "InputG");
-
-					FCIndex = ReConstructed.Find("FloatCurves");
-					ReConstructed.RemoveAt(FCIndex, 11);
-					ReConstructed.InsertAt(FCIndex, "InputB");
-
-					FCIndex = ReConstructed.Find("FloatCurves");
-					ReConstructed.RemoveAt(FCIndex, 11);
-					ReConstructed.InsertAt(FCIndex, "InputA");
-
-					TSharedPtr<FJsonObject> JsonParsedCon;
-					TSharedRef<TJsonReader<TCHAR>> JsonReaderCon = TJsonReaderFactory<TCHAR>::Create(ReConstructed);
-					if (FJsonSerializer::Deserialize(JsonReaderCon, JsonParsedCon))
-					{
-						TArray<TSharedPtr<FJsonValue>> CurveI = JsonParsedCon->GetArrayField("data");
-						for (int32 indexa = 0; indexa < CurveI.Num(); indexa++)
-						{
-							TSharedPtr<FJsonObject> ObjectI = CurveI[indexa]->AsObject();
-
-							if (ObjectI->GetStringField("Type") == "CurveLinearColor") {
-								FString IMPath = OutFileNames[0];
-								FString Path;
-
-								IMPath.Split("FortniteGame/Content/", nullptr, &Path);
-								Path.Split("/", &Path, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-
-								FString PathWithGame = "/Game/" + Path + "/" + Name;
-								UPackage* Package = CreatePackage(NULL, *PathWithGame);
-								UPackage* OutermostPkg = Package->GetOutermost();
-
-								auto CurveFactory = NewObject<UCurveLinearColorFactory>();
-								UCurveLinearColor* LinearCurveAsset = Cast<UCurveLinearColor>(CurveFactory->FactoryCreateNew(UCurveLinearColor::StaticClass(), OutermostPkg, *Name, RF_Standalone | RF_Public, NULL, GWarn));
-
-								FAssetRegistryModule::AssetCreated(LinearCurveAsset);
-								LinearCurveAsset->MarkPackageDirty();
-								Package->SetDirtyFlag(true);
-								LinearCurveAsset->PostEditChange();
-								LinearCurveAsset->AddToRoot();
-
-								for (const TPair<FString, TSharedPtr<FJsonValue>>& pair : ObjectI->GetObjectField("Properties")->Values)
-								{
-									TArray<TSharedPtr<FJsonValue>> Keys = pair.Value->AsObject()->GetArrayField("Keys");
-
-									// Empty the array for the new curves
-									LinearCurveAsset->FloatCurves[pair.Key.EndsWith("R") ? 0 : pair.Key.EndsWith("G") ? 1 : pair.Key.EndsWith("B") ? 2 : 3].Keys.Empty();
-									
-									FRichCurve RichCurveObject = FRichCurve();
-
-									for (int32 key_index = 0; key_index < Keys.Num(); key_index++)
-									{
-										// RCIM_Cubic
-										TSharedPtr<FJsonObject> Key = Keys[key_index]->AsObject();
-										ERichCurveInterpMode InterpMode =
-											Key->GetStringField("InterpMode") == "RCIM_Linear" ? ERichCurveInterpMode::RCIM_Linear : // Linear
-											Key->GetStringField("InterpMode") == "RCIM_Cubic" ? ERichCurveInterpMode::RCIM_Cubic : // Cubic
-											Key->GetStringField("InterpMode") == "RCIM_Constant" ? ERichCurveInterpMode::RCIM_Constant : // Constant
-											ERichCurveInterpMode::RCIM_None;
-
-										FRichCurveKey RichKey = FRichCurveKey(float(Key->GetNumberField("Time")), float(Key->GetNumberField("Value")), float(Key->GetNumberField("ArriveTangent")), float(Key->GetNumberField("LeaveTangent")), InterpMode);
-
-										LinearCurveAsset->FloatCurves[pair.Key.EndsWith("R") ? 0 : pair.Key.EndsWith("G") ? 1 : pair.Key.EndsWith("B") ? 2 : 3].Keys.Add(RichKey);
-									}
-								}
-							}
-						}
-					}
-				}
-				else if (Type == "CurveVector") {
-					FText DialogText = FText::FromString(TEXT("CurveVectors are not supported at the moment, only reason being is that I don't have a json file to test with. Contact me at Tector#7383 if you do."));
-					FMessageDialog::Open(EAppMsgType::Ok, DialogText);
-				}
-				// USkeletalMeshLODSettings
-				else if(Type == "SkeletalMeshLODSettings") {
-					GLog->Log("JsonAsAsset: Found a skeletal mesh lod asset by the name of " + Name + ", parsing..");
-
-					// The path that the file
-					// was imported from (RAW)
-
-					FString IMPath = OutFileNames[0];
-					FString Path;
-
-					IMPath.Split("FortniteGame/Content/", nullptr, &Path);
-					Path.Split("/", &Path, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-
-					FString PathWithGame = "/Game/" + Path + "/" + Name;
-					UPackage* Package = CreatePackage(NULL, *PathWithGame);
-					UPackage* OutermostPkg = Package->GetOutermost();
-
-					// We create assets using these lines
-					// and by using the Data Asset factory.
-
-					auto DataAssetFactory = NewObject<UDataAssetFactory>();
-					LODAssetDerived* LODDataAsset = Cast<LODAssetDerived>(DataAssetFactory->FactoryCreateNew(USkeletalMeshLODSettings::StaticClass(), OutermostPkg, *Name, RF_Standalone | RF_Public, NULL, GWarn));
-					FAssetRegistryModule::AssetCreated(LODDataAsset);
-					LODDataAsset->MarkPackageDirty();
-					Package->SetDirtyFlag(true);
-					LODDataAsset->PostEditChange();
-					LODDataAsset->AddToRoot();
-
-					// Empty the LODGroups
-					// (there's pre-defined)
-					LODDataAsset->EmptyLODGroups();
-
-					// The LODGroups inside FModel's json.
-					TArray<TSharedPtr<FJsonValue>> LODGroupsObject = DataObject->GetObjectField("Properties")->GetArrayField("LODGroups");
-
-					// Iterate through each lod group
-					// to add into the emptied array.
-					for (int32 lod_group_index = 0; lod_group_index < LODGroupsObject.Num(); lod_group_index++)
-					{
-						TSharedPtr<FJsonObject> LODDataObject = LODGroupsObject[lod_group_index]->AsObject();
-						FSkeletalMeshLODGroupSettings SkeletalMeshLODGroup = FSkeletalMeshLODGroupSettings();
-						const TSharedPtr<FJsonObject>* BakePose;
-
-						// If there is a BakePose animation
-						// sequence, then we handle the reference.
-						if (LODDataObject->TryGetObjectField("BakePose", BakePose) == true) {
-							FStringAssetReference BakePoseReference;
-							
-							// Get the base pose type. (AnimSequence)
-							FString BakePoseType;
-							FString BakePoseName;
-							BakePose->Get()->GetStringField("ObjectName").Split(" ", &BakePoseType, &BakePoseName);
-							FString BakePosePath;
-							BakePose->Get()->GetStringField("ObjectPath").Split(".", &BakePosePath, nullptr);
-							// Create the reference
-							BakePoseReference = FStringAssetReference(BakePoseType + "'" + BakePosePath + "." + BakePoseName + "'");
-
-							// Now we use the reference, and load the asset
-							// to be used in the data asset.
-							UAnimSequence* BakePoseSequence = Cast<UAnimSequence>(BakePoseReference.TryLoad());
-							SkeletalMeshLODGroup.BakePose = BakePoseSequence;
-						}
-
-						SkeletalMeshLODGroup.LODHysteresis = LODDataObject->GetNumberField("LODHysteresis");
-						SkeletalMeshLODGroup.WeightOfPrioritization = LODDataObject->GetNumberField("WeightOfPrioritization");
-						SkeletalMeshLODGroup.ScreenSize = FPerPlatformFloat(LODDataObject->GetObjectField("ScreenSize")->GetNumberField("Default"));
-
-						// The first LOD element does not have
-						// the following variables:
-						//
-						// 1. BoneFilterActionOption
-						// 2. BoneList
-						if (lod_group_index != 0) {
-							// Set the BoneFilterActionOption using variables provided
-							SkeletalMeshLODGroup.BoneFilterActionOption =
-								LODDataObject->GetStringField("BoneFilterActionOption").EndsWith("Remove") ? EBoneFilterActionOption::Remove :
-								LODDataObject->GetStringField("BoneFilterActionOption").EndsWith("Keep") ? EBoneFilterActionOption::Keep
-									: EBoneFilterActionOption::Invalid;
-
-							// Add all the bones under: BoneList
-							for (int32 bone_list_index = 0; bone_list_index < LODDataObject->GetArrayField("BoneList").Num(); bone_list_index++)
-							{
-								TSharedPtr<FJsonObject> BoneListed = LODDataObject->GetArrayField("BoneList")[bone_list_index]->AsObject();
-								FBoneFilter BoneFilter;
-
-								BoneFilter.bExcludeSelf = BoneListed->GetBoolField("bExcludeSelf");
-								BoneFilter.BoneName = FName(*BoneListed->GetStringField("BoneName"));
-
-								SkeletalMeshLODGroup.BoneList.Add(BoneFilter);
-							}
-						}
-
-						// Add all the bones under: BonesToPrioritize
-						for (int32 bones_to_prior_index = 0; bones_to_prior_index < LODDataObject->GetArrayField("BonesToPrioritize").Num(); bones_to_prior_index++)
-						{
-							FName BonePrioritized = FName(*LODDataObject->GetArrayField("BonesToPrioritize")[bones_to_prior_index]->AsString());
-
-							SkeletalMeshLODGroup.BonesToPrioritize.Add(BonePrioritized);
-						}
-
-						// Here we are going to do the reduction settings
-						// that is the core of the LOD asset.
-						FSkeletalMeshOptimizationSettings OptimizationSettings;
-						TSharedPtr<FJsonObject> ReductionSettings = LODDataObject->GetObjectField("ReductionSettings");
-						
-						OptimizationSettings.BaseLOD = ReductionSettings->GetIntegerField("BaseLOD");
-						OptimizationSettings.bEnforceBoneBoundaries = ReductionSettings->GetBoolField("bEnforceBoneBoundaries");
-						OptimizationSettings.bLockColorBounaries = ReductionSettings->GetBoolField("bLockColorBounaries");
-						OptimizationSettings.bLockEdges = ReductionSettings->GetBoolField("bLockEdges");
-						OptimizationSettings.bRecalcNormals = ReductionSettings->GetBoolField("bRecalcNormals");
-						OptimizationSettings.bRemapMorphTargets = ReductionSettings->GetBoolField("bRemapMorphTargets");
-						OptimizationSettings.MaxBonesPerVertex = ReductionSettings->GetIntegerField("MaxBonesPerVertex");
-						OptimizationSettings.MaxDeviationPercentage = ReductionSettings->GetNumberField("MaxDeviationPercentage");
-						OptimizationSettings.MaxNumOfTriangles = ReductionSettings->GetIntegerField("MaxNumOfTriangles");
-						OptimizationSettings.MaxNumOfVerts = ReductionSettings->GetIntegerField("MaxNumOfVerts");
-						OptimizationSettings.NormalsThreshold = ReductionSettings->GetNumberField("NormalsThreshold");
-						OptimizationSettings.NumOfTrianglesPercentage = ReductionSettings->GetNumberField("NumOfTrianglesPercentage");
-						OptimizationSettings.NumOfVertPercentage = ReductionSettings->GetNumberField("NumOfVertPercentage");
-						OptimizationSettings.VolumeImportance = ReductionSettings->GetNumberField("VolumeImportance");
-						OptimizationSettings.WeldingThreshold = ReductionSettings->GetNumberField("WeldingThreshold");
-
-						OptimizationSettings.ReductionMethod =
-							ReductionSettings->GetStringField("ReductionMethod").EndsWith("SMOT_NumOfTriangles") ? SkeletalMeshOptimizationType::SMOT_NumOfTriangles :
-							ReductionSettings->GetStringField("ReductionMethod").EndsWith("SMOT_MaxDeviation") ? SkeletalMeshOptimizationType::SMOT_MaxDeviation :
-							ReductionSettings->GetStringField("ReductionMethod").EndsWith("SMOT_TriangleOrDeviation") ? SkeletalMeshOptimizationType::SMOT_TriangleOrDeviation :
-							SkeletalMeshOptimizationType::SMOT_MAX;
-
-						OptimizationSettings.ShadingImportance =
-							ReductionSettings->GetStringField("ShadingImportance").EndsWith("SMOI_Off") ? SkeletalMeshOptimizationImportance::SMOI_Off :
-							ReductionSettings->GetStringField("ShadingImportance").EndsWith("SMOI_Lowest") ? SkeletalMeshOptimizationImportance::SMOI_Lowest :
-							ReductionSettings->GetStringField("ShadingImportance").EndsWith("SMOI_Low") ? SkeletalMeshOptimizationImportance::SMOI_Low :
-							ReductionSettings->GetStringField("ShadingImportance").EndsWith("SMOI_Normal") ? SkeletalMeshOptimizationImportance::SMOI_Normal :
-							ReductionSettings->GetStringField("ShadingImportance").EndsWith("SMOI_High") ? SkeletalMeshOptimizationImportance::SMOI_High :
-							ReductionSettings->GetStringField("ShadingImportance").EndsWith("SMOI_Highest") ? SkeletalMeshOptimizationImportance::SMOI_Highest :
-							SkeletalMeshOptimizationImportance::SMOI_MAX;
-
-						OptimizationSettings.SilhouetteImportance =
-							ReductionSettings->GetStringField("SilhouetteImportance").EndsWith("SMOI_Off") ? SkeletalMeshOptimizationImportance::SMOI_Off :
-							ReductionSettings->GetStringField("SilhouetteImportance").EndsWith("SMOI_Lowest") ? SkeletalMeshOptimizationImportance::SMOI_Lowest :
-							ReductionSettings->GetStringField("SilhouetteImportance").EndsWith("SMOI_Low") ? SkeletalMeshOptimizationImportance::SMOI_Low :
-							ReductionSettings->GetStringField("SilhouetteImportance").EndsWith("SMOI_Normal") ? SkeletalMeshOptimizationImportance::SMOI_Normal :
-							ReductionSettings->GetStringField("SilhouetteImportance").EndsWith("SMOI_High") ? SkeletalMeshOptimizationImportance::SMOI_High :
-							ReductionSettings->GetStringField("SilhouetteImportance").EndsWith("SMOI_Highest") ? SkeletalMeshOptimizationImportance::SMOI_Highest :
-							SkeletalMeshOptimizationImportance::SMOI_MAX;
-
-						OptimizationSettings.SkinningImportance =
-							ReductionSettings->GetStringField("SkinningImportance").EndsWith("SMOI_Off") ? SkeletalMeshOptimizationImportance::SMOI_Off :
-							ReductionSettings->GetStringField("SkinningImportance").EndsWith("SMOI_Lowest") ? SkeletalMeshOptimizationImportance::SMOI_Lowest :
-							ReductionSettings->GetStringField("SkinningImportance").EndsWith("SMOI_Low") ? SkeletalMeshOptimizationImportance::SMOI_Low :
-							ReductionSettings->GetStringField("SkinningImportance").EndsWith("SMOI_Normal") ? SkeletalMeshOptimizationImportance::SMOI_Normal :
-							ReductionSettings->GetStringField("SkinningImportance").EndsWith("SMOI_High") ? SkeletalMeshOptimizationImportance::SMOI_High :
-							ReductionSettings->GetStringField("SkinningImportance").EndsWith("SMOI_Highest") ? SkeletalMeshOptimizationImportance::SMOI_Highest :
-							SkeletalMeshOptimizationImportance::SMOI_MAX;
-
-						OptimizationSettings.TerminationCriterion =
-							ReductionSettings->GetStringField("TerminationCriterion").EndsWith("SMTC_NumOfTriangles") ? SkeletalMeshTerminationCriterion::SMTC_NumOfTriangles :
-							ReductionSettings->GetStringField("TerminationCriterion").EndsWith("SMTC_NumOfVerts") ? SkeletalMeshTerminationCriterion::SMTC_NumOfVerts :
-							ReductionSettings->GetStringField("TerminationCriterion").EndsWith("SMTC_TriangleOrVert") ? SkeletalMeshTerminationCriterion::SMTC_TriangleOrVert :
-							ReductionSettings->GetStringField("TerminationCriterion").EndsWith("SMTC_AbsNumOfTriangles") ? SkeletalMeshTerminationCriterion::SMTC_AbsNumOfTriangles :
-							ReductionSettings->GetStringField("TerminationCriterion").EndsWith("SMTC_AbsNumOfVerts") ? SkeletalMeshTerminationCriterion::SMTC_AbsNumOfVerts :
-							ReductionSettings->GetStringField("TerminationCriterion").EndsWith("SMTC_AbsTriangleOrVert") ? SkeletalMeshTerminationCriterion::SMTC_AbsTriangleOrVert :
-							SkeletalMeshTerminationCriterion::SMTC_MAX;
-
-						OptimizationSettings.TextureImportance =
-							ReductionSettings->GetStringField("TextureImportance").EndsWith("SMOI_Off") ? SkeletalMeshOptimizationImportance::SMOI_Off :
-							ReductionSettings->GetStringField("TextureImportance").EndsWith("SMOI_Lowest") ? SkeletalMeshOptimizationImportance::SMOI_Lowest :
-							ReductionSettings->GetStringField("TextureImportance").EndsWith("SMOI_Low") ? SkeletalMeshOptimizationImportance::SMOI_Low :
-							ReductionSettings->GetStringField("TextureImportance").EndsWith("SMOI_Normal") ? SkeletalMeshOptimizationImportance::SMOI_Normal :
-							ReductionSettings->GetStringField("TextureImportance").EndsWith("SMOI_High") ? SkeletalMeshOptimizationImportance::SMOI_High :
-							ReductionSettings->GetStringField("TextureImportance").EndsWith("SMOI_Highest") ? SkeletalMeshOptimizationImportance::SMOI_Highest :
-							SkeletalMeshOptimizationImportance::SMOI_MAX;
-
-						SkeletalMeshLODGroup.ReductionSettings = OptimizationSettings;
-						LODDataAsset->AddLODGroup(SkeletalMeshLODGroup);
-					}
-				}
 				// USkeleton
-				else if (Type == "Skeleton") {
+				if (Type == "Skeleton")
+				{
 					GLog->Log("JsonAsAsset: Found a skeleton asset by the name of " + Name + ", parsing..");
 					/*
 					* Below is the UNUSED code to create a skeleton, however it needs a skeletal mesh as said by the error:
@@ -637,32 +258,34 @@ void FJsonAsAssetModule::PluginButtonClicked()
 							Skeleton->AnimRetargetSources.Add(FName(*Pair.Key), ReferencePose);
 						}*/
 
-						if (ImportRetargetingModes) {
-
+						if (ImportRetargetingModes)
+						{
 							auto TextureFactory = NewObject<UTextureFactory>();
-							UCurveFloat* CurveAsset = Cast<UCurveFloat>(CurveFactory->FactoryCreateNew(UCurveFloat::StaticClass(), OutermostPkg, *Name, RF_Standalone | RF_Public, NULL, GWarn));
+							// UCurveFloat* CurveAsset = Cast<UCurveFloat>(
+							// 	CurveFactory->FactoryCreateNew(UCurveFloat::StaticClass(), OutermostPkg, *Name, RF_Standalone | RF_Public, NULL,
+							// 	                               GWarn));
 
 							for (int32 BoneIndex = 0; BoneIndex < Properties->GetArrayField("BoneTree").Num(); BoneIndex++)
 							{
 								FJsonObject* BoneNode = Properties->GetArrayField("BoneTree")[BoneIndex]->AsObject().Get();
-									
+
 								Skeleton->SetBoneTranslationRetargetingMode(BoneIndex,
-									BoneNode->GetStringField("TranslationRetargetingMode").EndsWith("Animation") ?
-									EBoneTranslationRetargetingMode::Animation
-									:
-									BoneNode->GetStringField("TranslationRetargetingMode").EndsWith("OrientAndScale") ?
-									EBoneTranslationRetargetingMode::OrientAndScale
-									:
-									BoneNode->GetStringField("TranslationRetargetingMode").EndsWith("Skeleton") ?
-									EBoneTranslationRetargetingMode::Skeleton
-									:
-									BoneNode->GetStringField("TranslationRetargetingMode").EndsWith("AnimationRelative") ?
-									EBoneTranslationRetargetingMode::AnimationRelative
-									:
-									BoneNode->GetStringField("TranslationRetargetingMode").EndsWith("AnimationScaled") ?
-									EBoneTranslationRetargetingMode::AnimationScaled
-									:
-									EBoneTranslationRetargetingMode::Animation, false);
+								                                            BoneNode->GetStringField("TranslationRetargetingMode").EndsWith(
+									                                            "Animation")
+									                                            ? EBoneTranslationRetargetingMode::Animation
+									                                            : BoneNode->GetStringField("TranslationRetargetingMode").EndsWith(
+										                                            "OrientAndScale")
+									                                            ? EBoneTranslationRetargetingMode::OrientAndScale
+									                                            : BoneNode->GetStringField("TranslationRetargetingMode").EndsWith(
+										                                            "Skeleton")
+									                                            ? EBoneTranslationRetargetingMode::Skeleton
+									                                            : BoneNode->GetStringField("TranslationRetargetingMode").EndsWith(
+										                                            "AnimationRelative")
+									                                            ? EBoneTranslationRetargetingMode::AnimationRelative
+									                                            : BoneNode->GetStringField("TranslationRetargetingMode").EndsWith(
+										                                            "AnimationScaled")
+									                                            ? EBoneTranslationRetargetingMode::AnimationScaled
+									                                            : EBoneTranslationRetargetingMode::Animation, false);
 							}
 						}
 
@@ -671,7 +294,8 @@ void FJsonAsAssetModule::PluginButtonClicked()
 						// Does not override the current slot groups, and doesn't create duplicates.
 						// [Optional]
 						if (ImportSlotGroups)
-							for (TSharedPtr<FJsonValue> SlotGroupValue : Properties->GetArrayField("SlotGroups")) {
+							for (TSharedPtr<FJsonValue> SlotGroupValue : Properties->GetArrayField("SlotGroups"))
+							{
 								// Get the object
 								TSharedPtr<FJsonObject> SlotGroupObject = SlotGroupValue->AsObject();
 
@@ -679,7 +303,8 @@ void FJsonAsAssetModule::PluginButtonClicked()
 								TArray<TSharedPtr<FJsonValue>> SlotNamesArray = SlotGroupObject->GetArrayField("SlotNames");
 
 								// Loop through each slot to add
-								for (TSharedPtr<FJsonValue> SlotName : SlotNamesArray) {
+								for (TSharedPtr<FJsonValue> SlotName : SlotNamesArray)
+								{
 									Skeleton->Modify();
 
 									// Set the group name and slot name (the function also creates it if it doesn't exist!)
@@ -689,21 +314,26 @@ void FJsonAsAssetModule::PluginButtonClicked()
 
 						// Import the virtual bones
 						// [Optional]
-						if (ImportVirtualBones) 
-							for (TSharedPtr<FJsonValue> VirtualBoneValue : Properties->GetArrayField("VirtualBones")) {
+						if (ImportVirtualBones)
+							for (TSharedPtr<FJsonValue> VirtualBoneValue : Properties->GetArrayField("VirtualBones"))
+							{
 								TSharedPtr<FJsonObject> VirtualBoneObject = VirtualBoneValue->AsObject();
 
-								Cast<SkeletonAssetDerived>(Skeleton)->AddVirtualBone(FName(*VirtualBoneObject->GetStringField("SourceBoneName")), FName(*VirtualBoneObject->GetStringField("TargetBoneName")), FName(*VirtualBoneObject->GetStringField("VirtualBoneName")));
+								// Cast<SkeletonAssetDerived>(Skeleton)->AddVirtualBone(FName(*VirtualBoneObject->GetStringField("SourceBoneName")),
+								//                                                      FName(*VirtualBoneObject->GetStringField("TargetBoneName")),
+								//                                                      FName(*VirtualBoneObject->GetStringField("VirtualBoneName")));
 							}
 
-						for (TSharedPtr<FJsonValue> SecondaryPurposeValueObject : DataObjects) {
+						for (TSharedPtr<FJsonValue> SecondaryPurposeValueObject : DataObjects)
+						{
 							TSharedPtr<FJsonObject> SecondaryPurposeObject = SecondaryPurposeValueObject->AsObject();
 
 							FString SecondaryPurposeType = SecondaryPurposeObject->GetStringField("Type");
 							FString SecondaryPurposeName = SecondaryPurposeObject->GetStringField("Name");
 
 							// Import all blend profiles
-							if (SecondaryPurposeType == "BlendProfile" && ImportBlendProfiles) {
+							if (SecondaryPurposeType == "BlendProfile" && ImportBlendProfiles)
+							{
 								// Properties of the object
 								TSharedPtr<FJsonObject> SecondaryPurposeProperties = SecondaryPurposeObject->GetObjectField("Properties");
 								bool bIsAlreadyCreated = false;
@@ -713,26 +343,33 @@ void FJsonAsAssetModule::PluginButtonClicked()
 									if (!bIsAlreadyCreated)
 										bIsAlreadyCreated = BlendProfileC->GetFName() == FName(*SecondaryPurposeName);
 
-								if (!bIsAlreadyCreated) {
+								if (!bIsAlreadyCreated)
+								{
 									Skeleton->Modify();
 
-									UBlendProfile* BlendProfile = NewObject<UBlendProfile>(Skeleton, *SecondaryPurposeName, RF_Public | RF_Transactional);
+									UBlendProfile* BlendProfile = NewObject<UBlendProfile>(
+										Skeleton, *SecondaryPurposeName, RF_Public | RF_Transactional);
 									Skeleton->BlendProfiles.Add(BlendProfile);
 
-									for (TSharedPtr<FJsonValue> ProfileEntryValue : SecondaryPurposeProperties->GetArrayField("ProfileEntries")) {
+									for (TSharedPtr<FJsonValue> ProfileEntryValue : SecondaryPurposeProperties->GetArrayField("ProfileEntries"))
+									{
 										TSharedPtr<FJsonObject> ProfileEntry = ProfileEntryValue->AsObject();
 
 										Skeleton->Modify();
 
 										// Set the bone scale using the properties
 										// provided in the JSON file.
-										if(!bIsUnrealEngine5) BlendProfile->SetBoneBlendScale(FName(*ProfileEntry->GetObjectField("BoneReference")->GetStringField("BoneName")), ProfileEntry->GetNumberField("BlendScale"), false, true);
+										if (!bIsUnrealEngine5)
+											BlendProfile->SetBoneBlendScale(
+												FName(*ProfileEntry->GetObjectField("BoneReference")->GetStringField("BoneName")),
+												ProfileEntry->GetNumberField("BlendScale"), false, true);
 									}
 								}
 							}
 
 							// Import all sockets
-							if (SecondaryPurposeType == "SkeletalMeshSocket" && ImportSockets) {
+							if (SecondaryPurposeType == "SkeletalMeshSocket" && ImportSockets)
+							{
 								// Properties of the object
 								TSharedPtr<FJsonObject> SecondaryPurposeProperties = SecondaryPurposeObject->GetObjectField("Properties");
 
@@ -750,7 +387,8 @@ void FJsonAsAssetModule::PluginButtonClicked()
 									if (!bIsAlreadyCreated)
 										bIsAlreadyCreated = SocketO->SocketName == FName(*SecondaryPurposeName);
 
-								if (!bIsAlreadyCreated) {
+								if (!bIsAlreadyCreated)
+								{
 									const TSharedPtr<FJsonObject>* RelativeLocationObjectVector;
 									const TSharedPtr<FJsonObject>* RelativeScaleObjectVector;
 									const TSharedPtr<FJsonObject>* RelativeRotationObjectRotator;
@@ -793,7 +431,8 @@ void FJsonAsAssetModule::PluginButtonClicked()
 					}
 				}
 				// USubsurfaceProfile
-				else if (Type == "SubsurfaceProfile") {
+				else if (Type == "SubsurfaceProfile")
+				{
 					// The path that the file
 					// was imported from (RAW)
 					FString IMPath = OutFileNames[0];
@@ -807,8 +446,9 @@ void FJsonAsAssetModule::PluginButtonClicked()
 					UPackage* OutermostPkg = Package->GetOutermost();
 					Package->FullyLoad();
 
-					USubsurfaceProfile* SubsurfaceProfile = NewObject<USubsurfaceProfile>(Package, USubsurfaceProfile::StaticClass(), *Name, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
-					
+					USubsurfaceProfile* SubsurfaceProfile = NewObject<USubsurfaceProfile>(Package, USubsurfaceProfile::StaticClass(), *Name,
+					                                                                      EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
+
 					// Settings of the subsurface profile
 					TSharedPtr<FJsonObject> Settings = DataObject->GetObjectField("Properties")->GetObjectField("Settings");
 					FSubsurfaceProfileStruct Profile;
@@ -845,7 +485,7 @@ void FJsonAsAssetModule::PluginButtonClicked()
 						Profile.TransmissionTintColor = ObjectToLinearColor(TransmissionTintColor->Get());
 					if (Settings->TryGetObjectField("SubsurfaceColor", SubsurfaceColor))
 						Profile.SubsurfaceColor = ObjectToLinearColor(SubsurfaceColor->Get());
-					if (Settings->TryGetObjectField("SurfaceAlbedo", SurfaceAlbedo)) 
+					if (Settings->TryGetObjectField("SurfaceAlbedo", SurfaceAlbedo))
 						Profile.SurfaceAlbedo = ObjectToLinearColor(SurfaceAlbedo->Get());
 
 					if (Settings->TryGetNumberField("ExtinctionScale", ExtinctionScale))
@@ -878,7 +518,8 @@ void FJsonAsAssetModule::PluginButtonClicked()
 					SubsurfaceProfile->AddToRoot();
 				}
 				// USkeletalMesh
-				else if (Type == "PhysicsAsset") {
+				else if (Type == "PhysicsAsset")
+				{
 					GLog->Log("JsonAsAsset: Found a physics asset by the name of " + Name + ", parsing..");
 
 					// We cannot create a skeletal mesh at the moment
@@ -912,11 +553,13 @@ void FJsonAsAssetModule::PluginButtonClicked()
 							UPackage* OutermostPkg = Package->GetOutermost();
 							Package->FullyLoad();
 
-							UPhysicsAsset* PhysAsset = NewObject<UPhysicsAsset>(Package, UPhysicsAsset::StaticClass(), *Name, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
+							UPhysicsAsset* PhysAsset = NewObject<UPhysicsAsset>(Package, UPhysicsAsset::StaticClass(), *Name,
+							                                                    EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
 
 							PhysAsset->SetPreviewMesh(SkeletalMesh);
 
-							for (TSharedPtr<FJsonValue> SecondaryPurposeValueObject : DataObjects) {
+							for (TSharedPtr<FJsonValue> SecondaryPurposeValueObject : DataObjects)
+							{
 								TSharedPtr<FJsonObject> SecondaryPurposeObject = SecondaryPurposeValueObject->AsObject();
 
 								FString SecondaryPurposeType = SecondaryPurposeObject->GetStringField("Type");
@@ -925,7 +568,8 @@ void FJsonAsAssetModule::PluginButtonClicked()
 								int32 anIndex = 0;
 
 								// Import all sockets
-								if (SecondaryPurposeType == "SkeletalBodySetup") {
+								if (SecondaryPurposeType == "SkeletalBodySetup")
+								{
 									// Properties of the object
 									TSharedPtr<FJsonObject> SecondaryPurposeProperties = SecondaryPurposeObject->GetObjectField("Properties");
 									USkeletalBodySetup* NewBodySetup = NewObject<USkeletalBodySetup>(PhysAsset, NAME_None, RF_Transactional);
@@ -937,46 +581,52 @@ void FJsonAsAssetModule::PluginButtonClicked()
 									FString CollisionTraceFlag;
 									FString CollisionReponse;
 
-									if (SecondaryPurposeProperties->TryGetStringField("PhysicsType", PhysicsType)) {
+									if (SecondaryPurposeProperties->TryGetStringField("PhysicsType", PhysicsType))
+									{
 										NewBodySetup->PhysicsType =
-											PhysicsType.EndsWith("PhysType_Default") ?
-											EPhysicsType::PhysType_Default :
-											PhysicsType.EndsWith("PhysType_Kinematic") ?
-											EPhysicsType::PhysType_Kinematic :
-											PhysicsType.EndsWith("PhysType_Simulated") ?
-											EPhysicsType::PhysType_Simulated :
-											EPhysicsType::PhysType_Default;
+											PhysicsType.EndsWith("PhysType_Default")
+												? EPhysicsType::PhysType_Default
+												: PhysicsType.EndsWith("PhysType_Kinematic")
+												? EPhysicsType::PhysType_Kinematic
+												: PhysicsType.EndsWith("PhysType_Simulated")
+												? EPhysicsType::PhysType_Simulated
+												: EPhysicsType::PhysType_Default;
 									}
-									if (SecondaryPurposeProperties->TryGetStringField("CollisionReponse", CollisionReponse)) {
+									if (SecondaryPurposeProperties->TryGetStringField("CollisionReponse", CollisionReponse))
+									{
 										NewBodySetup->CollisionReponse =
-											CollisionReponse.EndsWith("BodyCollision_Enabled") ?
-											EBodyCollisionResponse::BodyCollision_Enabled :
-											CollisionReponse.EndsWith("BodyCollision_Disabled") ?
-											EBodyCollisionResponse::BodyCollision_Disabled :
-											EBodyCollisionResponse::BodyCollision_Enabled;
+											CollisionReponse.EndsWith("BodyCollision_Enabled")
+												? EBodyCollisionResponse::BodyCollision_Enabled
+												: CollisionReponse.EndsWith("BodyCollision_Disabled")
+												? EBodyCollisionResponse::BodyCollision_Disabled
+												: EBodyCollisionResponse::BodyCollision_Enabled;
 									}
-									if (SecondaryPurposeProperties->TryGetStringField("CollisionTraceFlag", CollisionTraceFlag)) {
+									if (SecondaryPurposeProperties->TryGetStringField("CollisionTraceFlag", CollisionTraceFlag))
+									{
 										NewBodySetup->CollisionTraceFlag =
-											PhysicsType.EndsWith("CTF_UseDefault") ?
-											ECollisionTraceFlag::CTF_UseDefault :
-											PhysicsType.EndsWith("CTF_UseSimpleAndComplex") ?
-											ECollisionTraceFlag::CTF_UseSimpleAndComplex :
-											PhysicsType.EndsWith("CTF_UseSimpleAndComplex") ?
-											ECollisionTraceFlag::CTF_UseSimpleAndComplex :
-											PhysicsType.EndsWith("CTF_UseSimpleAsComplex") ?
-											ECollisionTraceFlag::CTF_UseSimpleAsComplex :
-											PhysicsType.EndsWith("CTF_UseComplexAsSimple") ?
-											ECollisionTraceFlag::CTF_UseComplexAsSimple :
-											ECollisionTraceFlag::CTF_UseDefault;
+											PhysicsType.EndsWith("CTF_UseDefault")
+												? ECollisionTraceFlag::CTF_UseDefault
+												: PhysicsType.EndsWith("CTF_UseSimpleAndComplex")
+												? ECollisionTraceFlag::CTF_UseSimpleAndComplex
+												: PhysicsType.EndsWith("CTF_UseSimpleAndComplex")
+												? ECollisionTraceFlag::CTF_UseSimpleAndComplex
+												: PhysicsType.EndsWith("CTF_UseSimpleAsComplex")
+												? ECollisionTraceFlag::CTF_UseSimpleAsComplex
+												: PhysicsType.EndsWith("CTF_UseComplexAsSimple")
+												? ECollisionTraceFlag::CTF_UseComplexAsSimple
+												: ECollisionTraceFlag::CTF_UseDefault;
 									}
 
 									const TSharedPtr<FJsonObject>* AggGeom;
-									if (SecondaryPurposeProperties->TryGetObjectField("AggGeom", AggGeom)) {
+									if (SecondaryPurposeProperties->TryGetObjectField("AggGeom", AggGeom))
+									{
 										const TArray<TSharedPtr<FJsonValue>>* SphylElems;
 										FKAggregateGeom AggOem;
 
-										if (AggGeom->Get()->TryGetArrayField("SphylElems", SphylElems)) {
-											for (TSharedPtr<FJsonValue> SphylElemOb : AggGeom->Get()->GetArrayField("SphylElems")) {
+										if (AggGeom->Get()->TryGetArrayField("SphylElems", SphylElems))
+										{
+											for (TSharedPtr<FJsonValue> SphylElemOb : AggGeom->Get()->GetArrayField("SphylElems"))
+											{
 												TSharedPtr<FJsonObject> SphylElemObject = SphylElemOb->AsObject();
 												FKSphylElem SphylElem;
 
@@ -992,8 +642,10 @@ void FJsonAsAssetModule::PluginButtonClicked()
 											}
 										}
 
-										if (AggGeom->Get()->TryGetArrayField("SphereElems", SphylElems)) {
-											for (TSharedPtr<FJsonValue> SphylElemOb : AggGeom->Get()->GetArrayField("SphereElems")) {
+										if (AggGeom->Get()->TryGetArrayField("SphereElems", SphylElems))
+										{
+											for (TSharedPtr<FJsonValue> SphylElemOb : AggGeom->Get()->GetArrayField("SphereElems"))
+											{
 												TSharedPtr<FJsonObject> SphylElemObject = SphylElemOb->AsObject();
 												FKSphereElem SphylElem;
 
@@ -1007,8 +659,10 @@ void FJsonAsAssetModule::PluginButtonClicked()
 											}
 										}
 
-										if (AggGeom->Get()->TryGetArrayField("BoxElems", SphylElems)) {
-											for (TSharedPtr<FJsonValue> SphylElemOb : AggGeom->Get()->GetArrayField("BoxElems")) {
+										if (AggGeom->Get()->TryGetArrayField("BoxElems", SphylElems))
+										{
+											for (TSharedPtr<FJsonValue> SphylElemOb : AggGeom->Get()->GetArrayField("BoxElems"))
+											{
 												TSharedPtr<FJsonObject> SphylElemObject = SphylElemOb->AsObject();
 												FKBoxElem SphylElem;
 
@@ -1025,13 +679,16 @@ void FJsonAsAssetModule::PluginButtonClicked()
 											}
 										}
 
-										if (AggGeom->Get()->TryGetArrayField("TaperedCapsuleElems", SphylElems)) {
-											for (TSharedPtr<FJsonValue> TaperedCapsuleElemOb : AggGeom->Get()->GetArrayField("TaperedCapsuleElems")) {
+										if (AggGeom->Get()->TryGetArrayField("TaperedCapsuleElems", SphylElems))
+										{
+											for (TSharedPtr<FJsonValue> TaperedCapsuleElemOb : AggGeom->Get()->GetArrayField("TaperedCapsuleElems"))
+											{
 												TSharedPtr<FJsonObject> TaperedCapsuleElemObject = TaperedCapsuleElemOb->AsObject();
 												FKTaperedCapsuleElem TaperedCapsuleElem;
 
 												TaperedCapsuleElem.Center = ObjectToVector(TaperedCapsuleElemObject->GetObjectField("Center").Get());
-												TaperedCapsuleElem.Rotation = ObjectToRotator(TaperedCapsuleElemObject->GetObjectField("Rotation").Get());
+												TaperedCapsuleElem.Rotation = ObjectToRotator(
+													TaperedCapsuleElemObject->GetObjectField("Rotation").Get());
 
 												TaperedCapsuleElem.Radius0 = TaperedCapsuleElemObject->GetNumberField("Radius0");
 												TaperedCapsuleElem.Radius1 = TaperedCapsuleElemObject->GetNumberField("Radius1");
@@ -1045,7 +702,8 @@ void FJsonAsAssetModule::PluginButtonClicked()
 									}
 
 									const TSharedPtr<FJsonObject>* DefaultInstance;
-									if (SecondaryPurposeProperties->TryGetObjectField("DefaultInstance", DefaultInstance)) {
+									if (SecondaryPurposeProperties->TryGetObjectField("DefaultInstance", DefaultInstance))
+									{
 										FBodyInstance BodyInstance;
 
 										int64 MassInKgOverride;
@@ -1056,26 +714,34 @@ void FJsonAsAssetModule::PluginButtonClicked()
 										const TSharedPtr<FJsonObject>* InertiaTensorScale;
 										const TSharedPtr<FJsonObject>* COMNudge;
 
-										if (DefaultInstance->Get()->TryGetNumberField("MassInKgOverride", MassInKgOverride)) {
+										if (DefaultInstance->Get()->TryGetNumberField("MassInKgOverride", MassInKgOverride))
+										{
 											BodyInstance.SetMassOverride(DefaultInstance->Get()->GetNumberField("MassInKgOverride"), true);
 										}
-										if (DefaultInstance->Get()->TryGetNumberField("AngularDamping", AngularDamping)) {
+										if (DefaultInstance->Get()->TryGetNumberField("AngularDamping", AngularDamping))
+										{
 											BodyInstance.AngularDamping = DefaultInstance->Get()->GetNumberField("AngularDamping");
 										}
-										if (DefaultInstance->Get()->TryGetNumberField("LinearDamping", LinearDamping)) {
+										if (DefaultInstance->Get()->TryGetNumberField("LinearDamping", LinearDamping))
+										{
 											BodyInstance.LinearDamping = DefaultInstance->Get()->GetNumberField("LinearDamping");
 										}
-										if (DefaultInstance->Get()->TryGetNumberField("PositionSolverIterationCount", PositionSolverIterationCount)) {
-											BodyInstance.PositionSolverIterationCount = DefaultInstance->Get()->GetIntegerField("PositionSolverIterationCount");
+										if (DefaultInstance->Get()->TryGetNumberField("PositionSolverIterationCount", PositionSolverIterationCount))
+										{
+											BodyInstance.PositionSolverIterationCount = DefaultInstance->Get()->GetIntegerField(
+												"PositionSolverIterationCount");
 										}
-										if (DefaultInstance->Get()->TryGetNumberField("VelocitySolverIterationCount", VelocitySolverIterationCount)) {
+										if (DefaultInstance->Get()->TryGetNumberField("VelocitySolverIterationCount", VelocitySolverIterationCount))
+										{
 											int Velo = DefaultInstance->Get()->GetIntegerField("VelocitySolverIterationCount");
-											BodyInstance.VelocitySolverIterationCount = *((uint8*)& Velo);
+											BodyInstance.VelocitySolverIterationCount = *((uint8*)&Velo);
 										}
-										if (DefaultInstance->Get()->TryGetObjectField("InertiaTensorScale", InertiaTensorScale)) {
+										if (DefaultInstance->Get()->TryGetObjectField("InertiaTensorScale", InertiaTensorScale))
+										{
 											BodyInstance.InertiaTensorScale = ObjectToVector(InertiaTensorScale->Get());
 										}
-										if (DefaultInstance->Get()->TryGetObjectField("COMNudge", COMNudge)) {
+										if (DefaultInstance->Get()->TryGetObjectField("COMNudge", COMNudge))
+										{
 											BodyInstance.COMNudge = ObjectToVector(COMNudge->Get());
 										}
 									}
@@ -1085,14 +751,19 @@ void FJsonAsAssetModule::PluginButtonClicked()
 									PhysAsset->UpdateBodySetupIndexMap();
 									PhysAsset->UpdateBoundsBodiesArray();
 								}
-								if (SecondaryPurposeType == "PhysicsConstraintTemplate") {
+								if (SecondaryPurposeType == "PhysicsConstraintTemplate")
+								{
 									// Properties of the object
 									TSharedPtr<FJsonObject> SecondaryPurposeProperties = SecondaryPurposeObject->GetObjectField("Properties");
-									UPhysicsConstraintTemplate* NewConstraintSetup = NewObject<UPhysicsConstraintTemplate>(PhysAsset, NAME_None, RF_Transactional);
+									UPhysicsConstraintTemplate* NewConstraintSetup = NewObject<UPhysicsConstraintTemplate>(
+										PhysAsset, NAME_None, RF_Transactional);
 
-									NewConstraintSetup->DefaultInstance.JointName = FName(*SecondaryPurposeProperties->GetObjectField("DefaultInstance")->GetStringField("JointName"));
-									NewConstraintSetup->DefaultInstance.ConstraintBone1 = FName(*SecondaryPurposeProperties->GetObjectField("DefaultInstance")->GetStringField("ConstraintBone1"));
-									NewConstraintSetup->DefaultInstance.ConstraintBone2 = FName(*SecondaryPurposeProperties->GetObjectField("DefaultInstance")->GetStringField("ConstraintBone2"));
+									NewConstraintSetup->DefaultInstance.JointName = FName(
+										*SecondaryPurposeProperties->GetObjectField("DefaultInstance")->GetStringField("JointName"));
+									NewConstraintSetup->DefaultInstance.ConstraintBone1 = FName(
+										*SecondaryPurposeProperties->GetObjectField("DefaultInstance")->GetStringField("ConstraintBone1"));
+									NewConstraintSetup->DefaultInstance.ConstraintBone2 = FName(
+										*SecondaryPurposeProperties->GetObjectField("DefaultInstance")->GetStringField("ConstraintBone2"));
 
 									/*const TSharedPtr<FJsonObject>* Pos1;
 									const TSharedPtr<FJsonObject>* Pos2;
@@ -1128,12 +799,15 @@ void FJsonAsAssetModule::PluginButtonClicked()
 
 									const TSharedPtr<FJsonObject>* ProfileInstance11;
 
-									if (SecondaryPurposeProperties->GetObjectField("DefaultInstance")->TryGetObjectField("ProfileInstance", ProfileInstance11)) {
+									if (SecondaryPurposeProperties->GetObjectField("DefaultInstance")->TryGetObjectField(
+										"ProfileInstance", ProfileInstance11))
+									{
 										const FJsonObject* ProfileInstance = ProfileInstance11->Get();
 
 										const TSharedPtr<FJsonObject>* LinearLimit;
 
-										if (ProfileInstance->TryGetObjectField("LinearLimit", LinearLimit)) {
+										if (ProfileInstance->TryGetObjectField("LinearLimit", LinearLimit))
+										{
 											bool bSoftConstraint;
 											int64 ContactDistance;
 											int64 Damping;
@@ -1141,136 +815,163 @@ void FJsonAsAssetModule::PluginButtonClicked()
 											int64 Stiffness;
 											int64 Limit;
 
-											if (LinearLimit->Get()->TryGetBoolField("bSoftConstraint", bSoftConstraint)) {
+											if (LinearLimit->Get()->TryGetBoolField("bSoftConstraint", bSoftConstraint))
+											{
 												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.bSoftConstraint = bSoftConstraint;
 											}
 
-											if (LinearLimit->Get()->TryGetNumberField("ContactDistance", ContactDistance)) {
-												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.ContactDistance = LinearLimit->Get()->GetNumberField("ContactDistance");
+											if (LinearLimit->Get()->TryGetNumberField("ContactDistance", ContactDistance))
+											{
+												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.ContactDistance = LinearLimit->Get()->
+													GetNumberField("ContactDistance");
 											}
 
-											if (LinearLimit->Get()->TryGetNumberField("Damping", Damping)) {
-												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.Damping = LinearLimit->Get()->GetNumberField("Damping");
+											if (LinearLimit->Get()->TryGetNumberField("Damping", Damping))
+											{
+												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.Damping = LinearLimit->Get()->
+													GetNumberField("Damping");
 											}
 
-											if (LinearLimit->Get()->TryGetNumberField("Restitution", Restitution)) {
-												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.Restitution = LinearLimit->Get()->GetNumberField("Restitution");
+											if (LinearLimit->Get()->TryGetNumberField("Restitution", Restitution))
+											{
+												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.Restitution = LinearLimit->Get()->
+													GetNumberField("Restitution");
 											}
 
-											if (LinearLimit->Get()->TryGetNumberField("Stiffness", Stiffness)) {
-												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.Stiffness = LinearLimit->Get()->GetNumberField("Stiffness");
+											if (LinearLimit->Get()->TryGetNumberField("Stiffness", Stiffness))
+											{
+												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.Stiffness = LinearLimit->Get()->
+													GetNumberField("Stiffness");
 											}
 
-											if (LinearLimit->Get()->TryGetNumberField("Limit", Limit)) {
-												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.Limit = LinearLimit->Get()->GetNumberField("Limit");
+											if (LinearLimit->Get()->TryGetNumberField("Limit", Limit))
+											{
+												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.Limit = LinearLimit->Get()->
+													GetNumberField("Limit");
 												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.XMotion =
-													LinearLimit->Get()->GetStringField("XMotion").EndsWith("LCM_Free") ?
-													ELinearConstraintMotion::LCM_Free :
-													LinearLimit->Get()->GetStringField("XMotion").EndsWith("LCM_Limited") ?
-													ELinearConstraintMotion::LCM_Limited :
-													LinearLimit->Get()->GetStringField("XMotion").EndsWith("LCM_Locked") ?
-													ELinearConstraintMotion::LCM_Locked :
-													ELinearConstraintMotion::LCM_Limited;
+													LinearLimit->Get()->GetStringField("XMotion").EndsWith("LCM_Free")
+														? ELinearConstraintMotion::LCM_Free
+														: LinearLimit->Get()->GetStringField("XMotion").EndsWith("LCM_Limited")
+														? ELinearConstraintMotion::LCM_Limited
+														: LinearLimit->Get()->GetStringField("XMotion").EndsWith("LCM_Locked")
+														? ELinearConstraintMotion::LCM_Locked
+														: ELinearConstraintMotion::LCM_Limited;
 
 												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.YMotion =
-													LinearLimit->Get()->GetStringField("YMotion").EndsWith("LCM_Free") ?
-													ELinearConstraintMotion::LCM_Free :
-													LinearLimit->Get()->GetStringField("YMotion").EndsWith("LCM_Limited") ?
-													ELinearConstraintMotion::LCM_Limited :
-													LinearLimit->Get()->GetStringField("YMotion").EndsWith("LCM_Locked") ?
-													ELinearConstraintMotion::LCM_Locked :
-													ELinearConstraintMotion::LCM_Limited;
+													LinearLimit->Get()->GetStringField("YMotion").EndsWith("LCM_Free")
+														? ELinearConstraintMotion::LCM_Free
+														: LinearLimit->Get()->GetStringField("YMotion").EndsWith("LCM_Limited")
+														? ELinearConstraintMotion::LCM_Limited
+														: LinearLimit->Get()->GetStringField("YMotion").EndsWith("LCM_Locked")
+														? ELinearConstraintMotion::LCM_Locked
+														: ELinearConstraintMotion::LCM_Limited;
 
 												NewConstraintSetup->DefaultInstance.ProfileInstance.LinearLimit.ZMotion =
-													LinearLimit->Get()->GetStringField("ZMotion").EndsWith("LCM_Free") ?
-													ELinearConstraintMotion::LCM_Free :
-													LinearLimit->Get()->GetStringField("ZMotion").EndsWith("LCM_Limited") ?
-													ELinearConstraintMotion::LCM_Limited :
-													LinearLimit->Get()->GetStringField("ZMotion").EndsWith("LCM_Locked") ?
-													ELinearConstraintMotion::LCM_Locked :
-													ELinearConstraintMotion::LCM_Limited;
+													LinearLimit->Get()->GetStringField("ZMotion").EndsWith("LCM_Free")
+														? ELinearConstraintMotion::LCM_Free
+														: LinearLimit->Get()->GetStringField("ZMotion").EndsWith("LCM_Limited")
+														? ELinearConstraintMotion::LCM_Limited
+														: LinearLimit->Get()->GetStringField("ZMotion").EndsWith("LCM_Locked")
+														? ELinearConstraintMotion::LCM_Locked
+														: ELinearConstraintMotion::LCM_Limited;
 											}
 										}
 
 										const TSharedPtr<FJsonObject>* ConeLimit;
-										if (ProfileInstance->TryGetObjectField("ConeLimit", ConeLimit)) {
+										if (ProfileInstance->TryGetObjectField("ConeLimit", ConeLimit))
+										{
 											int64 Swing1LimitDegrees;
 											int64 Swing2LimitDegrees;
 											FString Swing1Motion;
 											FString Swing2Motion;
 
-											if (ConeLimit->Get()->TryGetNumberField("Swing1LimitDegrees", Swing1LimitDegrees)) {
-												NewConstraintSetup->DefaultInstance.ProfileInstance.ConeLimit.Swing1LimitDegrees = ConeLimit->Get()->GetNumberField("Swing1LimitDegrees");
+											if (ConeLimit->Get()->TryGetNumberField("Swing1LimitDegrees", Swing1LimitDegrees))
+											{
+												NewConstraintSetup->DefaultInstance.ProfileInstance.ConeLimit.Swing1LimitDegrees = ConeLimit->Get()->
+													GetNumberField("Swing1LimitDegrees");
 											}
-											if (ConeLimit->Get()->TryGetNumberField("Swing2LimitDegrees", Swing2LimitDegrees)) {
-												NewConstraintSetup->DefaultInstance.ProfileInstance.ConeLimit.Swing2LimitDegrees = ConeLimit->Get()->GetNumberField("Swing2LimitDegrees");
+											if (ConeLimit->Get()->TryGetNumberField("Swing2LimitDegrees", Swing2LimitDegrees))
+											{
+												NewConstraintSetup->DefaultInstance.ProfileInstance.ConeLimit.Swing2LimitDegrees = ConeLimit->Get()->
+													GetNumberField("Swing2LimitDegrees");
 											}
 
-											if (ConeLimit->Get()->TryGetStringField("Swing1Motion", Swing1Motion)) {
+											if (ConeLimit->Get()->TryGetStringField("Swing1Motion", Swing1Motion))
+											{
 												NewConstraintSetup->DefaultInstance.ProfileInstance.ConeLimit.Swing1Motion =
-													ConeLimit->Get()->GetStringField("Swing1Motion").EndsWith("ACM_Free") ?
-													EAngularConstraintMotion::ACM_Free :
-													ConeLimit->Get()->GetStringField("Swing1Motion").EndsWith("ACM_Limited") ?
-													EAngularConstraintMotion::ACM_Limited :
-													ConeLimit->Get()->GetStringField("Swing1Motion").EndsWith("ACM_Locked") ?
-													EAngularConstraintMotion::ACM_Locked :
-													EAngularConstraintMotion::ACM_Limited;
-
+													ConeLimit->Get()->GetStringField("Swing1Motion").EndsWith("ACM_Free")
+														? EAngularConstraintMotion::ACM_Free
+														: ConeLimit->Get()->GetStringField("Swing1Motion").EndsWith("ACM_Limited")
+														? EAngularConstraintMotion::ACM_Limited
+														: ConeLimit->Get()->GetStringField("Swing1Motion").EndsWith("ACM_Locked")
+														? EAngularConstraintMotion::ACM_Locked
+														: EAngularConstraintMotion::ACM_Limited;
 											}
-											if (ConeLimit->Get()->TryGetStringField("Swing2Motion", Swing2Motion)) {
+											if (ConeLimit->Get()->TryGetStringField("Swing2Motion", Swing2Motion))
+											{
 												NewConstraintSetup->DefaultInstance.ProfileInstance.ConeLimit.Swing2Motion =
-													ConeLimit->Get()->GetStringField("Swing2Motion").EndsWith("ACM_Free") ?
-													EAngularConstraintMotion::ACM_Free :
-													ConeLimit->Get()->GetStringField("Swing2Motion").EndsWith("ACM_Limited") ?
-													EAngularConstraintMotion::ACM_Limited :
-													ConeLimit->Get()->GetStringField("Swing2Motion").EndsWith("ACM_Locked") ?
-													EAngularConstraintMotion::ACM_Locked :
-													EAngularConstraintMotion::ACM_Limited;
-
+													ConeLimit->Get()->GetStringField("Swing2Motion").EndsWith("ACM_Free")
+														? EAngularConstraintMotion::ACM_Free
+														: ConeLimit->Get()->GetStringField("Swing2Motion").EndsWith("ACM_Limited")
+														? EAngularConstraintMotion::ACM_Limited
+														: ConeLimit->Get()->GetStringField("Swing2Motion").EndsWith("ACM_Locked")
+														? EAngularConstraintMotion::ACM_Locked
+														: EAngularConstraintMotion::ACM_Limited;
 											}
 										}
 
 										const TSharedPtr<FJsonObject>* TwistLimit;
-										if (ProfileInstance->TryGetObjectField("TwistLimit", TwistLimit)) {
+										if (ProfileInstance->TryGetObjectField("TwistLimit", TwistLimit))
+										{
 											int64 TwistLimitDegrees;
 											FString TwistMotion;
 
-											if (TwistLimit->Get()->TryGetNumberField("TwistLimitDegrees", TwistLimitDegrees)) {
-												NewConstraintSetup->DefaultInstance.ProfileInstance.TwistLimit.TwistLimitDegrees = TwistLimit->Get()->GetNumberField("TwistLimitDegrees");
+											if (TwistLimit->Get()->TryGetNumberField("TwistLimitDegrees", TwistLimitDegrees))
+											{
+												NewConstraintSetup->DefaultInstance.ProfileInstance.TwistLimit.TwistLimitDegrees = TwistLimit->Get()->
+													GetNumberField("TwistLimitDegrees");
 											}
 
-											if (TwistLimit->Get()->TryGetStringField("TwistMotion", TwistMotion)) {
+											if (TwistLimit->Get()->TryGetStringField("TwistMotion", TwistMotion))
+											{
 												NewConstraintSetup->DefaultInstance.ProfileInstance.TwistLimit.TwistMotion =
-													TwistLimit->Get()->GetStringField("TwistMotion").EndsWith("ACM_Free") ?
-													EAngularConstraintMotion::ACM_Free :
-													TwistLimit->Get()->GetStringField("TwistMotion").EndsWith("ACM_Limited") ?
-													EAngularConstraintMotion::ACM_Limited :
-													TwistLimit->Get()->GetStringField("TwistMotion").EndsWith("ACM_Locked") ?
-													EAngularConstraintMotion::ACM_Locked :
-													EAngularConstraintMotion::ACM_Limited;
-
+													TwistLimit->Get()->GetStringField("TwistMotion").EndsWith("ACM_Free")
+														? EAngularConstraintMotion::ACM_Free
+														: TwistLimit->Get()->GetStringField("TwistMotion").EndsWith("ACM_Limited")
+														? EAngularConstraintMotion::ACM_Limited
+														: TwistLimit->Get()->GetStringField("TwistMotion").EndsWith("ACM_Locked")
+														? EAngularConstraintMotion::ACM_Locked
+														: EAngularConstraintMotion::ACM_Limited;
 											}
 										}
 
 										const TSharedPtr<FJsonObject>* AngularDrive;
-										if (ProfileInstance->TryGetObjectField("AngularDrive", AngularDrive)) {
+										if (ProfileInstance->TryGetObjectField("AngularDrive", AngularDrive))
+										{
 											const TSharedPtr<FJsonObject>* TwistDrive;
 
 											const TSharedPtr<FJsonObject>* SlerpDrive;
 
-											if (AngularDrive->Get()->TryGetObjectField("SlerpDrive", SlerpDrive)) {
-												NewConstraintSetup->DefaultInstance.ProfileInstance.AngularDrive.SlerpDrive.bEnablePositionDrive = SlerpDrive->Get()->GetBoolField("bEnablePositionDrive");
-												NewConstraintSetup->DefaultInstance.ProfileInstance.AngularDrive.SlerpDrive.Stiffness = SlerpDrive->Get()->GetNumberField("Stiffness");
+											if (AngularDrive->Get()->TryGetObjectField("SlerpDrive", SlerpDrive))
+											{
+												NewConstraintSetup->DefaultInstance.ProfileInstance.AngularDrive.SlerpDrive.bEnablePositionDrive =
+													SlerpDrive->Get()->GetBoolField("bEnablePositionDrive");
+												NewConstraintSetup->DefaultInstance.ProfileInstance.AngularDrive.SlerpDrive.Stiffness = SlerpDrive->
+													Get()->GetNumberField("Stiffness");
 											}
 
-											if (AngularDrive->Get()->TryGetObjectField("TwistDrive", TwistDrive)) {
-												NewConstraintSetup->DefaultInstance.ProfileInstance.AngularDrive.TwistDrive.Stiffness = TwistDrive->Get()->GetNumberField("Stiffness");
+											if (AngularDrive->Get()->TryGetObjectField("TwistDrive", TwistDrive))
+											{
+												NewConstraintSetup->DefaultInstance.ProfileInstance.AngularDrive.TwistDrive.Stiffness = TwistDrive->
+													Get()->GetNumberField("Stiffness");
 											}
 
 											const TSharedPtr<FJsonObject>* SwingDrive;
 
-											if (AngularDrive->Get()->TryGetObjectField("SwingDrive", SwingDrive)) {
-												NewConstraintSetup->DefaultInstance.ProfileInstance.AngularDrive.SwingDrive.Stiffness = SwingDrive->Get()->GetNumberField("Stiffness");
+											if (AngularDrive->Get()->TryGetObjectField("SwingDrive", SwingDrive))
+											{
+												NewConstraintSetup->DefaultInstance.ProfileInstance.AngularDrive.SwingDrive.Stiffness = SwingDrive->
+													Get()->GetNumberField("Stiffness");
 											}
 										}
 									}
@@ -1286,19 +987,23 @@ void FJsonAsAssetModule::PluginButtonClicked()
 							PhysAsset->AddToRoot();
 						}
 						// Skeletal Mesh Not Selected
-						else {
+						else
+						{
 							FText DialogText = FText::FromString(TEXT("Please select a skeletal mesh to modify using the plugin."));
 							FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 						}
 					}
 
 					// Nothing Selected At All
-					if (SelectedAssets.Num() == 0) {
-						FText DialogText = FText::FromString(TEXT("You have no selected asset, please select a Skeletal Mesh because at the moment we can only add to a skeletal mesh not make one."));
+					if (SelectedAssets.Num() == 0)
+					{
+						FText DialogText = FText::FromString(TEXT(
+							"You have no selected asset, please select a Skeletal Mesh because at the moment we can only add to a skeletal mesh not make one."));
 						FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 					}
 				}
-				else if (Type == "AnimSequence" || Type == "AnimMontage") {
+				else if (Type == "AnimSequence" || Type == "AnimMontage")
+				{
 					// Properties of the object
 					TSharedPtr<FJsonObject> Properties = DataObject->GetObjectField("Properties");
 					UObject* Asset = GetSelectedAsset();
@@ -1317,7 +1022,8 @@ void FJsonAsAssetModule::PluginButtonClicked()
 						EvaluateAnimSequence(DataObject.Get(), AnimSequenceBase);
 					}
 				}
-				else if (Type == "DataTable") {
+				else if (Type == "DataTable")
+				{
 					/* Properties of the object
 					TSharedPtr<FJsonObject> Properties = DataObject->GetObjectField("Properties");
 					
@@ -1365,11 +1071,13 @@ void FJsonAsAssetModule::PluginButtonClicked()
 						}
 					}
 				}
-				else if (Type == "ReverbEffect") {
+				else if (Type == "ReverbEffect")
+				{
 					TSharedPtr<FJsonObject> Properties = DataObject->GetObjectField("Properties");
 
 					UPackage* Package = CreateAssetPackage(Name, OutFileNames);
-					UReverbEffect* ReverbEffect = NewObject<UReverbEffect>(Package, UReverbEffect::StaticClass(), *Name, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
+					UReverbEffect* ReverbEffect = NewObject<UReverbEffect>(Package, UReverbEffect::StaticClass(), *Name,
+					                                                       EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
 
 					int64 AirAbsorptionGainHF;
 					int64 DecayHFRatio;
@@ -1387,52 +1095,68 @@ void FJsonAsAssetModule::PluginButtonClicked()
 					bool bBypassLateReflections;
 					bool bBypassEarlyReflections;
 
-					if (Properties->TryGetNumberField("AirAbsorptionGainHF", AirAbsorptionGainHF)) {
+					if (Properties->TryGetNumberField("AirAbsorptionGainHF", AirAbsorptionGainHF))
+					{
 						ReverbEffect->AirAbsorptionGainHF = Properties->GetNumberField("AirAbsorptionGainHF");
 					}
-					if (Properties->TryGetNumberField("DecayHFRatio", DecayHFRatio)) {
+					if (Properties->TryGetNumberField("DecayHFRatio", DecayHFRatio))
+					{
 						ReverbEffect->DecayHFRatio = Properties->GetNumberField("DecayHFRatio");
 					}
-					if (Properties->TryGetNumberField("DecayTime", DecayTime)) {
+					if (Properties->TryGetNumberField("DecayTime", DecayTime))
+					{
 						ReverbEffect->DecayTime = Properties->GetNumberField("DecayTime");
 					}
-					if (Properties->TryGetNumberField("Density", Density)) {
+					if (Properties->TryGetNumberField("Density", Density))
+					{
 						ReverbEffect->Density = Properties->GetNumberField("Density");
 					}
-					if (Properties->TryGetNumberField("Diffusion", Diffusion)) {
+					if (Properties->TryGetNumberField("Diffusion", Diffusion))
+					{
 						ReverbEffect->Diffusion = Properties->GetNumberField("Diffusion");
 					}
-					if (Properties->TryGetNumberField("Gain", Gain)) {
+					if (Properties->TryGetNumberField("Gain", Gain))
+					{
 						ReverbEffect->Gain = Properties->GetNumberField("Gain");
 					}
-					if (Properties->TryGetNumberField("GainHF", GainHF)) {
+					if (Properties->TryGetNumberField("GainHF", GainHF))
+					{
 						ReverbEffect->GainHF = Properties->GetNumberField("GainHF");
 					}
-					if (Properties->TryGetNumberField("LateDelay", LateDelay)) {
+					if (Properties->TryGetNumberField("LateDelay", LateDelay))
+					{
 						ReverbEffect->LateDelay = Properties->GetNumberField("LateDelay");
 					}
-					if (Properties->TryGetNumberField("LateGain", LateGain)) {
+					if (Properties->TryGetNumberField("LateGain", LateGain))
+					{
 						ReverbEffect->LateGain = Properties->GetNumberField("LateGain");
 					}
-					if (Properties->TryGetNumberField("ReflectionsDelay", ReflectionsDelay)) {
+					if (Properties->TryGetNumberField("ReflectionsDelay", ReflectionsDelay))
+					{
 						ReverbEffect->ReflectionsDelay = Properties->GetNumberField("ReflectionsDelay");
 					}
-					if (Properties->TryGetNumberField("ReflectionsGain", ReflectionsGain)) {
+					if (Properties->TryGetNumberField("ReflectionsGain", ReflectionsGain))
+					{
 						ReverbEffect->ReflectionsGain = Properties->GetNumberField("ReflectionsGain");
 					}
-					if (Properties->TryGetNumberField("RoomRolloffFactor", RoomRolloffFactor)) {
+					if (Properties->TryGetNumberField("RoomRolloffFactor", RoomRolloffFactor))
+					{
 						ReverbEffect->RoomRolloffFactor = Properties->GetNumberField("RoomRolloffFactor");
 					}
-					if (Properties->TryGetNumberField("RoomRolloffFactor", RoomRolloffFactor)) {
+					if (Properties->TryGetNumberField("RoomRolloffFactor", RoomRolloffFactor))
+					{
 						ReverbEffect->RoomRolloffFactor = Properties->GetNumberField("RoomRolloffFactor");
 					}
-					if (Properties->TryGetBoolField("bChanged", bChanged)) {
+					if (Properties->TryGetBoolField("bChanged", bChanged))
+					{
 						ReverbEffect->bChanged = Properties->GetBoolField("bChanged");
 					}
-					if (Properties->TryGetBoolField("bBypassEarlyReflections", bBypassEarlyReflections)) {
+					if (Properties->TryGetBoolField("bBypassEarlyReflections", bBypassEarlyReflections))
+					{
 						ReverbEffect->bBypassEarlyReflections = Properties->GetBoolField("bBypassEarlyReflections");
 					}
-					if (Properties->TryGetBoolField("bBypassLateReflections", bBypassLateReflections)) {
+					if (Properties->TryGetBoolField("bBypassLateReflections", bBypassLateReflections))
+					{
 						ReverbEffect->bBypassLateReflections = Properties->GetBoolField("bBypassLateReflections");
 					}
 
@@ -1442,7 +1166,8 @@ void FJsonAsAssetModule::PluginButtonClicked()
 					ReverbEffect->PostEditChange();
 					ReverbEffect->AddToRoot();
 				}
-				else if (Type == "MorphTarget") {
+				else if (Type == "MorphTarget")
+				{
 					TSharedPtr<FJsonObject> Properties = DataObject->GetObjectField("Properties");
 
 					UPackage* Package = CreateAssetPackage(Name, OutFileNames);
@@ -1455,11 +1180,11 @@ void FJsonAsAssetModule::PluginButtonClicked()
 					Package->SetDirtyFlag(true);
 					SkeletalMesh->PostEditChange();
 					SkeletalMesh->AddToRoot();
-
 				}
-				else if (Type == "StaticMeshComponent") {
+				else if (Type == "StaticMeshComponent")
+				{
 					TSharedPtr<FJsonObject> Properties = DataObject->GetObjectField("Properties");
-					
+
 					// Get World from Viewport
 					UWorld* World = GEngine->GetWorldContextFromGameViewport(GEngine->GameViewport)->World();
 					// Create Actor (StaticMeshActor)
@@ -1471,19 +1196,22 @@ void FJsonAsAssetModule::PluginButtonClicked()
 					// Set Transform
 					const TSharedPtr<FJsonObject>* ActorLoc;
 
-					if (Properties->TryGetObjectField("RelativeLocation", ActorLoc)) {
+					if (Properties->TryGetObjectField("RelativeLocation", ActorLoc))
+					{
 						StaticMesh->SetActorLocation(ObjectToVector(ActorLoc->Get()));
 					}
 
 					const TSharedPtr<FJsonObject>* ActorRot;
 
-					if (Properties->TryGetObjectField("RelativeRotation", ActorRot)) {
+					if (Properties->TryGetObjectField("RelativeRotation", ActorRot))
+					{
 						StaticMesh->SetActorRotation(ObjectToRotator(ActorRot->Get()));
 					}
 
 					const TSharedPtr<FJsonObject>* ActorScale;
 
-					if (Properties->TryGetObjectField("RelativeScale3D", ActorScale)) {
+					if (Properties->TryGetObjectField("RelativeScale3D", ActorScale))
+					{
 						StaticMesh->SetActorScale3D(ObjectToVector(ActorScale->Get()));
 					}
 					// ^ 
@@ -1491,13 +1219,14 @@ void FJsonAsAssetModule::PluginButtonClicked()
 
 					const TSharedPtr<FJsonObject>* StaticMeshAs;
 
-					if (Properties->TryGetObjectField("StaticMesh", StaticMeshAs)) {
-
+					if (Properties->TryGetObjectField("StaticMesh", StaticMeshAs))
+					{
 						FString MeshName;
 						StaticMeshAs->Get()->GetStringField("ObjectName").Split(" ", nullptr, &MeshName);
 						FString MeshPath;
 
-						StaticMeshAs->Get()->GetStringField("ObjectPath").Replace(TEXT("FortniteGame/Content/"), TEXT("/Game/")).Split(".", &MeshPath, nullptr);
+						StaticMeshAs->Get()->GetStringField("ObjectPath").Replace(TEXT("FortniteGame/Content/"), TEXT("/Game/")).Split(
+							".", &MeshPath, nullptr);
 
 						UStaticMesh* StaticMeshAsset = LoadObject<UStaticMesh>(nullptr, *(MeshPath + "." + MeshName));
 
@@ -1508,10 +1237,10 @@ void FJsonAsAssetModule::PluginButtonClicked()
 							GLog->Log(MeshPath + "." + MeshName);
 							GLog->Log(StaticMeshAsset->GetPathName());
 						}
-
 					}
 				}
-				else if (Type == "ParticleModuleTypeDataBeam2") {
+				else if (Type == "ParticleModuleTypeDataBeam2")
+				{
 					TSharedPtr<FJsonObject> Properties = DataObject->GetObjectField("Properties");
 					TSharedPtr<FJsonObject> TaperScale = Properties->GetObjectField("TaperScale");
 					TSharedPtr<FJsonObject> TableObject = TaperScale->GetObjectField("Table");
@@ -1541,7 +1270,8 @@ void FJsonAsAssetModule::PluginButtonClicked()
 
 					FString UEA = FString("(");
 
-					for (int x = 0; x < (LookupTable.GetValueCount() * 2); x += 1) {
+					for (int x = 0; x < (LookupTable.GetValueCount() * 2); x += 1)
+					{
 						auto Time = x / 1000.0f;
 						float OutValue = 0.1;
 
@@ -1552,21 +1282,25 @@ void FJsonAsAssetModule::PluginButtonClicked()
 						LookupTable.GetEntry(Time, Entry1, Entry2, Alpha);
 						OutValue = FMath::Lerp(Entry1[0], Entry2[0], Alpha);
 
-						GLog->Log("JsonAsAsset: Value: " + FString(*FString::SanitizeFloat(OutValue)) + "Time: " + FString(*FString::SanitizeFloat(Time)));
+						GLog->Log(
+							"JsonAsAsset: Value: " + FString(*FString::SanitizeFloat(OutValue)) + "Time: " + FString(*FString::SanitizeFloat(Time)));
 
-						UEA = UEA + FString("(InVal=" + FString(*FString::SanitizeFloat(Time)) + ",OutVal=" + FString(*FString::SanitizeFloat(OutValue)) + "),");
+						UEA = UEA + FString(
+							"(InVal=" + FString(*FString::SanitizeFloat(Time)) + ",OutVal=" + FString(*FString::SanitizeFloat(OutValue)) + "),");
 					}
 
 					UEA += ')';
 
 					GLog->Log(UEA);
-
 				}
-				else if (Type == "SoundAttenuation") {
+				else if (Type == "SoundAttenuation")
+				{
 					TSharedPtr<FJsonObject> Properties = DataObject->GetObjectField("Properties");
 
+					
 					UPackage* Package = CreateAssetPackage(Name, OutFileNames);
-					USoundAttenuation* SoundAttenuation = NewObject<USoundAttenuation>(Package, USoundAttenuation::StaticClass(), *Name, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
+					USoundAttenuation* SoundAttenuation = NewObject<USoundAttenuation>(Package, USoundAttenuation::StaticClass(), *Name,
+					                                                                   EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
 					TSharedPtr<FJsonObject> Attenuation = Properties->GetObjectField("Attenuation");
 
 					bool bApplyNormalizationToStereoSounds;
@@ -1582,41 +1316,55 @@ void FJsonAsAssetModule::PluginButtonClicked()
 					bool bSpatialize;
 					bool bUseComplexCollisionForOcclusion;
 
-					if (Attenuation->TryGetBoolField("bApplyNormalizationToStereoSounds", bApplyNormalizationToStereoSounds)) {
-						SoundAttenuation->Attenuation.bApplyNormalizationToStereoSounds = Attenuation->GetBoolField("bApplyNormalizationToStereoSounds");
+					if (Attenuation->TryGetBoolField("bApplyNormalizationToStereoSounds", bApplyNormalizationToStereoSounds))
+					{
+						SoundAttenuation->Attenuation.bApplyNormalizationToStereoSounds = Attenuation->GetBoolField(
+							"bApplyNormalizationToStereoSounds");
 					}
-					if (Attenuation->TryGetBoolField("bAttenuate", bAttenuate)) {
+					if (Attenuation->TryGetBoolField("bAttenuate", bAttenuate))
+					{
 						SoundAttenuation->Attenuation.bAttenuate = Attenuation->GetBoolField("bAttenuate");
 					}
-					if (Attenuation->TryGetBoolField("bAttenuateWithLPF", bAttenuateWithLPF)) {
+					if (Attenuation->TryGetBoolField("bAttenuateWithLPF", bAttenuateWithLPF))
+					{
 						SoundAttenuation->Attenuation.bAttenuateWithLPF = Attenuation->GetBoolField("bAttenuateWithLPF");
 					}
-					if (Attenuation->TryGetBoolField("bEnableFocusInterpolation", bEnableFocusInterpolation)) {
+					if (Attenuation->TryGetBoolField("bEnableFocusInterpolation", bEnableFocusInterpolation))
+					{
 						SoundAttenuation->Attenuation.bEnableFocusInterpolation = Attenuation->GetBoolField("bEnableFocusInterpolation");
 					}
-					if (Attenuation->TryGetBoolField("bEnableListenerFocus", bEnableListenerFocus)) {
+					if (Attenuation->TryGetBoolField("bEnableListenerFocus", bEnableListenerFocus))
+					{
 						SoundAttenuation->Attenuation.bEnableListenerFocus = Attenuation->GetBoolField("bEnableListenerFocus");
 					}
-					if (Attenuation->TryGetBoolField("bEnableLogFrequencyScaling", bEnableLogFrequencyScaling)) {
+					if (Attenuation->TryGetBoolField("bEnableLogFrequencyScaling", bEnableLogFrequencyScaling))
+					{
 						SoundAttenuation->Attenuation.bEnableLogFrequencyScaling = Attenuation->GetBoolField("bEnableLogFrequencyScaling");
 					}
-					if (Attenuation->TryGetBoolField("bEnableOcclusion", bEnableOcclusion)) {
+					if (Attenuation->TryGetBoolField("bEnableOcclusion", bEnableOcclusion))
+					{
 						SoundAttenuation->Attenuation.bEnableOcclusion = Attenuation->GetBoolField("bEnableOcclusion");
 					}
-					if (Attenuation->TryGetBoolField("bEnablePriorityAttenuation", bEnablePriorityAttenuation)) {
+					if (Attenuation->TryGetBoolField("bEnablePriorityAttenuation", bEnablePriorityAttenuation))
+					{
 						SoundAttenuation->Attenuation.bEnablePriorityAttenuation = Attenuation->GetBoolField("bEnablePriorityAttenuation");
 					}
-					if (Attenuation->TryGetBoolField("bEnableReverbSend", bEnableReverbSend)) {
+					if (Attenuation->TryGetBoolField("bEnableReverbSend", bEnableReverbSend))
+					{
 						SoundAttenuation->Attenuation.bEnableReverbSend = Attenuation->GetBoolField("bEnableReverbSend");
 					}
-					if (Attenuation->TryGetBoolField("bEnableSubmixSends", bEnableSubmixSends)) {
+					if (Attenuation->TryGetBoolField("bEnableSubmixSends", bEnableSubmixSends))
+					{
 						SoundAttenuation->Attenuation.bEnableSubmixSends = Attenuation->GetBoolField("bEnableSubmixSends");
 					}
-					if (Attenuation->TryGetBoolField("bSpatialize", bSpatialize)) {
+					if (Attenuation->TryGetBoolField("bSpatialize", bSpatialize))
+					{
 						SoundAttenuation->Attenuation.bSpatialize = Attenuation->GetBoolField("bSpatialize");
 					}
-					if (Attenuation->TryGetBoolField("bUseComplexCollisionForOcclusion", bUseComplexCollisionForOcclusion)) {
-						SoundAttenuation->Attenuation.bUseComplexCollisionForOcclusion = Attenuation->GetBoolField("bUseComplexCollisionForOcclusion");
+					if (Attenuation->TryGetBoolField("bUseComplexCollisionForOcclusion", bUseComplexCollisionForOcclusion))
+					{
+						SoundAttenuation->Attenuation.bUseComplexCollisionForOcclusion = Attenuation->
+							GetBoolField("bUseComplexCollisionForOcclusion");
 					}
 
 					int64 BinauralRadius;
@@ -1655,103 +1403,137 @@ void FJsonAsAssetModule::PluginButtonClicked()
 					int64 dBAttenuationAtMax;
 					int64 FalloffDistance;
 
-					if (Attenuation->TryGetNumberField("ConeOffset", ConeOffset)) {
+					if (Attenuation->TryGetNumberField("ConeOffset", ConeOffset))
+					{
 						SoundAttenuation->Attenuation.ConeOffset = Attenuation->GetNumberField("ConeOffset");
 					}
-					if (Attenuation->TryGetNumberField("dBAttenuationAtMax", dBAttenuationAtMax)) {
+					if (Attenuation->TryGetNumberField("dBAttenuationAtMax", dBAttenuationAtMax))
+					{
 						SoundAttenuation->Attenuation.dBAttenuationAtMax = Attenuation->GetNumberField("dBAttenuationAtMax");
 					}
-					if (Attenuation->TryGetNumberField("FalloffDistance", FalloffDistance)) {
+					if (Attenuation->TryGetNumberField("FalloffDistance", FalloffDistance))
+					{
 						SoundAttenuation->Attenuation.FalloffDistance = Attenuation->GetNumberField("FalloffDistance");
 					}
-					if (Attenuation->TryGetNumberField("BinauralRadius", BinauralRadius)) {
+					if (Attenuation->TryGetNumberField("BinauralRadius", BinauralRadius))
+					{
 						SoundAttenuation->Attenuation.BinauralRadius = Attenuation->GetNumberField("BinauralRadius");
 					}
-					if (Attenuation->TryGetNumberField("FocusAttackInterpSpeed", FocusAttackInterpSpeed)) {
+					if (Attenuation->TryGetNumberField("FocusAttackInterpSpeed", FocusAttackInterpSpeed))
+					{
 						SoundAttenuation->Attenuation.FocusAttackInterpSpeed = Attenuation->GetNumberField("FocusAttackInterpSpeed");
 					}
-					if (Attenuation->TryGetNumberField("FocusAzimuth", FocusAzimuth)) {
+					if (Attenuation->TryGetNumberField("FocusAzimuth", FocusAzimuth))
+					{
 						SoundAttenuation->Attenuation.FocusAzimuth = Attenuation->GetNumberField("FocusAzimuth");
 					}
-					if (Attenuation->TryGetNumberField("FocusDistanceScale", FocusDistanceScale)) {
+					if (Attenuation->TryGetNumberField("FocusDistanceScale", FocusDistanceScale))
+					{
 						SoundAttenuation->Attenuation.FocusDistanceScale = Attenuation->GetNumberField("FocusDistanceScale");
 					}
-					if (Attenuation->TryGetNumberField("FocusPriorityScale", FocusPriorityScale)) {
+					if (Attenuation->TryGetNumberField("FocusPriorityScale", FocusPriorityScale))
+					{
 						SoundAttenuation->Attenuation.FocusPriorityScale = Attenuation->GetNumberField("FocusPriorityScale");
 					}
-					if (Attenuation->TryGetNumberField("FocusReleaseInterpSpeed", FocusReleaseInterpSpeed)) {
+					if (Attenuation->TryGetNumberField("FocusReleaseInterpSpeed", FocusReleaseInterpSpeed))
+					{
 						SoundAttenuation->Attenuation.FocusReleaseInterpSpeed = Attenuation->GetNumberField("FocusReleaseInterpSpeed");
 					}
-					if (Attenuation->TryGetNumberField("FocusVolumeAttenuation", FocusVolumeAttenuation)) {
+					if (Attenuation->TryGetNumberField("FocusVolumeAttenuation", FocusVolumeAttenuation))
+					{
 						SoundAttenuation->Attenuation.FocusVolumeAttenuation = Attenuation->GetNumberField("FocusVolumeAttenuation");
 					}
-					if (Attenuation->TryGetNumberField("HPFFrequencyAtMax", HPFFrequencyAtMax)) {
+					if (Attenuation->TryGetNumberField("HPFFrequencyAtMax", HPFFrequencyAtMax))
+					{
 						SoundAttenuation->Attenuation.HPFFrequencyAtMax = Attenuation->GetNumberField("HPFFrequencyAtMax");
 					}
-					if (Attenuation->TryGetNumberField("HPFFrequencyAtMin", HPFFrequencyAtMin)) {
+					if (Attenuation->TryGetNumberField("HPFFrequencyAtMin", HPFFrequencyAtMin))
+					{
 						SoundAttenuation->Attenuation.HPFFrequencyAtMin = Attenuation->GetNumberField("HPFFrequencyAtMin");
 					}
-					if (Attenuation->TryGetNumberField("ManualPriorityAttenuation", ManualPriorityAttenuation)) {
+					if (Attenuation->TryGetNumberField("ManualPriorityAttenuation", ManualPriorityAttenuation))
+					{
 						SoundAttenuation->Attenuation.ManualPriorityAttenuation = Attenuation->GetNumberField("ManualPriorityAttenuation");
 					}
-					if (Attenuation->TryGetNumberField("LPFRadiusMin", LPFRadiusMin)) {
+					if (Attenuation->TryGetNumberField("LPFRadiusMin", LPFRadiusMin))
+					{
 						SoundAttenuation->Attenuation.LPFRadiusMin = Attenuation->GetNumberField("LPFRadiusMin");
 					}
-					if (Attenuation->TryGetNumberField("LPFRadiusMax", LPFRadiusMax)) {
+					if (Attenuation->TryGetNumberField("LPFRadiusMax", LPFRadiusMax))
+					{
 						SoundAttenuation->Attenuation.LPFRadiusMax = Attenuation->GetNumberField("LPFRadiusMax");
 					}
-					if (Attenuation->TryGetNumberField("ManualReverbSendLevel", ManualReverbSendLevel)) {
+					if (Attenuation->TryGetNumberField("ManualReverbSendLevel", ManualReverbSendLevel))
+					{
 						SoundAttenuation->Attenuation.ManualReverbSendLevel = Attenuation->GetNumberField("ManualReverbSendLevel");
 					}
-					if (Attenuation->TryGetNumberField("NonFocusAzimuth", NonFocusAzimuth)) {
+					if (Attenuation->TryGetNumberField("NonFocusAzimuth", NonFocusAzimuth))
+					{
 						SoundAttenuation->Attenuation.NonFocusAzimuth = Attenuation->GetNumberField("NonFocusAzimuth");
 					}
-					if (Attenuation->TryGetNumberField("NonFocusDistanceScale", NonFocusDistanceScale)) {
+					if (Attenuation->TryGetNumberField("NonFocusDistanceScale", NonFocusDistanceScale))
+					{
 						SoundAttenuation->Attenuation.NonFocusDistanceScale = Attenuation->GetNumberField("NonFocusDistanceScale");
 					}
-					if (Attenuation->TryGetNumberField("NonFocusPriorityScale", NonFocusPriorityScale)) {
+					if (Attenuation->TryGetNumberField("NonFocusPriorityScale", NonFocusPriorityScale))
+					{
 						SoundAttenuation->Attenuation.NonFocusPriorityScale = Attenuation->GetNumberField("NonFocusPriorityScale");
 					}
-					if (Attenuation->TryGetNumberField("NonFocusVolumeAttenuation", NonFocusVolumeAttenuation)) {
+					if (Attenuation->TryGetNumberField("NonFocusVolumeAttenuation", NonFocusVolumeAttenuation))
+					{
 						SoundAttenuation->Attenuation.NonFocusVolumeAttenuation = Attenuation->GetNumberField("NonFocusVolumeAttenuation");
 					}
-					if (Attenuation->TryGetNumberField("OcclusionInterpolationTime", OcclusionInterpolationTime)) {
+					if (Attenuation->TryGetNumberField("OcclusionInterpolationTime", OcclusionInterpolationTime))
+					{
 						SoundAttenuation->Attenuation.OcclusionInterpolationTime = Attenuation->GetNumberField("OcclusionInterpolationTime");
 					}
-					if (Attenuation->TryGetNumberField("OcclusionLowPassFilterFrequency", OcclusionLowPassFilterFrequency)) {
-						SoundAttenuation->Attenuation.OcclusionLowPassFilterFrequency = Attenuation->GetNumberField("OcclusionLowPassFilterFrequency");
+					if (Attenuation->TryGetNumberField("OcclusionLowPassFilterFrequency", OcclusionLowPassFilterFrequency))
+					{
+						SoundAttenuation->Attenuation.OcclusionLowPassFilterFrequency = Attenuation->
+							GetNumberField("OcclusionLowPassFilterFrequency");
 					}
-					if (Attenuation->TryGetNumberField("OcclusionVolumeAttenuation", OcclusionVolumeAttenuation)) {
+					if (Attenuation->TryGetNumberField("OcclusionVolumeAttenuation", OcclusionVolumeAttenuation))
+					{
 						SoundAttenuation->Attenuation.OcclusionVolumeAttenuation = Attenuation->GetNumberField("OcclusionVolumeAttenuation");
 					}
-					if (Attenuation->TryGetNumberField("OmniRadius", OmniRadius)) {
+					if (Attenuation->TryGetNumberField("OmniRadius", OmniRadius))
+					{
 						SoundAttenuation->Attenuation.OmniRadius = Attenuation->GetNumberField("OmniRadius");
 					}
-					if (Attenuation->TryGetNumberField("PriorityAttenuationDistanceMax", PriorityAttenuationDistanceMax)) {
+					if (Attenuation->TryGetNumberField("PriorityAttenuationDistanceMax", PriorityAttenuationDistanceMax))
+					{
 						SoundAttenuation->Attenuation.PriorityAttenuationDistanceMax = Attenuation->GetNumberField("PriorityAttenuationDistanceMax");
 					}
-					if (Attenuation->TryGetNumberField("PriorityAttenuationDistanceMin", PriorityAttenuationDistanceMin)) {
+					if (Attenuation->TryGetNumberField("PriorityAttenuationDistanceMin", PriorityAttenuationDistanceMin))
+					{
 						SoundAttenuation->Attenuation.PriorityAttenuationDistanceMin = Attenuation->GetNumberField("PriorityAttenuationDistanceMin");
 					}
-					if (Attenuation->TryGetNumberField("PriorityAttenuationMax", PriorityAttenuationMax)) {
+					if (Attenuation->TryGetNumberField("PriorityAttenuationMax", PriorityAttenuationMax))
+					{
 						SoundAttenuation->Attenuation.PriorityAttenuationMax = Attenuation->GetNumberField("PriorityAttenuationMax");
 					}
-					if (Attenuation->TryGetNumberField("PriorityAttenuationMin", PriorityAttenuationMin)) {
+					if (Attenuation->TryGetNumberField("PriorityAttenuationMin", PriorityAttenuationMin))
+					{
 						SoundAttenuation->Attenuation.PriorityAttenuationMin = Attenuation->GetNumberField("PriorityAttenuationMin");
 					}
-					if (Attenuation->TryGetNumberField("ReverbDistanceMax", ReverbDistanceMax)) {
+					if (Attenuation->TryGetNumberField("ReverbDistanceMax", ReverbDistanceMax))
+					{
 						SoundAttenuation->Attenuation.ReverbDistanceMax = Attenuation->GetNumberField("ReverbDistanceMax");
 					}
-					if (Attenuation->TryGetNumberField("ReverbDistanceMin", ReverbDistanceMin)) {
+					if (Attenuation->TryGetNumberField("ReverbDistanceMin", ReverbDistanceMin))
+					{
 						SoundAttenuation->Attenuation.ReverbDistanceMin = Attenuation->GetNumberField("ReverbDistanceMin");
 					}
-					if (Attenuation->TryGetNumberField("ReverbWetLevelMax", ReverbWetLevelMax)) {
+					if (Attenuation->TryGetNumberField("ReverbWetLevelMax", ReverbWetLevelMax))
+					{
 						SoundAttenuation->Attenuation.ReverbWetLevelMax = Attenuation->GetNumberField("ReverbWetLevelMax");
 					}
-					if (Attenuation->TryGetNumberField("ReverbWetLevelMin", ReverbWetLevelMin)) {
+					if (Attenuation->TryGetNumberField("ReverbWetLevelMin", ReverbWetLevelMin))
+					{
 						SoundAttenuation->Attenuation.ReverbWetLevelMin = Attenuation->GetNumberField("ReverbWetLevelMin");
 					}
-					if (Attenuation->TryGetNumberField("StereoSpread", StereoSpread)) {
+					if (Attenuation->TryGetNumberField("StereoSpread", StereoSpread))
+					{
 						SoundAttenuation->Attenuation.StereoSpread = Attenuation->GetNumberField("StereoSpread");
 					}
 
@@ -1764,147 +1546,156 @@ void FJsonAsAssetModule::PluginButtonClicked()
 					FString DistanceAlgorithm;
 					FString FalloffMode;
 
-					if (Attenuation->TryGetStringField("AbsorptionMethod", AbsorptionMethod)) {
+					if (Attenuation->TryGetStringField("AbsorptionMethod", AbsorptionMethod))
+					{
 						SoundAttenuation->Attenuation.AbsorptionMethod =
-							AbsorptionMethod.EndsWith("CustomCurve") ?
-							EAirAbsorptionMethod::CustomCurve :
-							EAirAbsorptionMethod::Linear;
+							AbsorptionMethod.EndsWith("CustomCurve") ? EAirAbsorptionMethod::CustomCurve : EAirAbsorptionMethod::Linear;
 					}
-					if (Attenuation->TryGetStringField("PriorityAttenuationMethod", PriorityAttenuationMethod)) {
+					if (Attenuation->TryGetStringField("PriorityAttenuationMethod", PriorityAttenuationMethod))
+					{
 						SoundAttenuation->Attenuation.PriorityAttenuationMethod =
-							PriorityAttenuationMethod.EndsWith("CustomCurve") ?
-							EPriorityAttenuationMethod::CustomCurve :
-							PriorityAttenuationMethod.EndsWith("Manual") ?
-							EPriorityAttenuationMethod::Manual :
-							EPriorityAttenuationMethod::Linear;
+							PriorityAttenuationMethod.EndsWith("CustomCurve")
+								? EPriorityAttenuationMethod::CustomCurve
+								: PriorityAttenuationMethod.EndsWith("Manual")
+								? EPriorityAttenuationMethod::Manual
+								: EPriorityAttenuationMethod::Linear;
 					}
-					if (Attenuation->TryGetStringField("ReverbSendMethod", ReverbSendMethod)) {
+					if (Attenuation->TryGetStringField("ReverbSendMethod", ReverbSendMethod))
+					{
 						SoundAttenuation->Attenuation.ReverbSendMethod =
-							ReverbSendMethod.EndsWith("CustomCurve") ?
-							EReverbSendMethod::CustomCurve :
-							ReverbSendMethod.EndsWith("Manual") ?
-							EReverbSendMethod::Manual :
-							EReverbSendMethod::Linear;
+							ReverbSendMethod.EndsWith("CustomCurve")
+								? EReverbSendMethod::CustomCurve
+								: ReverbSendMethod.EndsWith("Manual")
+								? EReverbSendMethod::Manual
+								: EReverbSendMethod::Linear;
 					}
-					if (Attenuation->TryGetStringField("FalloffMode", FalloffMode)) {
+					if (Attenuation->TryGetStringField("FalloffMode", FalloffMode))
+					{
 						SoundAttenuation->Attenuation.FalloffMode =
-							FalloffMode.EndsWith("Hold") ?
-							ENaturalSoundFalloffMode::Hold :
-							FalloffMode.EndsWith("Silent") ?
-							ENaturalSoundFalloffMode::Silent :
-							ENaturalSoundFalloffMode::Continues;
+							FalloffMode.EndsWith("Hold")
+								? ENaturalSoundFalloffMode::Hold
+								: FalloffMode.EndsWith("Silent")
+								? ENaturalSoundFalloffMode::Silent
+								: ENaturalSoundFalloffMode::Continues;
 					}
-					if (Attenuation->TryGetStringField("DistanceAlgorithm", DistanceAlgorithm)) {
+					if (Attenuation->TryGetStringField("DistanceAlgorithm", DistanceAlgorithm))
+					{
 						SoundAttenuation->Attenuation.DistanceAlgorithm =
-							DistanceAlgorithm.EndsWith("Logarithmic") ?
-							EAttenuationDistanceModel::Logarithmic :
-							DistanceAlgorithm.EndsWith("Inverse") ?
-							EAttenuationDistanceModel::Inverse :
-							DistanceAlgorithm.EndsWith("LogReverse") ?
-							EAttenuationDistanceModel::LogReverse :
-							DistanceAlgorithm.EndsWith("NaturalSound") ?
-							EAttenuationDistanceModel::NaturalSound :
-							DistanceAlgorithm.EndsWith("Custom") ?
-							EAttenuationDistanceModel::Custom :
-							EAttenuationDistanceModel::Linear;
+							DistanceAlgorithm.EndsWith("Logarithmic")
+								? EAttenuationDistanceModel::Logarithmic
+								: DistanceAlgorithm.EndsWith("Inverse")
+								? EAttenuationDistanceModel::Inverse
+								: DistanceAlgorithm.EndsWith("LogReverse")
+								? EAttenuationDistanceModel::LogReverse
+								: DistanceAlgorithm.EndsWith("NaturalSound")
+								? EAttenuationDistanceModel::NaturalSound
+								: DistanceAlgorithm.EndsWith("Custom")
+								? EAttenuationDistanceModel::Custom
+								: EAttenuationDistanceModel::Linear;
 					}
-					if (Attenuation->TryGetStringField("SpatializationAlgorithm", SpatializationAlgorithm)) {
+					if (Attenuation->TryGetStringField("SpatializationAlgorithm", SpatializationAlgorithm))
+					{
 						SoundAttenuation->Attenuation.SpatializationAlgorithm =
-							SpatializationAlgorithm.EndsWith("SPATIALIZATION_HRTF") ?
-							ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF :
-							ESoundSpatializationAlgorithm::SPATIALIZATION_Default;
+							SpatializationAlgorithm.EndsWith("SPATIALIZATION_HRTF")
+								? ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF
+								: ESoundSpatializationAlgorithm::SPATIALIZATION_Default;
 					}
-					if (Attenuation->TryGetStringField("AttenuationShape", AttenuationShape)) {
+					if (Attenuation->TryGetStringField("AttenuationShape", AttenuationShape))
+					{
 						SoundAttenuation->Attenuation.AttenuationShape =
-							AttenuationShape.EndsWith("Capsule") ?
-							EAttenuationShape::Type::Capsule :
-							AttenuationShape.EndsWith("Box") ?
-							EAttenuationShape::Type::Box :
-							AttenuationShape.EndsWith("Cone") ?
-							EAttenuationShape::Type::Cone :
-							EAttenuationShape::Type::Sphere;
+							AttenuationShape.EndsWith("Capsule")
+								? EAttenuationShape::Type::Capsule
+								: AttenuationShape.EndsWith("Box")
+								? EAttenuationShape::Type::Box
+								: AttenuationShape.EndsWith("Cone")
+								? EAttenuationShape::Type::Cone
+								: EAttenuationShape::Type::Sphere;
 					}
-					if (Attenuation->TryGetStringField("OcclusionTraceChannel", OcclusionTraceChannel)) {
+					if (Attenuation->TryGetStringField("OcclusionTraceChannel", OcclusionTraceChannel))
+					{
 						SoundAttenuation->Attenuation.OcclusionTraceChannel =
-							OcclusionTraceChannel.EndsWith("ECC_WorldStatic") ?
-							ECollisionChannel::ECC_WorldStatic :
-							OcclusionTraceChannel.EndsWith("ECC_WorldDynamic") ?
-							ECollisionChannel::ECC_WorldDynamic :
-							OcclusionTraceChannel.EndsWith("ECC_Pawn") ?
-							ECollisionChannel::ECC_Pawn :
-							OcclusionTraceChannel.EndsWith("ECC_Visibility") ?
-							ECollisionChannel::ECC_Visibility :
-							OcclusionTraceChannel.EndsWith("ECC_Camera") ?
-							ECollisionChannel::ECC_Camera :
-							OcclusionTraceChannel.EndsWith("ECC_PhysicsBody") ?
-							ECollisionChannel::ECC_PhysicsBody :
-							OcclusionTraceChannel.EndsWith("ECC_Vehicle") ?
-							ECollisionChannel::ECC_Vehicle :
-							OcclusionTraceChannel.EndsWith("ECC_Destructible") ?
-							ECollisionChannel::ECC_Destructible :
-							OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel1") ?
-							ECollisionChannel::ECC_EngineTraceChannel1 :
-							OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel2") ?
-							ECollisionChannel::ECC_EngineTraceChannel2 :
-							OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel3") ?
-							ECollisionChannel::ECC_EngineTraceChannel3 :
-							OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel4") ?
-							ECollisionChannel::ECC_EngineTraceChannel4 :
-							OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel5") ?
-							ECollisionChannel::ECC_EngineTraceChannel5 :
-							OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel6") ?
-							ECollisionChannel::ECC_EngineTraceChannel6 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel1") ?
-							ECollisionChannel::ECC_GameTraceChannel1 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel2") ?
-							ECollisionChannel::ECC_GameTraceChannel2 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel3") ?
-							ECollisionChannel::ECC_GameTraceChannel3 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel4") ?
-							ECollisionChannel::ECC_GameTraceChannel4 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel5") ?
-							ECollisionChannel::ECC_GameTraceChannel5 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel6") ?
-							ECollisionChannel::ECC_GameTraceChannel6 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel7") ?
-							ECollisionChannel::ECC_GameTraceChannel7 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel8") ?
-							ECollisionChannel::ECC_GameTraceChannel8 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel9") ?
-							ECollisionChannel::ECC_GameTraceChannel9 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel10") ?
-							ECollisionChannel::ECC_GameTraceChannel10 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel11") ?
-							ECollisionChannel::ECC_GameTraceChannel11 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel12") ?
-							ECollisionChannel::ECC_GameTraceChannel12 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel13") ?
-							ECollisionChannel::ECC_GameTraceChannel13 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel14") ?
-							ECollisionChannel::ECC_GameTraceChannel14 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel15") ?
-							ECollisionChannel::ECC_GameTraceChannel15 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel16") ?
-							ECollisionChannel::ECC_GameTraceChannel16 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel17") ?
-							ECollisionChannel::ECC_GameTraceChannel17 :
-							OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel18") ?
-							ECollisionChannel::ECC_GameTraceChannel18 :
-							OcclusionTraceChannel.EndsWith("ECC_OverlapAll_Deprecated") ?
-							ECollisionChannel::ECC_OverlapAll_Deprecated :
-							ECollisionChannel::ECC_Visibility;
+							OcclusionTraceChannel.EndsWith("ECC_WorldStatic")
+								? ECollisionChannel::ECC_WorldStatic
+								: OcclusionTraceChannel.EndsWith("ECC_WorldDynamic")
+								? ECollisionChannel::ECC_WorldDynamic
+								: OcclusionTraceChannel.EndsWith("ECC_Pawn")
+								? ECollisionChannel::ECC_Pawn
+								: OcclusionTraceChannel.EndsWith("ECC_Visibility")
+								? ECollisionChannel::ECC_Visibility
+								: OcclusionTraceChannel.EndsWith("ECC_Camera")
+								? ECollisionChannel::ECC_Camera
+								: OcclusionTraceChannel.EndsWith("ECC_PhysicsBody")
+								? ECollisionChannel::ECC_PhysicsBody
+								: OcclusionTraceChannel.EndsWith("ECC_Vehicle")
+								? ECollisionChannel::ECC_Vehicle
+								: OcclusionTraceChannel.EndsWith("ECC_Destructible")
+								? ECollisionChannel::ECC_Destructible
+								: OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel1")
+								? ECollisionChannel::ECC_EngineTraceChannel1
+								: OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel2")
+								? ECollisionChannel::ECC_EngineTraceChannel2
+								: OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel3")
+								? ECollisionChannel::ECC_EngineTraceChannel3
+								: OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel4")
+								? ECollisionChannel::ECC_EngineTraceChannel4
+								: OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel5")
+								? ECollisionChannel::ECC_EngineTraceChannel5
+								: OcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel6")
+								? ECollisionChannel::ECC_EngineTraceChannel6
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel1")
+								? ECollisionChannel::ECC_GameTraceChannel1
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel2")
+								? ECollisionChannel::ECC_GameTraceChannel2
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel3")
+								? ECollisionChannel::ECC_GameTraceChannel3
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel4")
+								? ECollisionChannel::ECC_GameTraceChannel4
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel5")
+								? ECollisionChannel::ECC_GameTraceChannel5
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel6")
+								? ECollisionChannel::ECC_GameTraceChannel6
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel7")
+								? ECollisionChannel::ECC_GameTraceChannel7
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel8")
+								? ECollisionChannel::ECC_GameTraceChannel8
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel9")
+								? ECollisionChannel::ECC_GameTraceChannel9
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel10")
+								? ECollisionChannel::ECC_GameTraceChannel10
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel11")
+								? ECollisionChannel::ECC_GameTraceChannel11
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel12")
+								? ECollisionChannel::ECC_GameTraceChannel12
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel13")
+								? ECollisionChannel::ECC_GameTraceChannel13
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel14")
+								? ECollisionChannel::ECC_GameTraceChannel14
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel15")
+								? ECollisionChannel::ECC_GameTraceChannel15
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel16")
+								? ECollisionChannel::ECC_GameTraceChannel16
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel17")
+								? ECollisionChannel::ECC_GameTraceChannel17
+								: OcclusionTraceChannel.EndsWith("ECC_GameTraceChannel18")
+								? ECollisionChannel::ECC_GameTraceChannel18
+								: OcclusionTraceChannel.EndsWith("ECC_OverlapAll_Deprecated")
+								? ECollisionChannel::ECC_OverlapAll_Deprecated
+								: ECollisionChannel::ECC_Visibility;
 					}
 
 					const TSharedPtr<FJsonObject>* AttenuationShapeExtents;
 
-					if (Attenuation->TryGetObjectField("AttenuationShapeExtents", AttenuationShapeExtents)) {
+					if (Attenuation->TryGetObjectField("AttenuationShapeExtents", AttenuationShapeExtents))
+					{
 						SoundAttenuation->Attenuation.AttenuationShapeExtents = ObjectToVector(AttenuationShapeExtents->Get());
 					}
 
 					const TSharedPtr<FJsonObject>* CustomAttenuationCurve;
 
-					if (Attenuation->TryGetObjectField("CustomAttenuationCurve", CustomAttenuationCurve)) {
-						TArray<TSharedPtr<FJsonValue>> Keys = Attenuation->GetObjectField("CustomAttenuationCurve")->GetObjectField("EditorCurveData")->GetArrayField("Keys");
+					if (Attenuation->TryGetObjectField("CustomAttenuationCurve", CustomAttenuationCurve))
+					{
+						TArray<TSharedPtr<FJsonValue>> Keys = Attenuation->GetObjectField("CustomAttenuationCurve")->GetObjectField("EditorCurveData")
+						                                                 ->GetArrayField("Keys");
 						FRichCurve Curve;
 
 						for (int32 key_index = 0; key_index < Keys.Num(); key_index++)
@@ -1912,12 +1703,20 @@ void FJsonAsAssetModule::PluginButtonClicked()
 							// RCIM_Cubic
 							TSharedPtr<FJsonObject> Key = Keys[key_index]->AsObject();
 							ERichCurveInterpMode InterpMode =
-								Key->GetStringField("InterpMode") == "RCIM_Linear" ? ERichCurveInterpMode::RCIM_Linear : // Linear
-								Key->GetStringField("InterpMode") == "RCIM_Cubic" ? ERichCurveInterpMode::RCIM_Cubic : // Cubic
-								Key->GetStringField("InterpMode") == "RCIM_Constant" ? ERichCurveInterpMode::RCIM_Constant : // Constant
-								ERichCurveInterpMode::RCIM_None;
+								Key->GetStringField("InterpMode") == "RCIM_Linear"
+									? ERichCurveInterpMode::RCIM_Linear
+									: // Linear
+									Key->GetStringField("InterpMode") == "RCIM_Cubic"
+									? ERichCurveInterpMode::RCIM_Cubic
+									: // Cubic
+									Key->GetStringField("InterpMode") == "RCIM_Constant"
+									? ERichCurveInterpMode::RCIM_Constant
+									: // Constant
+									ERichCurveInterpMode::RCIM_None;
 
-							FRichCurveKey RichKey = FRichCurveKey(float(Key->GetNumberField("Time")), float(Key->GetNumberField("Value")), float(Key->GetNumberField("ArriveTangent")), float(Key->GetNumberField("LeaveTangent")), InterpMode);
+							FRichCurveKey RichKey = FRichCurveKey(float(Key->GetNumberField("Time")), float(Key->GetNumberField("Value")),
+							                                      float(Key->GetNumberField("ArriveTangent")),
+							                                      float(Key->GetNumberField("LeaveTangent")), InterpMode);
 
 							Curve.Keys.Add(RichKey);
 						}
@@ -1988,20 +1787,24 @@ bool FJsonAsAssetModule::EvaluateAnimSequence(FJsonObject* Object, UAnimSequence
 	TArray<TSharedPtr<FJsonValue>> FloatCurves;
 	TArray<TSharedPtr<FJsonValue>> Notifies;
 	TArray<TSharedPtr<FJsonValue>> AuthoredSyncMarkers;
-	const TArray< TSharedPtr<FJsonValue> >* AuthoredSyncMarkers1;
-	const TArray< TSharedPtr<FJsonValue> >* Notifiesa;
+	const TArray<TSharedPtr<FJsonValue>>* AuthoredSyncMarkers1;
+	const TArray<TSharedPtr<FJsonValue>>* Notifiesa;
 	const TSharedPtr<FJsonObject>* RawCurveData;
 
-	if (Properties->TryGetObjectField("RawCurveData", RawCurveData)) {
+	if (Properties->TryGetObjectField("RawCurveData", RawCurveData))
+	{
 		FloatCurves = Properties->GetObjectField("RawCurveData")->GetArrayField("FloatCurves");
 	}
-	else {
-		if (Object->TryGetObjectField("CompressedCurveData", RawCurveData)) {
+	else
+	{
+		if (Object->TryGetObjectField("CompressedCurveData", RawCurveData))
+		{
 			FloatCurves = Object->GetObjectField("CompressedCurveData")->GetArrayField("FloatCurves");
 		}
 	}
 
-	for (TSharedPtr<FJsonValue> FloatCurveObject : FloatCurves) {
+	for (TSharedPtr<FJsonValue> FloatCurveObject : FloatCurves)
+	{
 		TArray<TSharedPtr<FJsonValue>> Keys = FloatCurveObject->AsObject()->GetObjectField("FloatCurve")->GetArrayField("Keys");
 
 		GLog->Log("JsonAsAsset: Added animation curve: " + FloatCurveObject->AsObject()->GetObjectField("Name")->GetStringField("DisplayName"));
@@ -2009,44 +1812,58 @@ bool FJsonAsAssetModule::EvaluateAnimSequence(FJsonObject* Object, UAnimSequence
 		USkeleton* Skeleton = AnimSequenceBase->GetSkeleton();
 		FSmartName NewTrackName;
 
-		Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, FName(*FloatCurveObject->AsObject()->GetObjectField("Name")->GetStringField("DisplayName")), NewTrackName);
+		Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName,
+		                                FName(*FloatCurveObject->AsObject()->GetObjectField("Name")->GetStringField("DisplayName")), NewTrackName);
 
 		int CurveTypeFlags = FloatCurveObject->AsObject()->GetIntegerField("CurveTypeFlags");
 
 		ensureAlways(Skeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, NewTrackName.UID, NewTrackName));
-		AnimSequenceBase->RawCurveData.AddCurveData(NewTrackName, CurveTypeFlags);
+		// AnimSequenceBase->RawCurveData.AddCurveData(NewTrackName, CurveTypeFlags);
 
 		for (int32 key_index = 0; key_index < Keys.Num(); key_index++)
 		{
 			TSharedPtr<FJsonObject> Key = Keys[key_index]->AsObject();
 			ERichCurveInterpMode InterpMode =
-				Key->GetStringField("InterpMode") == "RCIM_Linear" ? ERichCurveInterpMode::RCIM_Linear : // Linear
-				Key->GetStringField("InterpMode") == "RCIM_Cubic" ? ERichCurveInterpMode::RCIM_Cubic : // Cubic
-				Key->GetStringField("InterpMode") == "RCIM_Constant" ? ERichCurveInterpMode::RCIM_Constant : // Constant
-				ERichCurveInterpMode::RCIM_None;
+				Key->GetStringField("InterpMode") == "RCIM_Linear"
+					? ERichCurveInterpMode::RCIM_Linear
+					: // Linear
+					Key->GetStringField("InterpMode") == "RCIM_Cubic"
+					? ERichCurveInterpMode::RCIM_Cubic
+					: // Cubic
+					Key->GetStringField("InterpMode") == "RCIM_Constant"
+					? ERichCurveInterpMode::RCIM_Constant
+					: // Constant
+					ERichCurveInterpMode::RCIM_None;
 
-			FRichCurveKey RichKey = FRichCurveKey(float(Key->GetNumberField("Time")), float(Key->GetNumberField("Value")), float(Key->GetNumberField("ArriveTangent")), float(Key->GetNumberField("LeaveTangent")), InterpMode);
+			FRichCurveKey RichKey = FRichCurveKey(float(Key->GetNumberField("Time")), float(Key->GetNumberField("Value")),
+			                                      float(Key->GetNumberField("ArriveTangent")), float(Key->GetNumberField("LeaveTangent")),
+			                                      InterpMode);
 
-			AnimSequenceBase->RawCurveData.AddFloatCurveKey(NewTrackName, CurveTypeFlags, float(Key->GetNumberField("Time")), float(Key->GetNumberField("Value")));
-			AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().ArriveTangent = float(Key->GetNumberField("ArriveTangent"));
-			AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().LeaveTangent = float(Key->GetNumberField("LeaveTangent"));
-			AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().InterpMode = InterpMode;
+			// AnimSequenceBase->RawCurveData.AddFloatCurveKey(NewTrackName, CurveTypeFlags, float(Key->GetNumberField("Time")),
+			//                                                 float(Key->GetNumberField("Value")));
+			// AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().ArriveTangent = float(Key->GetNumberField("ArriveTangent"));
+			// AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().LeaveTangent = float(Key->GetNumberField("LeaveTangent"));
+			// AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().InterpMode = InterpMode;
 		}
 	}
 
-	if (Properties->TryGetArrayField("Notifies", Notifiesa)) {
+	if (Properties->TryGetArrayField("Notifies", Notifiesa))
+	{
 		Notifies = Properties->GetArrayField("Notifies");
 
-		for (TSharedPtr<FJsonValue> Notify : Notifies) {
+		for (TSharedPtr<FJsonValue> Notify : Notifies)
+		{
 		}
 	}
 
 	UAnimSequence* CastedAnimSequence = Cast<UAnimSequence>(AnimSequenceBase);
 
-	if (Properties->TryGetArrayField("AuthoredSyncMarkers", AuthoredSyncMarkers1) && CastedAnimSequence) {
+	if (Properties->TryGetArrayField("AuthoredSyncMarkers", AuthoredSyncMarkers1) && CastedAnimSequence)
+	{
 		AuthoredSyncMarkers = Properties->GetArrayField("AuthoredSyncMarkers");
 
-		for (TSharedPtr<FJsonValue> SyncMarker : AuthoredSyncMarkers) {
+		for (TSharedPtr<FJsonValue> SyncMarker : AuthoredSyncMarkers)
+		{
 			FAnimSyncMarker AuthoredSyncMarker = FAnimSyncMarker();
 			AuthoredSyncMarker.MarkerName = FName(*SyncMarker.Get()->AsObject().Get()->GetStringField("MarkerName"));
 			AuthoredSyncMarker.Time = SyncMarker.Get()->AsObject().Get()->GetNumberField("Time");
@@ -2055,18 +1872,19 @@ bool FJsonAsAssetModule::EvaluateAnimSequence(FJsonObject* Object, UAnimSequence
 	}
 
 
-	if (CastedAnimSequence) {
-		CastedAnimSequence->MarkRawDataAsModified();
-		CastedAnimSequence->OnRawDataChanged();
-		CastedAnimSequence->RequestSyncAnimRecompression();
-	}
-
-	UAnimMontage* CastedAnimMontage = Cast<UAnimMontage>(AnimSequenceBase);
-
-	AnimSequenceBase->MarkRawDataAsModified();
-	AnimSequenceBase->Modify();
-	AnimSequenceBase->RefreshCurveData();
-	AnimSequenceBase->PostEditChange();
+	// if (CastedAnimSequence)
+	// {
+	// 	CastedAnimSequence->MarkRawDataAsModified();
+	// 	CastedAnimSequence->OnRawDataChanged();
+	// 	CastedAnimSequence->RequestSyncAnimRecompression();
+	// }
+	//
+	// UAnimMontage* CastedAnimMontage = Cast<UAnimMontage>(AnimSequenceBase);
+	//
+	// AnimSequenceBase->MarkRawDataAsModified();
+	// AnimSequenceBase->Modify();
+	// AnimSequenceBase->RefreshCurveData();
+	// AnimSequenceBase->PostEditChange();
 
 	return true;
 }
@@ -2079,7 +1897,8 @@ UObject* FJsonAsAssetModule::GetSelectedAsset()
 	TArray<FAssetData> SelectedAssets;
 	ContentBrowserModule.Get().GetSelectedAssets(SelectedAssets);
 
-	if (SelectedAssets.Num() == 0) {
+	if (SelectedAssets.Num() == 0)
+	{
 		GLog->Log("JsonAsAsset: [GetSelectedAsset] None selected, returning nullptr.");
 
 		FText DialogText = FText::FromString(TEXT("A function to find a selected asset failed, please select a asset to go further."));
@@ -2093,22 +1912,29 @@ UObject* FJsonAsAssetModule::GetSelectedAsset()
 	return SelectedAssets[0].GetAsset();
 }
 
-UPackage* FJsonAsAssetModule::CreateAssetPackage(FString Name, TArray<FString> Files)
+UPackage* FJsonAsAssetModule::CreateAssetPackage(const FString& Name, const TArray<FString>& Files) const
 {
-	FString OutputPath = Files[0];
+	UPackage* Ignore = nullptr;
+	return CreateAssetPackage(Name, Files, Ignore);
+}
+
+UPackage* FJsonAsAssetModule::CreateAssetPackage(const FString& Name, const TArray<FString>& Files, UPackage*& OutOutermostPkg) const
+{
+	// TODO: Support virtual paths (plugins)
+	const FString OutputPath = Files[0];
 	FString Path;
 
 	OutputPath.Split("FortniteGame/Content/", nullptr, &Path);
 	Path.Split("/", &Path, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 
-	FString PathWithGame = "/Game/" + Path + "/" + Name;
-	UPackage* Package = CreatePackage(NULL, *PathWithGame);
-	UPackage* OutermostPkg = Package->GetOutermost();
+	const FString PathWithGame = "/Game/" + Path + "/" + Name;
+	UPackage* Package = CreatePackage(*PathWithGame);
+	OutOutermostPkg = Package->GetOutermost();
 	Package->FullyLoad();
 
 	return Package;
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FJsonAsAssetModule, JsonAsAsset)

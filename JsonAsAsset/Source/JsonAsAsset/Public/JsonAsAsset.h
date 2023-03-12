@@ -5,7 +5,8 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
-struct ImportOptionsBase {
+struct ImportOptionsBase
+{
 	bool bImportWithPath;
 };
 
@@ -15,18 +16,17 @@ class FMenuBuilder;
 class FJsonAsAssetModule : public IModuleInterface
 {
 public:
-
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	
+
 	/** This function will be bound to Command. */
 	void PluginButtonClicked();
-	
+
 private:
 	void RegisterMenus();
-private:
-	TSharedPtr<class FUICommandList> PluginCommands;
+
+	TSharedPtr<FUICommandList> PluginCommands;
 	FVector ObjectToVector(FJsonObject* Object);
 	FRotator ObjectToRotator(FJsonObject* Object);
 	FQuat ObjectToQuat(FJsonObject* Object);
@@ -44,6 +44,6 @@ private:
 	*/
 	UObject* GetSelectedAsset();
 
-	UPackage* CreateAssetPackage(FString Name, TArray<FString> Files);
-
+	UPackage* CreateAssetPackage(const FString& Name, const TArray<FString>& Files) const;
+	UPackage* CreateAssetPackage(const FString& Name, const TArray<FString>& Files, UPackage*& OutOutermostPkg) const;
 };

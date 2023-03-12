@@ -7,7 +7,7 @@
 #include "Slate/SlateGameResources.h"
 #include "Interfaces/IPluginManager.h"
 
-TSharedPtr< FSlateStyleSet > FJsonAsAssetStyle::StyleInstance = NULL;
+TSharedPtr<FSlateStyleSet> FJsonAsAssetStyle::StyleInstance = nullptr;
 
 void FJsonAsAssetStyle::Initialize()
 {
@@ -41,9 +41,9 @@ const FVector2D Icon16x16(16.0f, 16.0f);
 const FVector2D Icon20x20(20.0f, 20.0f);
 const FVector2D Icon40x40(40.0f, 40.0f);
 
-TSharedRef< FSlateStyleSet > FJsonAsAssetStyle::Create()
+TSharedRef<FSlateStyleSet> FJsonAsAssetStyle::Create()
 {
-	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("JsonAsAssetStyle"));
+	TSharedRef<FSlateStyleSet> Style = MakeShareable(new FSlateStyleSet("JsonAsAssetStyle"));
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("JsonAsAsset")->GetBaseDir() / TEXT("Resources"));
 
 	Style->Set("JsonAsAsset.PluginAction", new IMAGE_BRUSH(TEXT("ButtonIcon_40x"), Icon40x40));
