@@ -4,6 +4,7 @@
 
 #include "Distributions.h"
 
+// Testing for particles
 bool UParticleModuleTypeDataBeam2Importer::ImportData() {
 	try {
 		const TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");

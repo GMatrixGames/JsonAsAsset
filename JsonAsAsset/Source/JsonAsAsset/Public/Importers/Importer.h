@@ -37,6 +37,7 @@ private:
 		"AnimMontage",
 
 		"DataTable",
+		"ReverbEffect",
 		"SoundAttenuation",
 		"SubsurfaceProfile",
 		"ParticleModuleTypeDataBeam2"
