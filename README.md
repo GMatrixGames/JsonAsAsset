@@ -22,7 +22,8 @@ The JSON format/file has to be from a program that fits the format of FModel's J
 - Animation (curves, sync markers)
 - ReverbEffect
 - SoundAttenuation
-> Not everything is supported for Unreal Engine 5
+
+## At the moment, Unreal Engine 5 is primarily being used to test. Unreal Engine 4 will supported later 
 
 _Physic assets aren't supported due to the lack of information we have on porting them into Unreal Engine, if you have knowledge on how to support Physic assets let me know or contribute to this project._
 
