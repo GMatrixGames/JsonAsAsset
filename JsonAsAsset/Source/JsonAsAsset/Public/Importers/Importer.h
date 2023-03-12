@@ -33,9 +33,9 @@ private:
 public:
 	static bool CanImport(const FString& ImporterType) { return AcceptedTypes.Contains(ImporterType); }
 
-	static bool CanImportAny(const TArray<FString>& Types)
+	static bool CanImportAny(TArray<FString>& Types)
 	{
-		for (FString Type : Types)
+		for (FString& Type : Types)
 		{
 			if (!AcceptedTypes.Contains(Type)) continue;
 			return true;
