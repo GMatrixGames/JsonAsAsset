@@ -42,7 +42,8 @@ public class JsonAsAsset : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore"
+				"SlateCore",
+				"AnimationDataController"
 
 				// ... add private dependencies that you statically link with here ...	
 			}

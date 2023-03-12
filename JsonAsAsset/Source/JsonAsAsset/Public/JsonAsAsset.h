@@ -31,16 +31,11 @@ private:
 	FRotator ObjectToRotator(FJsonObject* Object);
 	FQuat ObjectToQuat(FJsonObject* Object);
 	FLinearColor ObjectToLinearColor(FJsonObject* Object);
-
-	/*  
-	* Function to call normal executions for animation sequences
-	* to add curves, notifies and other needed things.
-	*/
-	bool EvaluateAnimSequence(FJsonObject* Object, UAnimSequenceBase* AnimSequenceBase);
-
 	
-	UObject* GetSelectedAsset();
+	// Creates a dialog for a file
+	TArray<FString> OpenFileDialog(FString Title, FString Type);
 
+	UObject* GetSelectedAsset();
 	UPackage* CreateAssetPackage(const FString& Name, const TArray<FString>& Files) const;
 	UPackage* CreateAssetPackage(const FString& Name, const TArray<FString>& Files, UPackage*& OutOutermostPkg) const;
 };

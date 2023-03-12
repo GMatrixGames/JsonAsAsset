@@ -33,6 +33,9 @@ private:
 		"SkeletalMeshLODSettings",
 		"Skeleton",
 
+		"AnimSequence",
+		"AnimMontage",
+
 		"DataTable",
 		"SoundAttenuation",
 		"SubsurfaceProfile",
@@ -59,7 +62,7 @@ protected:
 		PackageIndex->Get()->GetStringField("ObjectName").Split(" ", &Type, &Name);
 		FString Path;
 		PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
-		return Cast<T*>(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").TryLoad());
+		return Cast<T>(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").TryLoad());
 	}
 
 	FString FileName;
