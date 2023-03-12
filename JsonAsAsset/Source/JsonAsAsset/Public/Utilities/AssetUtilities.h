@@ -11,4 +11,6 @@ public:
 	 * @return Selected Asset
 	 */
 	static UObject* GetSelectedAsset();
+
+	static FRichCurveKey ObjectToRichCurveKey(const FJsonObject* Object);
 };

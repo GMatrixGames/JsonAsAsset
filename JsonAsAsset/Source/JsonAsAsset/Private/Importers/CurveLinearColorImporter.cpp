@@ -7,6 +7,7 @@
 #include "Curves/CurveLinearColor.h"
 #include "Dom/JsonObject.h"
 #include "Factories/CurveFactory.h"
+#include "Utilities/AssetUtilities.h"
 
 bool UCurveLinearColorImporter::ImportData() {
 	try {
@@ -23,26 +24,10 @@ bool UCurveLinearColorImporter::ImportData() {
 
 		for (int i = 0; i < FloatCurves.Num(); i++) {
 			TArray<TSharedPtr<FJsonValue>> Keys = FloatCurves[i]->AsObject()->GetArrayField("Keys");
-
 			LinearCurveAsset->FloatCurves[i].Keys.Empty();
 
 			for (int j = 0; j < Keys.Num(); j++) {
-				FRichCurve RichCurveObject = FRichCurve();
-
-				const TSharedPtr<FJsonObject> Key = Keys[j]->AsObject();
-
-				ERichCurveInterpMode InterpMode;
-				FString StringInterpMode = Key->GetStringField("InterpMode");
-
-				if (StringInterpMode == "RCIM_Linear") InterpMode = RCIM_Linear;
-				else if (StringInterpMode == "RCIM_Cubic") InterpMode = RCIM_Cubic;
-				else if (StringInterpMode == "RCIM_Constant") InterpMode = RCIM_Constant;
-				else InterpMode = RCIM_None;
-
-				FRichCurveKey RichKey = FRichCurveKey(Key->GetNumberField("Time"), Key->GetNumberField("Value"), Key->GetNumberField("ArriveTangent"),
-				                                      Key->GetNumberField("LeaveTangent"), InterpMode);
-
-				LinearCurveAsset->FloatCurves[i].Keys.Add(RichKey);
+				LinearCurveAsset->FloatCurves[i].Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[j]->AsObject().Get()));
 			}
 		}
 	} catch (const char* Exception) {

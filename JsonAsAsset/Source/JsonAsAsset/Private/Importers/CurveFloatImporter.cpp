@@ -5,6 +5,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Dom/JsonObject.h"
 #include "Factories/CurveFactory.h"
+#include "Utilities/AssetUtilities.h"
 
 bool UCurveFloatImporter::ImportData() {
 	try {
@@ -19,21 +20,8 @@ bool UCurveFloatImporter::ImportData() {
 		CurveAsset->PostEditChange();
 		CurveAsset->AddToRoot();
 
-		for (int32 key_index = 0; key_index < Keys.Num(); key_index++) {
-			const TSharedPtr<FJsonObject> Key = Keys[key_index]->AsObject();
-
-			ERichCurveInterpMode InterpMode;
-			FString StringInterpMode = Key->GetStringField("InterpMode");
-
-			if (StringInterpMode.EndsWith("RCIM_Linear")) InterpMode = RCIM_Linear;
-			else if (StringInterpMode.EndsWith("RCIM_Cubic")) InterpMode = RCIM_Cubic;
-			else if (StringInterpMode.EndsWith("RCIM_Constant")) InterpMode = RCIM_Constant;
-			else InterpMode = RCIM_None;
-
-			FRichCurveKey RichKey = FRichCurveKey(Key->GetNumberField("Time"), Key->GetNumberField("Value"), Key->GetNumberField("ArriveTangent"),
-			                                      Key->GetNumberField("LeaveTangent"), InterpMode);
-
-			CurveAsset->FloatCurve.Keys.Add(RichKey);
+		for (int32 i = 0; i < Keys.Num(); i++) {
+			CurveAsset->FloatCurve.Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[i]->AsObject().Get()));
 		}
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

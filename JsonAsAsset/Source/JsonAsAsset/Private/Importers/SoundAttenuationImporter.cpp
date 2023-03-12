@@ -4,6 +4,7 @@
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Dom/JsonObject.h"
+#include "Utilities/AssetUtilities.h"
 #include "Utilities/MathUtilities.h"
 
 bool USoundAttenuationImporter::ImportData() {
@@ -324,19 +325,7 @@ bool USoundAttenuationImporter::ImportData() {
 			FRichCurve Curve;
 
 			for (int32 i = 0; i < Keys.Num(); i++) {
-				TSharedPtr<FJsonObject> Key = Keys[i]->AsObject();
-
-				ERichCurveInterpMode InterpMode;
-				FString StringInterpMode = Key->GetStringField("InterpMode");
-
-				if (StringInterpMode == "RCIM_Linear") InterpMode = RCIM_Linear;
-				else if (StringInterpMode == "RCIM_Cubic") InterpMode = RCIM_Cubic;
-				else if (StringInterpMode == "RCIM_Constant") InterpMode = RCIM_Constant;
-				else InterpMode = RCIM_None;
-
-				FRichCurveKey RichKey = FRichCurveKey(Key->GetNumberField("Time"), Key->GetNumberField("Value"), Key->GetNumberField("ArriveTangent"), Key->GetNumberField("LeaveTangent"), InterpMode);
-
-				Curve.Keys.Add(RichKey);
+				Curve.Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[i]->AsObject().Get()));
 			}
 
 			SoundAttenuation->Attenuation.CustomAttenuationCurve.EditorCurveData = Curve;
