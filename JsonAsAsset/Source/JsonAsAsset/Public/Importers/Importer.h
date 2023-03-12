@@ -9,8 +9,7 @@
 */
 class IImporter {
 public:
-	IImporter(const FString& FileName, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg,
-	          const TArray<TSharedPtr<FJsonValue>>& AllJsonObjects = {}) {
+	IImporter(const FString& FileName, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg, const TArray<TSharedPtr<FJsonValue>>& AllJsonObjects = {}) {
 		this->FileName = FileName;
 		this->JsonObject = JsonObject;
 		this->Package = Package;
@@ -36,6 +35,8 @@ private:
 		"AnimSequence",
 		"AnimMontage",
 
+		"MaterialFunction",
+
 		"DataTable",
 		"ReverbEffect",
 		"SoundAttenuation",
@@ -57,14 +58,9 @@ public:
 
 protected:
 	template <typename T>
-	T* LoadObject(const TSharedPtr<FJsonObject>* SoftObjectPath) {
-		FString Type;
-		FString Name;
-		SoftObjectPath->Get()->GetStringField("ObjectName").Split(" ", &Type, &Name);
-		FString Path;
-		SoftObjectPath->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
-		return Cast<T>(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").TryLoad());
-	}
+	T* LoadObject(const TSharedPtr<FJsonObject>* PackageIndex);
+	
+	FString GetExportNameOfSubobject(const FString& PackageIndex);
 
 	FString FileName;
 	TSharedPtr<FJsonObject> JsonObject;

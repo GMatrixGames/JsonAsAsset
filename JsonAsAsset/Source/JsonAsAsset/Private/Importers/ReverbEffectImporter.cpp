@@ -5,15 +5,18 @@
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Dom/JsonObject.h"
-#include "Utilities/AssetUtilities.h"
-#include "Utilities/MathUtilities.h"
 
 bool UReverbEffectImporter::ImportData() {
 	try {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
-		UReverbEffect* ReverbEffect = NewObject<UReverbEffect>(Package, UReverbEffect::StaticClass(), *FileName,
-			EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
+		UReverbEffect* ReverbEffect = NewObject<UReverbEffect>(Package, UReverbEffect::StaticClass(), *FileName, RF_Public | RF_Standalone);
+
+		FAssetRegistryModule::AssetCreated(ReverbEffect);
+		if (!ReverbEffect->MarkPackageDirty()) return false;
+		Package->SetDirtyFlag(true);
+		ReverbEffect->PostEditChange();
+		ReverbEffect->AddToRoot();
 
 		int64 AirAbsorptionGainHF;
 		int64 DecayHFRatio;
@@ -63,13 +66,13 @@ bool UReverbEffectImporter::ImportData() {
 		if (Properties->TryGetNumberField("ReflectionsGain", ReflectionsGain)) {
 			ReverbEffect->ReflectionsGain = Properties->GetNumberField("ReflectionsGain");
 		}
-		#if ENGINE_MAJOR_VERSION == 4
-			int64 RoomRolloffFactor;
+#if ENGINE_MAJOR_VERSION == 4
+		int64 RoomRolloffFactor;
 
-			if (Properties->TryGetNumberField("RoomRolloffFactor", RoomRolloffFactor)) {
-				ReverbEffect->RoomRolloffFactor = Properties->GetNumberField("RoomRolloffFactor");
-			}
-		#endif
+		if (Properties->TryGetNumberField("RoomRolloffFactor", RoomRolloffFactor)) {
+			ReverbEffect->RoomRolloffFactor = Properties->GetNumberField("RoomRolloffFactor");
+		}
+#endif
 		if (Properties->TryGetBoolField("bChanged", bChanged)) {
 			ReverbEffect->bChanged = Properties->GetBoolField("bChanged");
 		}
@@ -79,12 +82,6 @@ bool UReverbEffectImporter::ImportData() {
 		if (Properties->TryGetBoolField("bBypassLateReflections", bBypassLateReflections)) {
 			ReverbEffect->bBypassLateReflections = Properties->GetBoolField("bBypassLateReflections");
 		}
-
-		FAssetRegistryModule::AssetCreated(ReverbEffect);
-		ReverbEffect->MarkPackageDirty();
-		Package->SetDirtyFlag(true);
-		ReverbEffect->PostEditChange();
-		ReverbEffect->AddToRoot();
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;

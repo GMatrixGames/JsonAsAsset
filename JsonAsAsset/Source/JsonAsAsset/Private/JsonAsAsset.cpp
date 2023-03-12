@@ -35,6 +35,7 @@
 #include "Importers/ReverbEffectImporter.h"
 #include "Importers/SubsurfaceProfileImporter.h"
 #include "Importers/AnimationBaseImporter.h"
+#include "Importers/MaterialFunctionImporter.h"
 
 // ------------------------------------------------------ |
 
@@ -122,12 +123,15 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 				else if (Type == "CurveLinearColor") Importer = new UCurveLinearColorImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "AnimSequence") Importer = new UAnimationBaseImporter(Name, DataObject, Package, OutermostPkg);
 
-				else if (Type == "SkeletalMeshLODSettings") Importer = new USkeletalMeshLODSettingsImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "Skeleton") Importer = new USkeletonImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
+				else if (Type == "SkeletalMeshLODSettings") Importer = new USkeletalMeshLODSettingsImporter(Name, DataObject, Package, OutermostPkg);
 
-				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, DataObject, Package, OutermostPkg);
-				else if (Type == "SoundAttenuation") Importer = new USoundAttenuationImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "ReverbEffect") Importer = new UReverbEffectImporter(Name, DataObject, Package, OutermostPkg);
+				else if (Type == "SoundAttenuation") Importer = new USoundAttenuationImporter(Name, DataObject, Package, OutermostPkg);
+
+				else if (Type == "MaterialFunction") Importer = new UMaterialFunctionImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
+				
+				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "ParticleModuleTypeDataBeam2") Importer = new UParticleModuleTypeDataBeam2Importer(Name, DataObject, Package, OutermostPkg);
 				else Importer = nullptr;
@@ -166,8 +170,7 @@ void FJsonAsAssetModule::RegisterMenus() {
 	}
 }
 
-TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type)
-{
+TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) {
 	TArray<FString> ReturnValue;
 
 	// Window Handler for Windows
@@ -184,7 +187,7 @@ TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type)
 		uint32 SelectionFlag = 0;
 		// JSON Files|*.json
 		DesktopPlatform->OpenFileDialog(ParentWindowHandle, Title, TEXT(""), FString(""), Type, SelectionFlag,
-			ReturnValue);
+		                                ReturnValue);
 	}
 
 	return ReturnValue;

@@ -6,31 +6,16 @@ public class JsonAsAsset : ModuleRules
 {
 	public JsonAsAsset(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
-		PublicIncludePaths.AddRange(
-			new string[] {
-				// ... add public include paths required here ...
-			}
-			);
-				
-		
-		PrivateIncludePaths.AddRange(
-			new string[] {
-				// ... add other private include paths required here ...
-			}
-			);
-			
-		
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core"
-				// ... add other public dependencies that you statically link with here ...
+				"Core",
+				"Json",
+				"JsonUtilities"
 			}
-			);
-
-		PublicDependencyModuleNames.AddRange(new string[] { "Json", "JsonUtilities" });
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
@@ -43,13 +28,13 @@ public class JsonAsAsset : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"AnimationDataController" // NOTE: Remove this line if your on UE4
-			});
-
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
+				"AnimationDataController"
 			}
-			);
+		);
+
+		if (Target.Version.MajorVersion == 4)
+		{
+			PrivateDependencyModuleNames.Add("AnimationDataController");
+		}
 	}
 }
