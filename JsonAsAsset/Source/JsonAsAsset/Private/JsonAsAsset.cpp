@@ -7,12 +7,7 @@
 #include "Developer/DesktopPlatform/Public/IDesktopPlatform.h"
 #include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
-#include "ContentBrowserModule.h"
-#include "IContentBrowserSingleton.h"
 #include "Runtime/Engine/Classes/Engine/World.h"
-
-#include "AssetRegistry/AssetRegistryModule.h"
-#include "Engine/StaticMeshActor.h"
 
 #include "Misc/MessageDialog.h"
 #include "Json.h"
@@ -26,17 +21,9 @@
 #include "Animation/AnimSequence.h"
 #include "Animation/AnimCurveTypes.h"
 #include "Animation/AnimTypes.h"
-#include "PhysicsEngine/PhysicsAsset.h"
-#include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/ConstraintTypes.h"
-#include "PhysicsEngine/SphylElem.h"
-#include "PhysicsEngine/SphereElem.h"
-#include "PhysicsEngine/ShapeElem.h"
-#include "PhysicsEngine/TaperedCapsuleElem.h"
-#include "PhysicsEngine/PhysicsConstraintTemplate.h"
-#include "Sound/ReverbEffect.h"
 
-// ----> Factories
+// ----> Importers
 #include "Importers/CurveFloatImporter.h"
 #include "Importers/CurveLinearColorImporter.h"
 #include "Importers/DataTableImporter.h"
@@ -133,7 +120,7 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 				// TODO: Make this much cleaner
 				if (Type == "CurveFloat") Importer = new UCurveFloatImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "CurveLinearColor") Importer = new UCurveLinearColorImporter(Name, DataObject, Package, OutermostPkg);
-				else if (Type == "AnimSequence") Importer = new UAnimationBaseImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
+				else if (Type == "AnimSequence") Importer = new UAnimationBaseImporter(Name, DataObject, Package, OutermostPkg);
 
 				else if (Type == "SkeletalMeshLODSettings") Importer = new USkeletalMeshLODSettingsImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "Skeleton") Importer = new USkeletonImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
@@ -179,22 +166,6 @@ void FJsonAsAssetModule::RegisterMenus() {
 	}
 }
 
-FVector FJsonAsAssetModule::ObjectToVector(FJsonObject* Object) {
-	return FVector(Object->GetNumberField("X"), Object->GetNumberField("Y"), Object->GetNumberField("Z"));
-}
-
-FRotator FJsonAsAssetModule::ObjectToRotator(FJsonObject* Object) {
-	return FRotator(Object->GetNumberField("Pitch"), Object->GetNumberField("Yaw"), Object->GetNumberField("Roll"));
-}
-
-FQuat FJsonAsAssetModule::ObjectToQuat(FJsonObject* Object) {
-	return FQuat(Object->GetNumberField("X"), Object->GetNumberField("Y"), Object->GetNumberField("Z"), Object->GetNumberField("W"));
-}
-
-FLinearColor FJsonAsAssetModule::ObjectToLinearColor(FJsonObject* Object) {
-	return FLinearColor(Object->GetNumberField("R"), Object->GetNumberField("G"), Object->GetNumberField("B"), Object->GetNumberField("A"));
-}
-
 TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type)
 {
 	TArray<FString> ReturnValue;
@@ -217,27 +188,6 @@ TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type)
 	}
 
 	return ReturnValue;
-}
-
-UObject* FJsonAsAssetModule::GetSelectedAsset() {
-	// The content browser has a module, which helps us extract the
-	// selected assets, as it is completely connected.
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	TArray<FAssetData> SelectedAssets;
-	ContentBrowserModule.Get().GetSelectedAssets(SelectedAssets);
-
-	if (SelectedAssets.Num() == 0) {
-		GLog->Log("JsonAsAsset: [GetSelectedAsset] None selected, returning nullptr.");
-
-		FText DialogText = FText::FromString(TEXT("A function to find a selected asset failed, please select a asset to go further."));
-		FMessageDialog::Open(EAppMsgType::Ok, DialogText);
-
-		// None found, therefore we need to return nullptr.
-		return nullptr;
-	}
-
-	// Return only the first selected asset
-	return SelectedAssets[0].GetAsset();
 }
 
 UPackage* FJsonAsAssetModule::CreateAssetPackage(const FString& Name, const TArray<FString>& Files) const {

@@ -27,15 +27,10 @@ private:
 	void RegisterMenus();
 
 	TSharedPtr<FUICommandList> PluginCommands;
-	FVector ObjectToVector(FJsonObject* Object);
-	FRotator ObjectToRotator(FJsonObject* Object);
-	FQuat ObjectToQuat(FJsonObject* Object);
-	FLinearColor ObjectToLinearColor(FJsonObject* Object);
 	
 	// Creates a dialog for a file
 	TArray<FString> OpenFileDialog(FString Title, FString Type);
 
-	UObject* GetSelectedAsset();
 	UPackage* CreateAssetPackage(const FString& Name, const TArray<FString>& Files) const;
 	UPackage* CreateAssetPackage(const FString& Name, const TArray<FString>& Files, UPackage*& OutOutermostPkg) const;
 };

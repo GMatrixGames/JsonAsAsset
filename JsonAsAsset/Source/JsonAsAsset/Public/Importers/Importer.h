@@ -57,12 +57,12 @@ public:
 
 protected:
 	template <typename T>
-	T* LoadObject(const TSharedPtr<FJsonObject>* PackageIndex) {
+	T* LoadObject(const TSharedPtr<FJsonObject>* SoftObjectPath) {
 		FString Type;
 		FString Name;
-		PackageIndex->Get()->GetStringField("ObjectName").Split(" ", &Type, &Name);
+		SoftObjectPath->Get()->GetStringField("ObjectName").Split(" ", &Type, &Name);
 		FString Path;
-		PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
+		SoftObjectPath->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
 		return Cast<T>(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").TryLoad());
 	}
 
