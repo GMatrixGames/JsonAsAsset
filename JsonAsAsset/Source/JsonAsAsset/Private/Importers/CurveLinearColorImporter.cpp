@@ -27,7 +27,7 @@ bool UCurveLinearColorImporter::ImportData() {
 			LinearCurveAsset->FloatCurves[i].Keys.Empty();
 
 			for (int j = 0; j < Keys.Num(); j++) {
-				LinearCurveAsset->FloatCurves[i].Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[j]->AsObject().Get()));
+				LinearCurveAsset->FloatCurves[i].Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[j]->AsObject()));
 			}
 		}
 	} catch (const char* Exception) {

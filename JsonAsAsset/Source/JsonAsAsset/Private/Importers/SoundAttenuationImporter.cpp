@@ -325,7 +325,7 @@ bool USoundAttenuationImporter::ImportData() {
 			FRichCurve Curve;
 
 			for (int32 i = 0; i < Keys.Num(); i++) {
-				Curve.Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[i]->AsObject().Get()));
+				Curve.Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[i]->AsObject()));
 			}
 
 			SoundAttenuation->Attenuation.CustomAttenuationCurve.EditorCurveData = Curve;

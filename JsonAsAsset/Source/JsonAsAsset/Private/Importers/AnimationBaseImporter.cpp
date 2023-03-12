@@ -5,47 +5,38 @@
 #include "Dom/JsonObject.h"
 #include "Utilities/AssetUtilities.h"
 #include "Animation/AnimSequence.h"
-#include "Utilities/MathUtilities.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
+#include "Animation/AnimMontage.h"
 
 #if ENGINE_MAJOR_VERSION == 5
-	#include "Animation/AnimData/IAnimationDataController.h"
-	#include "AnimDataController.h"
+#include "Animation/AnimData/IAnimationDataController.h"
+#include "AnimDataController.h"
 #endif
 
 bool UAnimationBaseImporter::ImportData() {
 	try {
-
 		// Properties of the object
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
 		TArray<TSharedPtr<FJsonValue>> FloatCurves;
 		TArray<TSharedPtr<FJsonValue>> Notifies;
-		TArray<TSharedPtr<FJsonValue>> AuthoredSyncMarkers;
 
-		const TArray<TSharedPtr<FJsonValue>>* AuthoredSyncMarkers1;
-		const TSharedPtr<FJsonObject>* RawCurveData;
-
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-		TArray<FAssetData> SelectedAssets;
-		ContentBrowserModule.Get().GetSelectedAssets(SelectedAssets);
-
-		UAnimSequenceBase* AnimSequenceBase = Cast<UAnimSequenceBase>(SelectedAssets[0].GetAsset());
+		UAnimSequenceBase* AnimSequenceBase = Cast<UAnimSequenceBase>(FAssetUtilities::GetSelectedAsset());
 
 		// For Unreal Engine 5, a controller is needed
-		#if ENGINE_MAJOR_VERSION == 5
-			/* In Unreal Engine 5, a new data model has been added to edit animation curves */
-			UAnimDataModel* Model = AnimSequenceBase->GetDataModel();
-			checkf(Model != nullptr, TEXT("Invalid UAnimDataModel Object"));
-			Model->GetAnimationSequence();
+#if ENGINE_MAJOR_VERSION == 5
+		/* In Unreal Engine 5, a new data model has been added to edit animation curves */
+		TScriptInterface<IAnimationDataModel> Model = AnimSequenceBase->GetDataModelInterface();
+		checkf(Model != nullptr, TEXT("Invalid UAnimDataModel Object"));
+		Model->GetAnimationSequence();
 
-			TStrongObjectPtr<UAnimDataController> Controller(NewObject<UAnimDataController>());
-			Controller->SetModel(Model);
-		#endif
+		TStrongObjectPtr Controller(NewObject<UAnimDataController>());
+		Controller->SetModel(Model);
+#endif
 
 		// Some FModel versions have different named objects for curves
-		if (Properties->TryGetObjectField("RawCurveData", RawCurveData)) FloatCurves = Properties->GetObjectField("RawCurveData")->GetArrayField("FloatCurves");
+		if (const TSharedPtr<FJsonObject>* RawCurveData; Properties->TryGetObjectField("RawCurveData", RawCurveData)) FloatCurves = Properties->GetObjectField("RawCurveData")->GetArrayField("FloatCurves");
 		else if (JsonObject->TryGetObjectField("CompressedCurveData", RawCurveData)) FloatCurves = JsonObject->GetObjectField("CompressedCurveData")->GetArrayField("FloatCurves");
 
 		for (TSharedPtr<FJsonValue> FloatCurveObject : FloatCurves) {
@@ -67,55 +58,43 @@ bool UAnimationBaseImporter::ImportData() {
 			ensureAlways(Skeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, NewTrackName.UID, NewTrackName));
 
 			// Unreal Engine 5 uses the controller, while Unreal Engine 4 directly uses RawCurveData
-			#if ENGINE_MAJOR_VERSION == 5
-				Controller->AddCurve(FAnimationCurveIdentifier(NewTrackName, ERawCurveTrackTypes::RCT_Float), CurveTypeFlags);
-			#endif
-			#if ENGINE_MAJOR_VERSION == 4
-				AnimSequenceBase->RawCurveData.AddCurveData(NewTrackName, CurveTypeFlags);
-			#endif
+#if ENGINE_MAJOR_VERSION == 5
+			Controller->AddCurve(FAnimationCurveIdentifier(NewTrackName.DisplayName, ERawCurveTrackTypes::RCT_Float), CurveTypeFlags);
+#endif
+#if ENGINE_MAJOR_VERSION == 4
+			AnimSequenceBase->RawCurveData.AddCurveData(NewTrackName, CurveTypeFlags);
+#endif
 
 			// Each key of the curve
 			TArray<TSharedPtr<FJsonValue>> Keys = FloatCurveObject->AsObject()->GetObjectField("FloatCurve")->GetArrayField("Keys");
 
 			for (int32 key_index = 0; key_index < Keys.Num(); key_index++) {
 				TSharedPtr<FJsonObject> Key = Keys[key_index]->AsObject();
-				ERichCurveInterpMode InterpMode =
-					Key->GetStringField("InterpMode") == "RCIM_Linear" ? ERichCurveInterpMode::RCIM_Linear : // Linear
-					Key->GetStringField("InterpMode") == "RCIM_Cubic" ? ERichCurveInterpMode::RCIM_Cubic : // Cubic
-					Key->GetStringField("InterpMode") == "RCIM_Constant" ? ERichCurveInterpMode::RCIM_Constant : // Constant
-					ERichCurveInterpMode::RCIM_None;
 
-				FRichCurveKey RichKey = FRichCurveKey(float(Key->GetNumberField("Time")), float(Key->GetNumberField("Value")), float(Key->GetNumberField("ArriveTangent")), float(Key->GetNumberField("LeaveTangent")), InterpMode);
+				FRichCurveKey RichKey = FAssetUtilities::ObjectToRichCurveKey(Keys[key_index]->AsObject());
 
 				// Unreal Engine 5 and Unreal Engine 4
 				// have different ways of adding curves
 				//
 				// Unreal Engine 4: Simply adding curves to RawCurveData
 				// Unreal Engine 5: Using a AnimDataController to handle adding curves
-				#if ENGINE_MAJOR_VERSION == 5
-					const FAnimationCurveIdentifier CurveId(NewTrackName, ERawCurveTrackTypes::RCT_Float);
-
-					RichKey.Time = float(Key->GetNumberField("Time"));
-					RichKey.Value = float(Key->GetNumberField("Value"));
-					RichKey.ArriveTangent = float(Key->GetNumberField("ArriveTangent"));
-					RichKey.LeaveTangent = float(Key->GetNumberField("LeaveTangent"));
-					RichKey.InterpMode = InterpMode;
-
-					Controller->SetCurveKey(CurveId, RichKey);
-				#endif
-				#if ENGINE_MAJOR_VERSION == 4
-					AnimSequenceBase->RawCurveData.AddFloatCurveKey(NewTrackName, CurveTypeFlags, float(Key->GetNumberField("Time")), float(Key->GetNumberField("Value")));
-					AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().ArriveTangent = float(Key->GetNumberField("ArriveTangent"));
-					AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().LeaveTangent = float(Key->GetNumberField("LeaveTangent"));
-					AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().InterpMode = InterpMode;
-				#endif
+#if ENGINE_MAJOR_VERSION == 5
+				const FAnimationCurveIdentifier CurveId(NewTrackName, ERawCurveTrackTypes::RCT_Float);
+				Controller->SetCurveKey(CurveId, RichKey);
+#endif
+#if ENGINE_MAJOR_VERSION == 4
+				AnimSequenceBase->RawCurveData.AddFloatCurveKey(NewTrackName, CurveTypeFlags, RichKey.Time, RichKey.Value);
+				AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().ArriveTangent = RichKey.ArriveTangent;
+				AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().LeaveTangent = RichKey.LeaveTangent;
+				AnimSequenceBase->RawCurveData.FloatCurves.Last().FloatCurve.Keys.Last().InterpMode = RichKey.InterpMode;
+#endif
 			}
 		}
 
 		UAnimSequence* CastedAnimSequence = Cast<UAnimSequence>(AnimSequenceBase);
 
-		if (Properties->TryGetArrayField("AuthoredSyncMarkers", AuthoredSyncMarkers1) && CastedAnimSequence) {
-			AuthoredSyncMarkers = Properties->GetArrayField("AuthoredSyncMarkers");
+		if (const TArray<TSharedPtr<FJsonValue>>* AuthoredSyncMarkers1; Properties->TryGetArrayField("AuthoredSyncMarkers", AuthoredSyncMarkers1) && CastedAnimSequence) {
+			TArray<TSharedPtr<FJsonValue>> AuthoredSyncMarkers = Properties->GetArrayField("AuthoredSyncMarkers");
 
 			for (TSharedPtr<FJsonValue> SyncMarker : AuthoredSyncMarkers) {
 				FAnimSyncMarker AuthoredSyncMarker = FAnimSyncMarker();
@@ -125,6 +104,7 @@ bool UAnimationBaseImporter::ImportData() {
 			}
 		}
 
+		// TODO: Incompatible with UE5
 		if (CastedAnimSequence) {
 			CastedAnimSequence->MarkRawDataAsModified();
 			CastedAnimSequence->RequestSyncAnimRecompression();

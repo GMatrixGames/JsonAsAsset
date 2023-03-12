@@ -12,5 +12,5 @@ public:
 	 */
 	static UObject* GetSelectedAsset();
 
-	static FRichCurveKey ObjectToRichCurveKey(const FJsonObject* Object);
+	static FRichCurveKey ObjectToRichCurveKey(TSharedPtr<FJsonObject> Object);
 };

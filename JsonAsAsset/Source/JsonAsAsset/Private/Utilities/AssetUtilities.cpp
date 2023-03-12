@@ -25,7 +25,7 @@ UObject* FAssetUtilities::GetSelectedAsset() {
 	return SelectedAssets[0].GetAsset();
 }
 
-FRichCurveKey FAssetUtilities::ObjectToRichCurveKey(const FJsonObject* Object) {
+FRichCurveKey FAssetUtilities::ObjectToRichCurveKey(TSharedPtr<FJsonObject> Object) {
 	ERichCurveInterpMode InterpMode;
 	FString StringInterpMode = Object->GetStringField("InterpMode");
 

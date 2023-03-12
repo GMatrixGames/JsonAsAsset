@@ -21,7 +21,7 @@ bool UCurveFloatImporter::ImportData() {
 		CurveAsset->AddToRoot();
 
 		for (int32 i = 0; i < Keys.Num(); i++) {
-			CurveAsset->FloatCurve.Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[i]->AsObject().Get()));
+			CurveAsset->FloatCurve.Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[i]->AsObject()));
 		}
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
