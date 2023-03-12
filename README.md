@@ -12,6 +12,19 @@ The JSON format/file has to be from a program that fits the format of FModel's J
 - [FModel](https://fmodel.app)
 > Software for exploring Unreal Engine games
 
+However the version of your FModel application may affect the plugin's processing and parsing. For example, some FModel versions have different object names for curve data.
+
+## How's this used?
+<img align="right" width="350" height="200" src="https://user-images.githubusercontent.com/73559984/224574869-6365f76f-8684-4788-b3c2-ad9acf832984.gif">
+      You can use this plugin for many reasons, but I personally use it for a project to recreate a game.
+  <br> <br> 
+
+  **Importing JsonAsAsset**:
+ <br> To import JsonAsAsset into your project, you simply head over to the [Releases](https://github.com/Tectors/JsonAsAsset/releases) and get a release that matches you unreal engine version. If not, compile the plugin yourself.
+ 
+   **Using JsonAsAsset**:
+ <br> After importing the plugin, click on the window tab (top left) and press JsonAsAsset (at the bottom) to select a JSON file. Then, it should import the asset and you can use it.
+
 ## What's supported?
 - CurveFloat
 - CurveLinearColor
