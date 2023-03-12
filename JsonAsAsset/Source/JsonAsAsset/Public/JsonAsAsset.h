@@ -38,10 +38,7 @@ private:
 	*/
 	bool EvaluateAnimSequence(FJsonObject* Object, UAnimSequenceBase* AnimSequenceBase);
 
-	/*
-	* Get selected assets in the content browser of the use,
-	* usually used for the plugin, editing the existing assets.
-	*/
+	
 	UObject* GetSelectedAsset();
 
 	UPackage* CreateAssetPackage(const FString& Name, const TArray<FString>& Files) const;

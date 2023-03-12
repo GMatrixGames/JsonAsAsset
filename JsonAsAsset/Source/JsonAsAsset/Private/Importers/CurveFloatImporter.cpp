@@ -6,14 +6,12 @@
 #include "Dom/JsonObject.h"
 #include "Factories/CurveFactory.h"
 
-bool UCurveFloatImporter::ImportData()
-{
+bool UCurveFloatImporter::ImportData() {
 	try {
 		TArray<TSharedPtr<FJsonValue>> Keys = JsonObject->GetObjectField("Properties")->GetObjectField("FloatCurve")->GetArrayField("Keys");
 
 		UCurveFloatFactory* CurveFactory = NewObject<UCurveFloatFactory>();
-		UCurveFloat* CurveAsset = Cast<UCurveFloat>(
-			CurveFactory->FactoryCreateNew(UCurveFloat::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
+		UCurveFloat* CurveAsset = Cast<UCurveFloat>(CurveFactory->FactoryCreateNew(UCurveFloat::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
 
 		FAssetRegistryModule::AssetCreated(CurveAsset);
 		if (!CurveAsset->MarkPackageDirty()) return false;
@@ -21,11 +19,10 @@ bool UCurveFloatImporter::ImportData()
 		CurveAsset->PostEditChange();
 		CurveAsset->AddToRoot();
 
-		for (int32 key_index = 0; key_index < Keys.Num(); key_index++)
-		{
+		for (int32 key_index = 0; key_index < Keys.Num(); key_index++) {
 			const TSharedPtr<FJsonObject> Key = Keys[key_index]->AsObject();
-			ERichCurveInterpMode InterpMode;
 
+			ERichCurveInterpMode InterpMode;
 			FString StringInterpMode = Key->GetStringField("InterpMode");
 
 			if (StringInterpMode.EndsWith("RCIM_Linear")) InterpMode = RCIM_Linear;
@@ -38,8 +35,7 @@ bool UCurveFloatImporter::ImportData()
 
 			CurveAsset->FloatCurve.Keys.Add(RichKey);
 		}
-	}
-	catch (const char* Exception) {
+	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
 	}

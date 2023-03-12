@@ -4,9 +4,7 @@
 
 bool USkeletonAssetDerived::AddVirtualBone(const FName SourceBoneName, const FName TargetBoneName, const FName VirtualBoneRootName) {
 	for (const FVirtualBone& SSBone : VirtualBones) {
-		if (SSBone.SourceBoneName == SourceBoneName &&
-			SSBone.TargetBoneName == TargetBoneName)
-		{
+		if (SSBone.SourceBoneName == SourceBoneName && SSBone.TargetBoneName == TargetBoneName) {
 			return false;
 		}
 	}

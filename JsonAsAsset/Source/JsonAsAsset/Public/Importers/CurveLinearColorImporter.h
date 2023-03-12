@@ -7,8 +7,7 @@
 class UCurveLinearColorImporter : public IImporter {
 public:
 	UCurveLinearColorImporter(const FString& FileName, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg):
-		IImporter(FileName, JsonObject, Package, OutermostPkg)
-	{
+		IImporter(FileName, JsonObject, Package, OutermostPkg) {
 	}
 
 	virtual bool ImportData() override;

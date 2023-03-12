@@ -8,8 +8,7 @@
 #include "Dom/JsonObject.h"
 #include "Factories/DataAssetFactory.h"
 
-bool USkeletalMeshLODSettingsImporter::ImportData()
-{
+bool USkeletalMeshLODSettingsImporter::ImportData() {
 	try {
 		UDataAssetFactory* DataAssetFactory = NewObject<UDataAssetFactory>();
 		USkeletalMeshLODSettingsDerived* LODDataAsset = Cast<USkeletalMeshLODSettingsDerived>(
@@ -29,7 +28,7 @@ bool USkeletalMeshLODSettingsImporter::ImportData()
 			FSkeletalMeshLODGroupSettings SkeletalMeshLODGroup = FSkeletalMeshLODGroupSettings();
 
 			if (const TSharedPtr<FJsonObject>* BakePose; LODDataObject->TryGetObjectField("BakePose", BakePose) == true) {
-				SkeletalMeshLODGroup.BakePose = LoadObject<UAnimSequence*>(BakePose);
+				SkeletalMeshLODGroup.BakePose = LoadObject<UAnimSequence>(BakePose);
 			}
 
 			SkeletalMeshLODGroup.LODHysteresis = LODDataObject->GetNumberField("LODHysteresis");
@@ -47,8 +46,7 @@ bool USkeletalMeshLODSettingsImporter::ImportData()
 
 				SkeletalMeshLODGroup.BoneFilterActionOption = BoneFilterActionOption;
 
-				for (const TSharedPtr<FJsonValue> BoneListed : LODDataObject->GetArrayField("BoneList"))
-				{
+				for (const TSharedPtr<FJsonValue> BoneListed : LODDataObject->GetArrayField("BoneList")) {
 					FBoneFilter BoneFilter;
 
 					BoneFilter.bExcludeSelf = BoneListed->AsObject()->GetBoolField("bExcludeSelf");

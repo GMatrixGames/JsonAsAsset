@@ -8,14 +8,12 @@
 #include "Dom/JsonObject.h"
 #include "Factories/CurveFactory.h"
 
-bool UCurveLinearColorImporter::ImportData()
-{
+bool UCurveLinearColorImporter::ImportData() {
 	try {
 		TArray<TSharedPtr<FJsonValue>> FloatCurves = JsonObject->GetArrayField("FloatCurves");
 
 		UCurveLinearColorFactory* CurveFactory = NewObject<UCurveLinearColorFactory>();
-		UCurveLinearColor* LinearCurveAsset = Cast<UCurveLinearColor>(
-			CurveFactory->FactoryCreateNew(UCurveLinearColor::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
+		UCurveLinearColor* LinearCurveAsset = Cast<UCurveLinearColor>(CurveFactory->FactoryCreateNew(UCurveLinearColor::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
 
 		FAssetRegistryModule::AssetCreated(LinearCurveAsset);
 		if (!LinearCurveAsset->MarkPackageDirty()) return false;
@@ -23,19 +21,17 @@ bool UCurveLinearColorImporter::ImportData()
 		LinearCurveAsset->PostEditChange();
 		LinearCurveAsset->AddToRoot();
 
-		for (int i = 0; i < FloatCurves.Num(); i++)
-		{
+		for (int i = 0; i < FloatCurves.Num(); i++) {
 			TArray<TSharedPtr<FJsonValue>> Keys = FloatCurves[i]->AsObject()->GetArrayField("Keys");
 
 			LinearCurveAsset->FloatCurves[i].Keys.Empty();
 
-			for (int j = 0; j < Keys.Num(); j++)
-			{
+			for (int j = 0; j < Keys.Num(); j++) {
 				FRichCurve RichCurveObject = FRichCurve();
 
 				const TSharedPtr<FJsonObject> Key = Keys[j]->AsObject();
-				ERichCurveInterpMode InterpMode;
 
+				ERichCurveInterpMode InterpMode;
 				FString StringInterpMode = Key->GetStringField("InterpMode");
 
 				if (StringInterpMode == "RCIM_Linear") InterpMode = RCIM_Linear;
@@ -49,9 +45,7 @@ bool UCurveLinearColorImporter::ImportData()
 				LinearCurveAsset->FloatCurves[i].Keys.Add(RichKey);
 			}
 		}
-	}
-	catch (const char* Exception)
-	{
+	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
 	}
