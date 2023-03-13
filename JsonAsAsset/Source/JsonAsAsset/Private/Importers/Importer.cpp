@@ -13,6 +13,17 @@ T* IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex) {
 }
 
 
+bool IImporter::HandleAssetCreation(UObject* Asset)
+{
+	FAssetRegistryModule::AssetCreated(Asset);
+	if (!Asset->MarkPackageDirty()) return false;
+	Package->SetDirtyFlag(true);
+	Asset->PostEditChange();
+	Asset->AddToRoot();
+
+	return true;
+}
+
 FName IImporter::GetExportNameOfSubobject(const FString& PackageIndex) {
 	FString Name;
 	PackageIndex.Split("'", nullptr, &Name);

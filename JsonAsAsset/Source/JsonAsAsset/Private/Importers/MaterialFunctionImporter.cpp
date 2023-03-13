@@ -22,38 +22,40 @@
 
 bool UMaterialFunctionImporter::ImportData() {
 	try {
+		// Create Material Function Factory (factory automatically creates the MF)
 		UMaterialFunctionFactoryNew* MaterialFunctionFactory = NewObject<UMaterialFunctionFactoryNew>();
 		UMaterialFunction* MaterialFunction = Cast<UMaterialFunction>(MaterialFunctionFactory->FactoryCreateNew(UMaterialFunction::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
 		MaterialFunction->StateId = FGuid(JsonObject->GetObjectField("Properties")->GetStringField("StateId"));
+		// Handle edit changes, and add it to the content browser
+		HandleAssetCreation(MaterialFunction);
 
-		FAssetRegistryModule::AssetCreated(MaterialFunction);
-		if (!MaterialFunction->MarkPackageDirty()) return false;
-		Package->SetDirtyFlag(true);
-		MaterialFunction->PostEditChange();
-		MaterialFunction->AddToRoot();
-
+		// Clear any default expressions the engine adds (ex: Result)
 		MaterialFunction->GetExpressionCollection().Empty();
 
+		// Define editor only data from the JSON
 		FJsonObject* EditorOnlyData = nullptr;
 		TMap<FName, TTuple<FName, FJsonObject*>> Exports;
 
-		for (int i = 0; i < AllJsonObjects.Num(); i++) {
-			TSharedPtr<FJsonObject>* Object = new TSharedPtr(AllJsonObjects[i]->AsObject());
+		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
+			TSharedPtr<FJsonObject>* SharedObject = new TSharedPtr(Value->AsObject());
+			FJsonObject* Object = SharedObject->Get();
 
-			FString Type = Object->Get()->GetStringField("Type");
-			FString Name = Object->Get()->GetStringField("Name");
+			FString Type = Object->GetStringField("Type");
+			FString Name = Object->GetStringField("Name");
 
 			if (Type == "MaterialFunctionEditorOnlyData") {
-				EditorOnlyData = Object->Get();
+				EditorOnlyData = Object;
 				continue;
 			}
 
 			TTuple<FName, FJsonObject*> Tuple;
 			Tuple.Key = FName(Type);
-			Tuple.Value = Object->Get();
+			Tuple.Value = Object;
+			
 			Exports.Add(FName(Name), Tuple);
 		}
 
+		// Find each node expression
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EditorOnlyData->GetObjectField("Properties")->GetObjectField("ExpressionCollection");
 
 		TArray<FName> ExpressionNames;
@@ -64,41 +66,38 @@ bool UMaterialFunctionImporter::ImportData() {
 			}
 		}
 
+		// Map out each experssion for easier access
 		TMap<FName, UMaterialExpression*> CreatedExpressionMap;
 
 		for (FName Name : ExpressionNames) {
+			FName Type;
 			TSet<FName> Keys;
 			Exports.GetKeys(Keys);
 
-			FName Type;
-
-			for (TTuple<FName, TTuple<FName, FJsonObject*>>& Key : Exports) {
+			for (TTuple<FName, TTuple<FName, FJsonObject*>>& Key : Exports)
 				if (Key.Key == Name) {
 					Type = FName(Key.Value.Key);
 					break;
 				}
-			}
 
 			UMaterialExpression* Ex = CreateEmptyExpression(MaterialFunction, Name, Type);
-
-			if (Ex == nullptr) {
+			if (Ex == nullptr)
 				continue;
-			}
 
 			CreatedExpressionMap.Add(Name, Ex);
 		}
 
-		// Yes, I know it's repeated iteration, but it's the clearest way I see for it due to needing references of existing objects
-
+		// Iterate through all the expression names
 		for (FName Name : ExpressionNames) {
 			TTuple<FName, FJsonObject*>* Type = Exports.Find(Name);
 
 			const TSharedPtr<FJsonObject> Properties = Type->Value->GetObjectField("Properties");
 
+			// Find the expression from FName
 			if (!CreatedExpressionMap.Contains(Name)) continue;
 			UMaterialExpression* Expression = *CreatedExpressionMap.Find(Name);
 
-			// Messiness here
+			// Cheeky things here
 			if (Type->Key == "MaterialExpressionFunctionOutput") {
 				UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(Expression);
 
@@ -393,27 +392,27 @@ void UMaterialFunctionImporter::AddGenerics(UMaterialFunction* MaterialFunction,
 }
 
 UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UMaterialFunction* Parent, const FName Name, const FName Type) const {
-	UMaterialExpression* Return = nullptr;
+	UMaterialExpression* Expression = nullptr;
 
-	if (Type == "MaterialExpressionAbs") Return = NewObject<UMaterialExpressionAbs>(Parent, UMaterialExpressionAbs::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionAdd") Return = NewObject<UMaterialExpressionAdd>(Parent, UMaterialExpressionAdd::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionStaticSwitchParameter") Return = NewObject<UMaterialExpressionStaticSwitchParameter>(Parent, UMaterialExpressionStaticSwitchParameter::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionFunctionOutput") Return = NewObject<UMaterialExpressionFunctionOutput>(Parent, UMaterialExpressionFunctionOutput::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionFunctionInput") Return = NewObject<UMaterialExpressionFunctionInput>(Parent, UMaterialExpressionFunctionInput::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionComponentMask") Return = NewObject<UMaterialExpressionComponentMask>(Parent, UMaterialExpressionComponentMask::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionConstant") Return = NewObject<UMaterialExpressionConstant>(Parent, UMaterialExpressionConstant::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionConstant2Vector") Return = NewObject<UMaterialExpressionConstant2Vector>(Parent, UMaterialExpressionConstant2Vector::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionConstant3Vector") Return = NewObject<UMaterialExpressionConstant3Vector>(Parent, UMaterialExpressionConstant3Vector::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionConstantBiasScale") Return = NewObject<UMaterialExpressionConstantBiasScale>(Parent, UMaterialExpressionConstantBiasScale::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionFrac") Return = NewObject<UMaterialExpressionFrac>(Parent, UMaterialExpressionFrac::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionLinearInterpolate") Return = NewObject<UMaterialExpressionLinearInterpolate>(Parent, UMaterialExpressionLinearInterpolate::StaticClass(), Name, RF_Transactional);
+	if (Type == "MaterialExpressionAbs") Expression = NewObject<UMaterialExpressionAbs>(Parent, UMaterialExpressionAbs::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionAdd") Expression = NewObject<UMaterialExpressionAdd>(Parent, UMaterialExpressionAdd::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionStaticSwitchParameter") Expression = NewObject<UMaterialExpressionStaticSwitchParameter>(Parent, UMaterialExpressionStaticSwitchParameter::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionFunctionOutput") Expression = NewObject<UMaterialExpressionFunctionOutput>(Parent, UMaterialExpressionFunctionOutput::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionFunctionInput") Expression = NewObject<UMaterialExpressionFunctionInput>(Parent, UMaterialExpressionFunctionInput::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionComponentMask") Expression = NewObject<UMaterialExpressionComponentMask>(Parent, UMaterialExpressionComponentMask::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionConstant") Expression = NewObject<UMaterialExpressionConstant>(Parent, UMaterialExpressionConstant::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionConstant2Vector") Expression = NewObject<UMaterialExpressionConstant2Vector>(Parent, UMaterialExpressionConstant2Vector::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionConstant3Vector") Expression = NewObject<UMaterialExpressionConstant3Vector>(Parent, UMaterialExpressionConstant3Vector::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionConstantBiasScale") Expression = NewObject<UMaterialExpressionConstantBiasScale>(Parent, UMaterialExpressionConstantBiasScale::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionFrac") Expression = NewObject<UMaterialExpressionFrac>(Parent, UMaterialExpressionFrac::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionLinearInterpolate") Expression = NewObject<UMaterialExpressionLinearInterpolate>(Parent, UMaterialExpressionLinearInterpolate::StaticClass(), Name, RF_Transactional);
 
-	if (!Return) {
+	if (!Expression) {
 		UE_LOG(LogJson, Warning, TEXT("Missing support for expression type: \"%s\""), *Type.ToString())
 		return nullptr;
 	}
 
-	return Return;
+	return Expression;
 }
 
 FExpressionInput UMaterialFunctionImporter::PopulateExpressionInput(const TSharedPtr<FJsonObject>& JsonProperties, UMaterialExpression* Expression) {
@@ -422,16 +421,12 @@ FExpressionInput UMaterialFunctionImporter::PopulateExpressionInput(const TShare
 	Input.OutputIndex = JsonProperties->GetIntegerField("OutputIndex");
 	Input.InputName = FName(JsonProperties->GetStringField("InputName"));
 
-	int Mask;
-	if (JsonProperties->TryGetNumberField("Mask", Mask)) Input.Mask = Mask;
-	int MaskR;
-	if (JsonProperties->TryGetNumberField("MaskR", MaskR)) Input.MaskR = MaskR;
-	int MaskG;
-	if (JsonProperties->TryGetNumberField("MaskG", MaskG)) Input.MaskG = MaskG;
-	int MaskB;
-	if (JsonProperties->TryGetNumberField("MaskB", MaskB)) Input.MaskB = MaskB;
-	int MaskA;
-	if (JsonProperties->TryGetNumberField("MaskA", MaskA)) Input.MaskA = MaskA;
+	// Each Mask input/output
+	int Mask; if (JsonProperties->TryGetNumberField("Mask", Mask)) Input.Mask = Mask;
+	int MaskR; if (JsonProperties->TryGetNumberField("MaskR", MaskR)) Input.MaskR = MaskR;
+	int MaskG; if (JsonProperties->TryGetNumberField("MaskG", MaskG)) Input.MaskG = MaskG;
+	int MaskB; if (JsonProperties->TryGetNumberField("MaskB", MaskB)) Input.MaskB = MaskB;
+	int MaskA; if (JsonProperties->TryGetNumberField("MaskA", MaskA)) Input.MaskA = MaskA;
 
 	return Input;
 }
