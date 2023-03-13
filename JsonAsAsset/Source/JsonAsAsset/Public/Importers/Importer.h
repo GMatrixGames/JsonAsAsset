@@ -59,8 +59,8 @@ public:
 protected:
 	template <typename T>
 	T* LoadObject(const TSharedPtr<FJsonObject>* PackageIndex);
-	
-	FString GetExportNameOfSubobject(const FString& PackageIndex);
+
+	FName GetExportNameOfSubobject(const FString& PackageIndex);
 
 	FString FileName;
 	TSharedPtr<FJsonObject> JsonObject;

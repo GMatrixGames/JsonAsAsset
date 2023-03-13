@@ -13,10 +13,10 @@ T* IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex) {
 }
 
 
-FString IImporter::GetExportNameOfSubobject(const FString& PackageIndex) {
+FName IImporter::GetExportNameOfSubobject(const FString& PackageIndex) {
 	FString Name;
 	PackageIndex.Split("'", nullptr, &Name);
 	Name.Split(":", nullptr, &Name);
 	Name = Name.Replace(TEXT("'"), TEXT(""));
-	return Name;
+	return FName(Name);
 }
