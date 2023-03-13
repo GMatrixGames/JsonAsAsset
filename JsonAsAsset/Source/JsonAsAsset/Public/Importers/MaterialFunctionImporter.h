@@ -17,5 +17,11 @@ private:
 
 	UMaterialExpression* CreateEmptyExpression(UMaterialFunction* Parent, FName Name, FName Type) const;
 
-	FExpressionInput PopulateExpressionInput(const TSharedPtr<FJsonObject>& JsonProperties, UMaterialExpression* Expression);
+	FExpressionInput PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression);
+	FExpressionOutput PopulateExpressionOutput(const FJsonObject* JsonProperties);
+
+	FName GetExpressionName(const FJsonObject* JsonProperties);
+
+	FFunctionExpressionOutput PopulateFuncExpressionOutput(const TSharedPtr<FJsonObject>& JsonProperties);
+	FFunctionExpressionInput PopulateFuncExpressionInput(const TSharedPtr<FJsonObject>& JsonProperties, TMap<FName, UMaterialExpression*>& CreatedExpressionMap);
 };
