@@ -37,6 +37,7 @@ private:
 
 		"MaterialFunction",
 		"MaterialInstanceConstant",
+		"Material",
 
 		"DataTable",
 		"ReverbEffect",
