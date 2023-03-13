@@ -36,6 +36,7 @@
 #include "Importers/SubsurfaceProfileImporter.h"
 #include "Importers/AnimationBaseImporter.h"
 #include "Importers/MaterialFunctionImporter.h"
+#include "Importers/MaterialInstanceConstantImporter.h"
 
 // ------------------------------------------------------ |
 
@@ -130,7 +131,8 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 				else if (Type == "SoundAttenuation") Importer = new USoundAttenuationImporter(Name, DataObject, Package, OutermostPkg);
 
 				else if (Type == "MaterialFunction") Importer = new UMaterialFunctionImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
-				
+				else if (Type == "MaterialInstanceConstant") Importer = new UMaterialInstanceConstantImporter(Name, DataObject, Package, OutermostPkg);
+
 				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "ParticleModuleTypeDataBeam2") Importer = new UParticleModuleTypeDataBeam2Importer(Name, DataObject, Package, OutermostPkg);

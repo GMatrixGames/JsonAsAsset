@@ -36,6 +36,7 @@ private:
 		"AnimMontage",
 
 		"MaterialFunction",
+		"MaterialInstanceConstant",
 
 		"DataTable",
 		"ReverbEffect",
