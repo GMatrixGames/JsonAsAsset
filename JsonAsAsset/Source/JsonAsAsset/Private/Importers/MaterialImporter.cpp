@@ -46,6 +46,39 @@ bool UMaterialImporter::ImportData() {
 			Material->BlendMode = BlendMode;
 		}
 
+		FString ShadingModelString;
+		if (JsonObject->GetObjectField("Properties")->TryGetStringField("ShadingModel", ShadingModelString)) {
+			EMaterialShadingModel ShadingModel = MSM_DefaultLit;
+
+			if (ShadingModelString.EndsWith("MSM_Unlit")) ShadingModel = MSM_Unlit;
+			else if (ShadingModelString.EndsWith("MSM_Subsurface")) ShadingModel = MSM_Subsurface;
+			else if (ShadingModelString.EndsWith("MSM_PreintegratedSkin")) ShadingModel = MSM_PreintegratedSkin;
+			else if (ShadingModelString.EndsWith("MSM_ClearCoat")) ShadingModel = MSM_ClearCoat;
+			else if (ShadingModelString.EndsWith("MSM_SubsurfaceProfile")) ShadingModel = MSM_SubsurfaceProfile;
+			else if (ShadingModelString.EndsWith("MSM_TwoSidedFoliage")) ShadingModel = MSM_TwoSidedFoliage;
+			else if (ShadingModelString.EndsWith("MSM_Hair")) ShadingModel = MSM_Hair;
+			else if (ShadingModelString.EndsWith("MSM_Cloth")) ShadingModel = MSM_Cloth;
+			else if (ShadingModelString.EndsWith("MSM_Eye")) ShadingModel = MSM_Eye;
+			else if (ShadingModelString.EndsWith("MSM_SingleLayerWater")) ShadingModel = MSM_SingleLayerWater;
+			else if (ShadingModelString.EndsWith("MSM_ThinTranslucent")) ShadingModel = MSM_ThinTranslucent;
+			else if (ShadingModelString.EndsWith("MSM_FromMaterialExpression")) ShadingModel = MSM_FromMaterialExpression;
+
+			Material->SetShadingModel(ShadingModel);
+
+			const TSharedPtr<FJsonObject>* ShadingModelsPtr;
+			if (JsonObject->GetObjectField("Properties")->TryGetObjectField("ShadingModels", ShadingModelsPtr)) {
+				int ShadingModelField;
+				if (ShadingModelsPtr->Get()->TryGetNumberField("ShadingModelField", ShadingModelField)) Material->GetShadingModels().SetShadingModelField(ShadingModelField);
+			}
+		}
+
+		bool bEnableResponsiveAA;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bEnableResponsiveAA", bEnableResponsiveAA)) Material->bEnableResponsiveAA = bEnableResponsiveAA;
+		bool bUsedWithSkeletalMesh;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithSkeletalMesh", bUsedWithSkeletalMesh)) Material->bUsedWithSkeletalMesh = bUsedWithSkeletalMesh;
+		bool bUsedWithParticleSprites;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithParticleSprites", bUsedWithParticleSprites)) Material->bUsedWithParticleSprites = bUsedWithParticleSprites;
+
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(Material)) return false;
 
@@ -76,7 +109,7 @@ bool UMaterialImporter::ImportData() {
 			FName EmissiveColorExpressionName = GetExpressionName(EmissiveColorObject);
 
 			if (CreatedExpressionMap.Contains(EmissiveColorExpressionName)) {
-				FExpressionInput Ex = PopulateExpressionInput(EmissiveColorObject, *CreatedExpressionMap.Find(EmissiveColorExpressionName));
+				FExpressionInput Ex = PopulateExpressionInput(EmissiveColorObject, *CreatedExpressionMap.Find(EmissiveColorExpressionName), "Color");
 				FColorMaterialInput* EmissiveColor = reinterpret_cast<FColorMaterialInput*>(&Ex);
 				Material->GetEditorOnlyData()->EmissiveColor = *EmissiveColor;
 			}
@@ -88,7 +121,7 @@ bool UMaterialImporter::ImportData() {
 			FName OpacityExpressionName = GetExpressionName(OpacityObject);
 
 			if (CreatedExpressionMap.Contains(OpacityExpressionName)) {
-				FExpressionInput Ex = PopulateExpressionInput(OpacityObject, *CreatedExpressionMap.Find(OpacityExpressionName));
+				FExpressionInput Ex = PopulateExpressionInput(OpacityObject, *CreatedExpressionMap.Find(OpacityExpressionName), "Scalar");
 				FScalarMaterialInput* Opacity = reinterpret_cast<FScalarMaterialInput*>(&Ex);
 				Material->GetEditorOnlyData()->Opacity = *Opacity;
 			}
@@ -100,7 +133,7 @@ bool UMaterialImporter::ImportData() {
 			FName OpacityMaskExpressionName = GetExpressionName(OpacityMaskObject);
 
 			if (CreatedExpressionMap.Contains(OpacityMaskExpressionName)) {
-				FExpressionInput Ex = PopulateExpressionInput(OpacityMaskObject, *CreatedExpressionMap.Find(OpacityMaskExpressionName));
+				FExpressionInput Ex = PopulateExpressionInput(OpacityMaskObject, *CreatedExpressionMap.Find(OpacityMaskExpressionName), "Scalar");
 				FScalarMaterialInput* OpacityMask = reinterpret_cast<FScalarMaterialInput*>(&Ex);
 				Material->GetEditorOnlyData()->OpacityMask = *OpacityMask;
 			}
@@ -112,7 +145,7 @@ bool UMaterialImporter::ImportData() {
 			FName WorldPositionOffsetExpressionName = GetExpressionName(WorldPositionOffsetObject);
 
 			if (CreatedExpressionMap.Contains(WorldPositionOffsetExpressionName)) {
-				FExpressionInput Ex = PopulateExpressionInput(WorldPositionOffsetObject, *CreatedExpressionMap.Find(WorldPositionOffsetExpressionName));
+				FExpressionInput Ex = PopulateExpressionInput(WorldPositionOffsetObject, *CreatedExpressionMap.Find(WorldPositionOffsetExpressionName), "Vector");
 				FVectorMaterialInput* WorldPositionOffset = reinterpret_cast<FVectorMaterialInput*>(&Ex);
 				Material->GetEditorOnlyData()->WorldPositionOffset = *WorldPositionOffset;
 			}

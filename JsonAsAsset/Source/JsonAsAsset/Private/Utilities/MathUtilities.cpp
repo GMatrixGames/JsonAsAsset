@@ -12,6 +12,10 @@ FVector3f FMathUtilities::ObjectToVector3f(const FJsonObject* Object) {
 	return FVector3f(Object->GetNumberField("X"), Object->GetNumberField("Y"), Object->GetNumberField("Z"));
 }
 
+FVector4f FMathUtilities::ObjectToVector4f(const FJsonObject* Object) {
+	return FVector4f(Object->GetNumberField("X"), Object->GetNumberField("Y"), Object->GetNumberField("Z"));
+}
+
 FRotator FMathUtilities::ObjectToRotator(const FJsonObject* Object) {
 	return FRotator(Object->GetNumberField("Pitch"), Object->GetNumberField("Yaw"), Object->GetNumberField("Roll"));
 }

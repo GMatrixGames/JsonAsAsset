@@ -217,6 +217,8 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 		if (!CreatedExpressionMap.Contains(Name)) continue;
 		UMaterialExpression* Expression = *CreatedExpressionMap.Find(Name);
 
+		// UE_LOG(LogJson, Warning, TEXT("Export Name: %s"), *Name.ToString())
+
 		// Cheeky things here
 		if (Type->Type == "MaterialExpressionFunctionOutput") {
 			UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(Expression);
@@ -296,8 +298,8 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			FunctionInput->Id = FGuid(Properties->GetStringField("ID"));
 
 			FString InputTypeString;
+			EFunctionInputType InputType = FunctionInput_Vector3;
 			if (Properties->TryGetStringField("InputType", InputTypeString)) {
-				EFunctionInputType InputType;
 				if (InputTypeString.EndsWith("FunctionInput_Scalar")) InputType = FunctionInput_Scalar;
 				else if (InputTypeString.EndsWith("FunctionInput_Vector2")) InputType = FunctionInput_Vector2;
 				else if (InputTypeString.EndsWith("FunctionInput_Vector4")) InputType = FunctionInput_Vector4;
@@ -312,11 +314,12 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				else if (InputTypeString.EndsWith("FunctionInput_Bool")) InputType = FunctionInput_Bool;
 				else if (InputTypeString.EndsWith("FunctionInput_Substrate")) InputType = FunctionInput_Substrate;
 #endif
-				else InputType = FunctionInput_Vector3;
 
 				FunctionInput->InputType = InputType;
 			}
 
+			const TSharedPtr<FJsonObject>* PreviewValue;
+			if (Properties->TryGetObjectField("PreviewValue", PreviewValue)) FunctionInput->PreviewValue = FMathUtilities::ObjectToVector4f(PreviewValue->Get());
 			bool bUsePreviewValueAsDefault;
 			if (Properties->TryGetBoolField("bUsePreviewValueAsDefault", bUsePreviewValueAsDefault)) FunctionInput->bUsePreviewValueAsDefault = bUsePreviewValueAsDefault;
 			int SortPriority;
@@ -1539,6 +1542,8 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			const TArray<TSharedPtr<FJsonValue>>* ParamNamesPtr;
 			if (Properties->TryGetArrayField("ParamNames", ParamNamesPtr)) {
+				DynamicParameter->ParamNames.Empty();
+
 				for (const TSharedPtr<FJsonValue> ReroutePinsValue : *ParamNamesPtr) {
 					DynamicParameter->ParamNames.Add(ReroutePinsValue->AsString());
 				}
@@ -1546,7 +1551,34 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			Expression = DynamicParameter;
 		} else if (Type->Type == "MaterialExpressionFeatureLevelSwitch") {
-			// TODO
+			UMaterialExpressionFeatureLevelSwitch* FeatureLevelSwitch = Cast<UMaterialExpressionFeatureLevelSwitch>(Expression);
+
+			const TSharedPtr<FJsonObject>* DefaultPtr = nullptr;
+			if (Properties->TryGetObjectField("Default", DefaultPtr) && DefaultPtr != nullptr) {
+				FJsonObject* DefaultObject = DefaultPtr->Get();
+				FName DefaultExpressionName = GetExpressionName(DefaultObject);
+				if (CreatedExpressionMap.Contains(DefaultExpressionName)) {
+					FExpressionInput Default = PopulateExpressionInput(DefaultObject, *CreatedExpressionMap.Find(DefaultExpressionName));
+					FeatureLevelSwitch->Default = Default;
+				}
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* InputsPtr;
+			if (Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
+				int i = 0;
+				GLog->Log("Index " + i);
+				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
+					FJsonObject* InputObject = InputValue->AsObject().Get();
+					FName InputExpressionName = GetExpressionName(InputObject);
+					if (CreatedExpressionMap.Contains(InputExpressionName)) {
+						FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+						FeatureLevelSwitch->Inputs[i] = Input;
+					}
+					i++;
+				}
+			}
+
+			Expression = FeatureLevelSwitch;
 		} else if (Type->Type == "MaterialExpressionPinBase") {
 			UMaterialExpressionPinBase* PinBase = Cast<UMaterialExpressionPinBase>(Expression);
 
@@ -1727,8 +1759,6 @@ UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* P
 	else if (Type == "MaterialExpressionEyeAdaptation") Expression = static_cast<UMaterialExpressionEyeAdaptation*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionEyeAdaptation")), Name, RF_Transactional));
 	else if (Type == "MaterialExpressionEyeAdaptationInverse") Expression = static_cast<UMaterialExpressionEyeAdaptationInverse*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionEyeAdaptationInverse")), Name, RF_Transactional));
 	else if (Type == "MaterialExpressionCameraPositionWS") Expression = static_cast<UMaterialExpressionCameraPositionWS*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionCameraPositionWS")), Name, RF_Transactional));
-	
-	// TODO
 	else if (Type == "MaterialExpressionFeatureLevelSwitch") Expression = NewObject<UMaterialExpressionFeatureLevelSwitch>(Parent, UMaterialExpressionFeatureLevelSwitch::StaticClass(), Name, RF_Transactional);
 
 	else if (Type == "MaterialExpressionPinBase") Expression = NewObject<UMaterialExpressionPinBase>(Parent, UMaterialExpressionPinBase::StaticClass(), Name, RF_Transactional);
@@ -1741,7 +1771,7 @@ UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* P
 	return Expression;
 }
 
-FExpressionInput UMaterialFunctionImporter::PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression) {
+FExpressionInput UMaterialFunctionImporter::PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression, const FString& Type) {
 	FExpressionInput Input;
 	Input.Expression = Expression;
 
@@ -1761,24 +1791,30 @@ FExpressionInput UMaterialFunctionImporter::PopulateExpressionInput(const FJsonO
 	int MaskA;
 	if (JsonProperties->TryGetNumberField("MaskA", MaskA)) Input.MaskA = MaskA;
 
-	if (FColorMaterialInput* ColorInput = reinterpret_cast<FColorMaterialInput*>(&Input)) {
-		bool UseConstant;
-		if (JsonProperties->TryGetBoolField("UseConstant", UseConstant)) ColorInput->UseConstant = UseConstant;
-		const TSharedPtr<FJsonObject>* Constant;
-		if (JsonProperties->TryGetObjectField("Constant", Constant)) ColorInput->Constant = FMathUtilities::ObjectToLinearColor(Constant->Get()).ToFColor(true);
-		Input = FExpressionInput(*ColorInput);
-	} else if (FScalarMaterialInput* ScalarInput = reinterpret_cast<FScalarMaterialInput*>(&Input)) {
-		bool UseConstant;
-		if (JsonProperties->TryGetBoolField("UseConstant", UseConstant)) ScalarInput->UseConstant = UseConstant;
-		float Constant;
-		if (JsonProperties->TryGetNumberField("Constant", Constant)) ScalarInput->Constant = Constant;
-		Input = FExpressionInput(*ScalarInput);
-	} else if (FVectorMaterialInput* VectorInput = reinterpret_cast<FVectorMaterialInput*>(&Input)) {
-		bool UseConstant;
-		if (JsonProperties->TryGetBoolField("UseConstant", UseConstant)) VectorInput->UseConstant = UseConstant;
-		const TSharedPtr<FJsonObject>* Constant;
-		if (JsonProperties->TryGetObjectField("Constant", Constant)) VectorInput->Constant = FMathUtilities::ObjectToVector3f(Constant->Get());
-		Input = FExpressionInput(*VectorInput);
+	if (Type == "Color") {
+		if (FColorMaterialInput* ColorInput = reinterpret_cast<FColorMaterialInput*>(&Input)) {
+			bool UseConstant;
+			if (JsonProperties->TryGetBoolField("UseConstant", UseConstant)) ColorInput->UseConstant = UseConstant;
+			const TSharedPtr<FJsonObject>* Constant;
+			if (JsonProperties->TryGetObjectField("Constant", Constant)) ColorInput->Constant = FMathUtilities::ObjectToLinearColor(Constant->Get()).ToFColor(true);
+			Input = FExpressionInput(*ColorInput);
+		}
+	} else if (Type == "Scalar") {
+		if (FScalarMaterialInput* ScalarInput = reinterpret_cast<FScalarMaterialInput*>(&Input)) {
+			bool UseConstant;
+			if (JsonProperties->TryGetBoolField("UseConstant", UseConstant)) ScalarInput->UseConstant = UseConstant;
+			float Constant;
+			if (JsonProperties->TryGetNumberField("Constant", Constant)) ScalarInput->Constant = Constant;
+			Input = FExpressionInput(*ScalarInput);
+		}
+	} else if (Type == "Vector") {
+		if (FVectorMaterialInput* VectorInput = reinterpret_cast<FVectorMaterialInput*>(&Input)) {
+			bool UseConstant;
+			if (JsonProperties->TryGetBoolField("UseConstant", UseConstant)) VectorInput->UseConstant = UseConstant;
+			const TSharedPtr<FJsonObject>* Constant;
+			if (JsonProperties->TryGetObjectField("Constant", Constant)) VectorInput->Constant = FMathUtilities::ObjectToVector3f(Constant->Get());
+			Input = FExpressionInput(*VectorInput);
+		}
 	}
 
 	return Input;

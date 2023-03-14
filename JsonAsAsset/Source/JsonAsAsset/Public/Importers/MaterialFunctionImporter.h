@@ -49,7 +49,7 @@ protected:
 
 	UMaterialExpression* CreateEmptyExpression(UObject* Parent, FName Name, FName Type) const;
 
-	FExpressionInput PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression);
+	FExpressionInput PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression, const FString& Type = "Default");
 	FExpressionOutput PopulateExpressionOutput(const FJsonObject* JsonProperties);
 
 	FName GetExpressionName(const FJsonObject* JsonProperties);
