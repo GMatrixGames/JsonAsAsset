@@ -2,7 +2,11 @@
 
 #include "Importers/MaterialImporter.h"
 
+#if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 3) || ENGINE_MAJOR_VERSION == 4
 #include "Materials/Material.h"
+#else
+#include "MaterialDomain.h"
+#endif
 #include "Dom/JsonObject.h"
 #include "Factories/MaterialFactoryNew.h"
 
@@ -87,6 +91,30 @@ bool UMaterialImporter::ImportData() {
 				FExpressionInput Ex = PopulateExpressionInput(OpacityObject, *CreatedExpressionMap.Find(OpacityExpressionName));
 				FScalarMaterialInput* Opacity = reinterpret_cast<FScalarMaterialInput*>(&Ex);
 				Material->GetEditorOnlyData()->Opacity = *Opacity;
+			}
+		}
+
+		const TSharedPtr<FJsonObject>* OpacityMaskPtr;
+		if (EdProps->TryGetObjectField("OpacityMask", OpacityMaskPtr) && OpacityMaskPtr != nullptr) {
+			FJsonObject* OpacityMaskObject = OpacityMaskPtr->Get();
+			FName OpacityMaskExpressionName = GetExpressionName(OpacityMaskObject);
+
+			if (CreatedExpressionMap.Contains(OpacityMaskExpressionName)) {
+				FExpressionInput Ex = PopulateExpressionInput(OpacityMaskObject, *CreatedExpressionMap.Find(OpacityMaskExpressionName));
+				FScalarMaterialInput* OpacityMask = reinterpret_cast<FScalarMaterialInput*>(&Ex);
+				Material->GetEditorOnlyData()->OpacityMask = *OpacityMask;
+			}
+		}
+
+		const TSharedPtr<FJsonObject>* WorldPositionOffsetPtr;
+		if (EdProps->TryGetObjectField("WorldPositionOffset", WorldPositionOffsetPtr) && WorldPositionOffsetPtr != nullptr) {
+			FJsonObject* WorldPositionOffsetObject = WorldPositionOffsetPtr->Get();
+			FName WorldPositionOffsetExpressionName = GetExpressionName(WorldPositionOffsetObject);
+
+			if (CreatedExpressionMap.Contains(WorldPositionOffsetExpressionName)) {
+				FExpressionInput Ex = PopulateExpressionInput(WorldPositionOffsetObject, *CreatedExpressionMap.Find(WorldPositionOffsetExpressionName));
+				FVectorMaterialInput* WorldPositionOffset = reinterpret_cast<FVectorMaterialInput*>(&Ex);
+				Material->GetEditorOnlyData()->WorldPositionOffset = *WorldPositionOffset;
 			}
 		}
 

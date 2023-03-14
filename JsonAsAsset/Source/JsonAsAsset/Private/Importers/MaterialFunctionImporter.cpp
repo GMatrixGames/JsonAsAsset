@@ -1,11 +1,14 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Importers/MaterialFunctionImporter.h"
-#include "Kismet2/BlueprintEditorUtils.h"
 
 #include "Curves/CurveLinearColorAtlas.h"
 #include "Dom/JsonObject.h"
 #include "Factories/MaterialFunctionFactoryNew.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "MaterialGraph/MaterialGraph.h"
+#include "MaterialGraph/MaterialGraphNode_Composite.h"
+#include "MaterialGraph/MaterialGraphSchema.h"
 #include "Materials/MaterialExpressionAbs.h"
 #include "Materials/MaterialExpressionActorPositionWS.h"
 #include "Materials/MaterialExpressionAdd.h"
@@ -67,8 +70,14 @@
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionViewSize.h"
 #include "Utilities/MathUtilities.h"
-#include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphSchema.h>
-#include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphNode_Composite.h>
+#include "Materials/MaterialExpressionDynamicParameter.h"
+#include "Materials/MaterialExpressionEyeAdaptation.h"
+#include "Materials/MaterialExpressionFeatureLevelSwitch.h"
+#include "Materials/MaterialExpressionNormalize.h"
+#include "Materials/MaterialExpressionParticleColor.h"
+#include "Materials/MaterialExpressionParticlePositionWS.h"
+#include "Materials/MaterialExpressionParticleRadius.h"
+#include "Materials/MaterialExpressionWorldPosition.h"
 
 bool UMaterialFunctionImporter::ImportData() {
 	try {
@@ -164,8 +173,7 @@ TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(U
 	return CreatedExpressionMap;
 }
 
-bool UMaterialFunctionImporter::HandleMaterialGraph(UObject* Parent, TSharedPtr<FJsonObject> JsonProperties, TMap<FName, FImportData> Exports)
-{
+bool UMaterialFunctionImporter::HandleMaterialGraph(UMaterial* Parent, TSharedPtr<FJsonObject> JsonProperties, TMap<FName, FImportData> Exports) {
 	// Setup Composite Data
 	TSharedPtr<FJsonObject> SubgraphExpression = JsonProperties->GetObjectField("SubgraphExpression");
 	FName ExportName = GetExportNameOfSubobject(SubgraphExpression.Get()->GetStringField("ObjectName"));
@@ -175,13 +183,12 @@ bool UMaterialFunctionImporter::HandleMaterialGraph(UObject* Parent, TSharedPtr<
 	float CompositeY = CompositeProperties->GetNumberField("MaterialExpressionEditorY");
 
 	// Find Material Graph
-	UMaterial* Material = Cast<UMaterial>(Parent);
-	Material->MaterialGraph = CastChecked<UMaterialGraph>(FBlueprintEditorUtils::CreateNewGraph(Material, NAME_None, UMaterialGraph::StaticClass(), UMaterialGraphSchema::StaticClass()));
-	Material->MaterialGraph->Material = Material;
-	UMaterialGraph* OwnerMaterialGraph = Material->MaterialGraph;
+	Parent->MaterialGraph = CastChecked<UMaterialGraph>(FBlueprintEditorUtils::CreateNewGraph(Parent, NAME_None, UMaterialGraph::StaticClass(), UMaterialGraphSchema::StaticClass()));
+	Parent->MaterialGraph->Material = Parent;
+	UMaterialGraph* OwnerMaterialGraph = Parent->MaterialGraph;
 
 	// Create Node
-	UMaterialGraphNode_Composite* GatewayNode = NULL;
+	UMaterialGraphNode_Composite* GatewayNode = nullptr;
 	{
 		GatewayNode = Cast<UMaterialGraphNode_Composite>(FMaterialGraphSchemaAction_NewComposite::SpawnNode(OwnerMaterialGraph, FVector2D(CompositeX, CompositeY)));
 		GatewayNode->bCanRenameNode = true;
@@ -299,8 +306,10 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				else if (InputTypeString.EndsWith("FunctionInput_StaticBool")) InputType = FunctionInput_StaticBool;
 				else if (InputTypeString.EndsWith("FunctionInput_MaterialAttributes")) InputType = FunctionInput_MaterialAttributes;
 				else if (InputTypeString.EndsWith("FunctionInput_TextureExternal")) InputType = FunctionInput_TextureExternal;
-				//else if (InputTypeString.EndsWith("FunctionInput_Bool")) InputType = FunctionInput_Bool;
-				//else if (InputTypeString.EndsWith("FunctionInput_Substrate")) InputType = FunctionInput_Substrate;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+				else if (InputTypeString.EndsWith("FunctionInput_Bool")) InputType = FunctionInput_Bool;
+				else if (InputTypeString.EndsWith("FunctionInput_Substrate")) InputType = FunctionInput_Substrate;
+#endif
 				else InputType = FunctionInput_Vector3;
 
 				FunctionInput->InputType = InputType;
@@ -1471,6 +1480,37 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = TextureProperty;
+		} else if (Type->Type == "MaterialExpressionParticleColor") {
+			// No idea
+		} else if (Type->Type == "MaterialExpressionParticlePositionWS") {
+			// No idea
+		} else if (Type->Type == "MaterialExpressionWorldPosition") {
+			// No idea
+		} else if (Type->Type == "MaterialExpressionNormalize") {
+			UMaterialExpressionNormalize* Normalize = Cast<UMaterialExpressionNormalize>(Expression);
+
+			const TSharedPtr<FJsonObject>* VectorInputPtr = nullptr;
+			if (Properties->TryGetObjectField("VectorInput", VectorInputPtr) && VectorInputPtr != nullptr) {
+				FJsonObject* VectorInputObject = VectorInputPtr->Get();
+				FName VectorInputExpressionName = GetExpressionName(VectorInputObject);
+				if (CreatedExpressionMap.Contains(VectorInputExpressionName)) {
+					FExpressionInput VectorInput = PopulateExpressionInput(VectorInputObject, *CreatedExpressionMap.Find(VectorInputExpressionName));
+					Normalize->VectorInput = VectorInput;
+				}
+			}
+
+			Expression = Normalize;
+		} else if (Type->Type == "MaterialExpressionDynamicParameter") {
+			UMaterialExpressionDynamicParameter* DynamicParameter = Cast<UMaterialExpressionDynamicParameter>(Expression);
+
+			const TArray<TSharedPtr<FJsonValue>>* ParamNamesPtr;
+			if (Properties->TryGetArrayField("ParamNames", ParamNamesPtr)) {
+				for (const TSharedPtr<FJsonValue> ReroutePinsValue : *ParamNamesPtr) {
+					DynamicParameter->ParamNames.Add(ReroutePinsValue->AsString());
+				}
+			}
+
+			Expression = DynamicParameter;
 		} else if (Type->Type == "MaterialExpressionPinBase") {
 			UMaterialExpressionPinBase* PinBase = Cast<UMaterialExpressionPinBase>(Expression);
 
@@ -1642,6 +1682,16 @@ UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* P
 	else if (Type == "MaterialExpressionFmod") Expression = NewObject<UMaterialExpressionFmod>(Parent, UMaterialExpressionFmod::StaticClass(), Name, RF_Transactional);
 	else if (Type == "MaterialExpressionTextureProperty") Expression = NewObject<UMaterialExpressionTextureProperty>(Parent, UMaterialExpressionTextureProperty::StaticClass(), Name, RF_Transactional);
 	else if (Type == "MaterialExpressionComposite") Expression = NewObject<UMaterialExpressionComposite>(Parent, UMaterialExpressionComposite::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionParticleColor") Expression = NewObject<UMaterialExpressionParticleColor>(Parent, UMaterialExpressionParticleColor::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionParticlePositionWS") Expression = static_cast<UMaterialExpressionParticlePositionWS*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionParticlePositionWS")), Name, RF_Transactional));
+	else if (Type == "MaterialExpressionWorldPosition") Expression = NewObject<UMaterialExpressionWorldPosition>(Parent, UMaterialExpressionWorldPosition::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionNormalize") Expression = NewObject<UMaterialExpressionNormalize>(Parent, UMaterialExpressionNormalize::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionParticleRadius") Expression = NewObject<UMaterialExpressionParticleRadius>(Parent, UMaterialExpressionParticleRadius::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionDynamicParameter") Expression = NewObject<UMaterialExpressionDynamicParameter>(Parent, UMaterialExpressionDynamicParameter::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionEyeAdaptation") Expression = NewObject<UMaterialExpressionEyeAdaptation>(Parent, UMaterialExpressionEyeAdaptation::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionFeatureLevelSwitch") Expression = NewObject<UMaterialExpressionFeatureLevelSwitch>(Parent, UMaterialExpressionFeatureLevelSwitch::StaticClass(), Name, RF_Transactional);
+
+
 	else if (Type == "MaterialExpressionPinBase") Expression = NewObject<UMaterialExpressionPinBase>(Parent, UMaterialExpressionPinBase::StaticClass(), Name, RF_Transactional);
 
 	if (!Expression) {
@@ -1684,6 +1734,12 @@ FExpressionInput UMaterialFunctionImporter::PopulateExpressionInput(const FJsonO
 		float Constant;
 		if (JsonProperties->TryGetNumberField("Constant", Constant)) ScalarInput->Constant = Constant;
 		Input = FExpressionInput(*ScalarInput);
+	} else if (FVectorMaterialInput* VectorInput = reinterpret_cast<FVectorMaterialInput*>(&Input)) {
+		bool UseConstant;
+		if (JsonProperties->TryGetBoolField("UseConstant", UseConstant)) VectorInput->UseConstant = UseConstant;
+		const TSharedPtr<FJsonObject>* Constant;
+		if (JsonProperties->TryGetObjectField("Constant", Constant)) VectorInput->Constant = FMathUtilities::ObjectToVector3f(Constant->Get());
+		Input = FExpressionInput(*VectorInput);
 	}
 
 	return Input;
