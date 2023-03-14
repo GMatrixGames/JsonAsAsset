@@ -13,6 +13,7 @@
 #include "Materials/MaterialExpressionActorPositionWS.h"
 #include "Materials/MaterialExpressionAdd.h"
 #include "Materials/MaterialExpressionAppendVector.h"
+#include "Materials/MaterialExpressionCameraPositionWS.h"
 #include "Materials/MaterialExpressionCeil.h"
 #include "Materials/MaterialExpressionClamp.h"
 #include "Materials/MaterialExpressionComment.h"
@@ -72,6 +73,7 @@
 #include "Utilities/MathUtilities.h"
 #include "Materials/MaterialExpressionDynamicParameter.h"
 #include "Materials/MaterialExpressionEyeAdaptation.h"
+#include "Materials/MaterialExpressionEyeAdaptationInverse.h"
 #include "Materials/MaterialExpressionFeatureLevelSwitch.h"
 #include "Materials/MaterialExpressionNormalize.h"
 #include "Materials/MaterialExpressionParticleColor.h"
@@ -1308,7 +1310,39 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 		} else if (Type->Type == "MaterialExpressionPreSkinnedLocalBounds") {
 			// No idea
 		} else if (Type->Type == "MaterialExpressionClamp") {
-			// No idea
+			UMaterialExpressionClamp* Clamp = Cast<UMaterialExpressionClamp>(Expression);
+
+			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
+				FJsonObject* InputObject = InputPtr->Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					Clamp->Input = Input;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* MinPtr = nullptr;
+			if ((Properties->TryGetObjectField("min", MinPtr) || Properties->TryGetObjectField("Min", MinPtr)) && MinPtr != nullptr) {
+				FJsonObject* MinObject = MinPtr->Get();
+				FName MinExpressionName = GetExpressionName(MinObject);
+				if (CreatedExpressionMap.Contains(MinExpressionName)) {
+					FExpressionInput Min = PopulateExpressionInput(MinObject, *CreatedExpressionMap.Find(MinExpressionName));
+					Clamp->Min = Min;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* MaxPtr = nullptr;
+			if ((Properties->TryGetObjectField("max", MaxPtr) || Properties->TryGetObjectField("Max", MaxPtr)) && MaxPtr != nullptr) {
+				FJsonObject* MaxObject = MaxPtr->Get();
+				FName MaxExpressionName = GetExpressionName(MaxObject);
+				if (CreatedExpressionMap.Contains(MaxExpressionName)) {
+					FExpressionInput Max = PopulateExpressionInput(MaxObject, *CreatedExpressionMap.Find(MaxExpressionName));
+					Clamp->Max = Max;
+				}
+			}
+
+			Expression = Clamp;
 		} else if (Type->Type == "MaterialExpressionTransformPosition") {
 			UMaterialExpressionTransformPosition* TransformPosition = Cast<UMaterialExpressionTransformPosition>(Expression);
 
@@ -1511,6 +1545,8 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = DynamicParameter;
+		} else if (Type->Type == "MaterialExpressionFeatureLevelSwitch") {
+			// TODO
 		} else if (Type->Type == "MaterialExpressionPinBase") {
 			UMaterialExpressionPinBase* PinBase = Cast<UMaterialExpressionPinBase>(Expression);
 
@@ -1689,8 +1725,11 @@ UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* P
 	else if (Type == "MaterialExpressionParticleRadius") Expression = static_cast<UMaterialExpressionParticleRadius*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionParticleRadius")), Name, RF_Transactional));
 	else if (Type == "MaterialExpressionDynamicParameter") Expression = NewObject<UMaterialExpressionDynamicParameter>(Parent, UMaterialExpressionDynamicParameter::StaticClass(), Name, RF_Transactional);
 	else if (Type == "MaterialExpressionEyeAdaptation") Expression = static_cast<UMaterialExpressionEyeAdaptation*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionEyeAdaptation")), Name, RF_Transactional));
+	else if (Type == "MaterialExpressionEyeAdaptationInverse") Expression = static_cast<UMaterialExpressionEyeAdaptationInverse*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionEyeAdaptationInverse")), Name, RF_Transactional));
+	else if (Type == "MaterialExpressionCameraPositionWS") Expression = static_cast<UMaterialExpressionCameraPositionWS*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionCameraPositionWS")), Name, RF_Transactional));
+	
+	// TODO
 	else if (Type == "MaterialExpressionFeatureLevelSwitch") Expression = NewObject<UMaterialExpressionFeatureLevelSwitch>(Parent, UMaterialExpressionFeatureLevelSwitch::StaticClass(), Name, RF_Transactional);
-
 
 	else if (Type == "MaterialExpressionPinBase") Expression = NewObject<UMaterialExpressionPinBase>(Parent, UMaterialExpressionPinBase::StaticClass(), Name, RF_Transactional);
 
