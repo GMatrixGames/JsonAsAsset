@@ -11,12 +11,6 @@ bool USubsurfaceProfileImporter::ImportData() {
 		USubsurfaceProfile* SubsurfaceProfile = NewObject<USubsurfaceProfile>(Package, USubsurfaceProfile::StaticClass(), *FileName, RF_Public | RF_Standalone);
 		TSharedPtr<FJsonObject> Settings = JsonObject->GetObjectField("Properties")->GetObjectField("Settings");
 
-		FAssetRegistryModule::AssetCreated(SubsurfaceProfile);
-		if (!SubsurfaceProfile->MarkPackageDirty()) return false;
-		Package->SetDirtyFlag(true);
-		SubsurfaceProfile->PostEditChange();
-		SubsurfaceProfile->AddToRoot();
-
 		FSubsurfaceProfileStruct Profile;
 		bool bEnableBurley;
 		const TSharedPtr<FJsonObject>* BoundaryColorBleed;
@@ -74,6 +68,9 @@ bool USubsurfaceProfileImporter::ImportData() {
 			Profile.WorldUnitScale = Settings->GetNumberField("WorldUnitScale");
 
 		SubsurfaceProfile->Settings = Profile;
+
+		// Handle edit changes, and add it to the content browser
+		HandleAssetCreation(SubsurfaceProfile);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;

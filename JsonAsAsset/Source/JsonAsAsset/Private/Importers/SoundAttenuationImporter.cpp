@@ -12,12 +12,6 @@ bool USoundAttenuationImporter::ImportData() {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
 		USoundAttenuation* SoundAttenuation = NewObject<USoundAttenuation>(Package, USoundAttenuation::StaticClass(), *FileName, RF_Public | RF_Standalone);
-		FAssetRegistryModule::AssetCreated(SoundAttenuation);
-		if (!SoundAttenuation->MarkPackageDirty()) return false;
-		Package->SetDirtyFlag(true);
-		SoundAttenuation->PostEditChange();
-		SoundAttenuation->AddToRoot();
-
 		TSharedPtr<FJsonObject> Attenuation = Properties->GetObjectField("Attenuation");
 
 		bool bApplyNormalizationToStereoSounds;
@@ -330,6 +324,9 @@ bool USoundAttenuationImporter::ImportData() {
 
 			SoundAttenuation->Attenuation.CustomAttenuationCurve.EditorCurveData = Curve;
 		}
+
+		// Handle edit changes, and add it to the content browser
+		HandleAssetCreation(SoundAttenuation);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
