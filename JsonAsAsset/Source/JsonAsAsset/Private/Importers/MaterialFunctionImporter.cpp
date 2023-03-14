@@ -1682,13 +1682,13 @@ UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* P
 	else if (Type == "MaterialExpressionFmod") Expression = NewObject<UMaterialExpressionFmod>(Parent, UMaterialExpressionFmod::StaticClass(), Name, RF_Transactional);
 	else if (Type == "MaterialExpressionTextureProperty") Expression = NewObject<UMaterialExpressionTextureProperty>(Parent, UMaterialExpressionTextureProperty::StaticClass(), Name, RF_Transactional);
 	else if (Type == "MaterialExpressionComposite") Expression = NewObject<UMaterialExpressionComposite>(Parent, UMaterialExpressionComposite::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionParticleColor") Expression = NewObject<UMaterialExpressionParticleColor>(Parent, UMaterialExpressionParticleColor::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionParticleColor") Expression = static_cast<UMaterialExpressionParticleColor*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionParticleColor")), Name, RF_Transactional));
 	else if (Type == "MaterialExpressionParticlePositionWS") Expression = static_cast<UMaterialExpressionParticlePositionWS*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionParticlePositionWS")), Name, RF_Transactional));
 	else if (Type == "MaterialExpressionWorldPosition") Expression = NewObject<UMaterialExpressionWorldPosition>(Parent, UMaterialExpressionWorldPosition::StaticClass(), Name, RF_Transactional);
 	else if (Type == "MaterialExpressionNormalize") Expression = NewObject<UMaterialExpressionNormalize>(Parent, UMaterialExpressionNormalize::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionParticleRadius") Expression = NewObject<UMaterialExpressionParticleRadius>(Parent, UMaterialExpressionParticleRadius::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionParticleRadius") Expression = static_cast<UMaterialExpressionParticleRadius*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionParticleRadius")), Name, RF_Transactional));
 	else if (Type == "MaterialExpressionDynamicParameter") Expression = NewObject<UMaterialExpressionDynamicParameter>(Parent, UMaterialExpressionDynamicParameter::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionEyeAdaptation") Expression = NewObject<UMaterialExpressionEyeAdaptation>(Parent, UMaterialExpressionEyeAdaptation::StaticClass(), Name, RF_Transactional);
+	else if (Type == "MaterialExpressionEyeAdaptation") Expression = static_cast<UMaterialExpressionEyeAdaptation*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionEyeAdaptation")), Name, RF_Transactional));
 	else if (Type == "MaterialExpressionFeatureLevelSwitch") Expression = NewObject<UMaterialExpressionFeatureLevelSwitch>(Parent, UMaterialExpressionFeatureLevelSwitch::StaticClass(), Name, RF_Transactional);
 
 
