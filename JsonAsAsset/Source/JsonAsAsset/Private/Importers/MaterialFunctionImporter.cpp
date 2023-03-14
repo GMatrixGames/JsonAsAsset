@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Importers/MaterialFunctionImporter.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #include "Curves/CurveLinearColorAtlas.h"
 #include "Dom/JsonObject.h"
@@ -13,7 +14,6 @@
 #include "Materials/MaterialExpressionClamp.h"
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionComponentMask.h"
-#include "Materials/MaterialExpressionComposite.h"
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionConstant2Vector.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
@@ -67,6 +67,8 @@
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionViewSize.h"
 #include "Utilities/MathUtilities.h"
+#include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphSchema.h>
+#include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphNode_Composite.h>
 
 bool UMaterialFunctionImporter::ImportData() {
 	try {
@@ -87,7 +89,7 @@ bool UMaterialFunctionImporter::ImportData() {
 		MaterialFunction->GetExpressionCollection().Empty();
 
 		// Define editor only data from the JSON
-		TMap<FName, FTestImportData> Exports;
+		TMap<FName, FImportData> Exports;
 		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports)->GetObjectField("Properties");
 
 		// Find each node expression
@@ -117,7 +119,7 @@ bool UMaterialFunctionImporter::ImportData() {
 	return true;
 }
 
-TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FString& Type, TMap<FName, FTestImportData>& OutExports) {
+TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FString& Type, TMap<FName, FImportData>& OutExports) {
 	TSharedPtr<FJsonObject> EditorOnlyData;
 
 	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
@@ -131,13 +133,13 @@ TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FStr
 			continue;
 		}
 
-		OutExports.Add(FName(Name), FTestImportData(ExType, Object));
+		OutExports.Add(FName(Name), FImportData(ExType, Object));
 	}
 
 	return EditorOnlyData;
 }
 
-TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FTestImportData>& Exports) {
+TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports) {
 	TMap<FName, UMaterialExpression*> CreatedExpressionMap;
 
 	for (FName Name : ExpressionNames) {
@@ -145,7 +147,7 @@ TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(U
 		TSet<FName> Keys;
 		Exports.GetKeys(Keys);
 
-		for (TTuple<FName, FTestImportData>& Key : Exports) {
+		for (TTuple<FName, FImportData>& Key : Exports) {
 			if (Key.Key == Name) {
 				Type = Key.Value.Type;
 				break;
@@ -162,9 +164,43 @@ TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(U
 	return CreatedExpressionMap;
 }
 
-void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FTestImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap) {
+bool UMaterialFunctionImporter::HandleMaterialGraph(UObject* Parent, TSharedPtr<FJsonObject> JsonProperties, TMap<FName, FImportData> Exports)
+{
+	// Setup Composite Data
+	TSharedPtr<FJsonObject> SubgraphExpression = JsonProperties->GetObjectField("SubgraphExpression");
+	FName ExportName = GetExportNameOfSubobject(SubgraphExpression.Get()->GetStringField("ObjectName"));
+	const TSharedPtr<FJsonObject> CompositeProperties = Exports.Find(ExportName)->Json->GetObjectField("Properties");
+
+	float CompositeX = CompositeProperties->GetNumberField("MaterialExpressionEditorX");
+	float CompositeY = CompositeProperties->GetNumberField("MaterialExpressionEditorY");
+
+	// Find Material Graph
+	UMaterial* Material = Cast<UMaterial>(Parent);
+	Material->MaterialGraph = CastChecked<UMaterialGraph>(FBlueprintEditorUtils::CreateNewGraph(Material, NAME_None, UMaterialGraph::StaticClass(), UMaterialGraphSchema::StaticClass()));
+	Material->MaterialGraph->Material = Material;
+	UMaterialGraph* OwnerMaterialGraph = Material->MaterialGraph;
+
+	// Create Node
+	UMaterialGraphNode_Composite* GatewayNode = NULL;
+	{
+		GatewayNode = Cast<UMaterialGraphNode_Composite>(FMaterialGraphSchemaAction_NewComposite::SpawnNode(OwnerMaterialGraph, FVector2D(CompositeX, CompositeY)));
+		GatewayNode->bCanRenameNode = true;
+		check(GatewayNode);
+	}
+
+	// New graph
+	UEdGraph* DestinationGraph = GatewayNode->BoundGraph;
+	UMaterialExpressionComposite* CompositeExpression = CastChecked<UMaterialExpressionComposite>(GatewayNode->MaterialExpression);
+
+	FString SubgraphName;
+	if (CompositeProperties->TryGetStringField("SubgraphName", SubgraphName)) CompositeExpression->SubgraphName = SubgraphName;
+
+	return false;
+}
+
+void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap) {
 	for (FName Name : ExpressionNames) {
-		FTestImportData* Type = Exports.Find(Name);
+		FImportData* Type = Exports.Find(Name);
 
 		TSharedPtr<FJsonObject> Properties = Type->Json->GetObjectField("Properties");
 
@@ -263,8 +299,8 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				else if (InputTypeString.EndsWith("FunctionInput_StaticBool")) InputType = FunctionInput_StaticBool;
 				else if (InputTypeString.EndsWith("FunctionInput_MaterialAttributes")) InputType = FunctionInput_MaterialAttributes;
 				else if (InputTypeString.EndsWith("FunctionInput_TextureExternal")) InputType = FunctionInput_TextureExternal;
-				else if (InputTypeString.EndsWith("FunctionInput_Bool")) InputType = FunctionInput_Bool;
-				else if (InputTypeString.EndsWith("FunctionInput_Substrate")) InputType = FunctionInput_Substrate;
+				//else if (InputTypeString.EndsWith("FunctionInput_Bool")) InputType = FunctionInput_Bool;
+				//else if (InputTypeString.EndsWith("FunctionInput_Substrate")) InputType = FunctionInput_Substrate;
 				else InputType = FunctionInput_Vector3;
 
 				FunctionInput->InputType = InputType;
@@ -1435,23 +1471,6 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = TextureProperty;
-		} else if (Type->Type == "MaterialExpressionComposite") {
-			UMaterialExpressionComposite* Composite = Cast<UMaterialExpressionComposite>(Expression);
-
-			FString SubgraphName;
-			if (Properties->TryGetStringField("SubgraphName", SubgraphName)) Composite->SubgraphName = SubgraphName;
-			
-			const TSharedPtr<FJsonObject>* InputExpressionsPtr = nullptr;
-			if (Properties->TryGetObjectField("InputExpressions", InputExpressionsPtr) && InputExpressionsPtr != nullptr) {
-				Composite->InputExpressions = LoadObject<UMaterialExpressionPinBase>(InputExpressionsPtr);
-			}
-
-			const TSharedPtr<FJsonObject>* OutputExpressionsPtr = nullptr;
-			if (Properties->TryGetObjectField("OutputExpressions", OutputExpressionsPtr) && OutputExpressionsPtr != nullptr) {
-				Composite->OutputExpressions = LoadObject<UMaterialExpressionPinBase>(OutputExpressionsPtr);
-			}
-
-			Expression = Composite;
 		} else if (Type->Type == "MaterialExpressionPinBase") {
 			UMaterialExpressionPinBase* PinBase = Cast<UMaterialExpressionPinBase>(Expression);
 
@@ -1491,7 +1510,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 	}
 }
 
-void UMaterialFunctionImporter::AddComments(UObject* Parent, TSharedPtr<FJsonObject> Json, TMap<FName, FTestImportData>& Exports) {
+void UMaterialFunctionImporter::AddComments(UObject* Parent, TSharedPtr<FJsonObject> Json, TMap<FName, FImportData>& Exports) {
 	const TArray<TSharedPtr<FJsonValue>>* StringExpressionComments;
 	if (Json->TryGetArrayField("EditorComments", StringExpressionComments)) {
 		for (const TSharedPtr<FJsonValue> ExpressionComment : *StringExpressionComments) {

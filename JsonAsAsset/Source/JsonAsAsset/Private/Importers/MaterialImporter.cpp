@@ -2,7 +2,7 @@
 
 #include "Importers/MaterialImporter.h"
 
-#include "MaterialDomain.h"
+#include "Materials/Material.h"
 #include "Dom/JsonObject.h"
 #include "Factories/MaterialFactoryNew.h"
 
@@ -49,7 +49,7 @@ bool UMaterialImporter::ImportData() {
 		Material->GetExpressionCollection().Empty();
 
 		// Define editor only data from the JSON
-		TMap<FName, FTestImportData> Exports;
+		TMap<FName, FImportData> Exports;
 		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports)->GetObjectField("Properties");
 
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
@@ -92,6 +92,18 @@ bool UMaterialImporter::ImportData() {
 
 		// Iterate through all the expression names
 		AddExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap);
+
+		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
+			TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
+
+			FString ExType = Object->GetStringField("Type");
+			FString Name = Object->GetStringField("Name");
+
+			if (ExType == "MaterialGraph" && Name != "MaterialGraph_0") {
+				HandleMaterialGraph(Material, Object->GetObjectField("Properties"), Exports);
+				continue;
+			}
+		}
 
 		AddComments(Material, StringExpressionCollection, Exports);
 	} catch (const char* Exception) {

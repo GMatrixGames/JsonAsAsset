@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Materials/MaterialExpressionComposite.h"
 #include "Importer.h"
 
 class UMaterialFunctionImporter : public IImporter {
@@ -13,18 +14,18 @@ public:
 	virtual bool ImportData() override;
 
 protected:
-	struct FTestImportData {
-		FTestImportData(const FName Type, const TSharedPtr<FJsonObject>& Json) {
+	struct FImportData {
+		FImportData(const FName Type, const TSharedPtr<FJsonObject>& Json) {
 			this->Type = Type;
 			this->Json = Json.Get();
 		}
 
-		FTestImportData(const FString& Type, const TSharedPtr<FJsonObject>& Json) {
+		FImportData(const FString& Type, const TSharedPtr<FJsonObject>& Json) {
 			this->Type = FName(Type);
 			this->Json = Json.Get();
 		}
 
-		FTestImportData(const FString& Type, FJsonObject* Json) {
+		FImportData(const FString& Type, FJsonObject* Json) {
 			this->Type = FName(Type);
 			this->Json = Json;
 		}
@@ -33,13 +34,16 @@ protected:
 		FJsonObject* Json;
 	};
 	
-	TSharedPtr<FJsonObject> FindEditorOnlyData(const FString& Type, TMap<FName, FTestImportData>& OutExports);
+	TSharedPtr<FJsonObject> FindEditorOnlyData(const FString& Type, TMap<FName, FImportData>& OutExports);
 
-	TMap<FName, UMaterialExpression*> CreateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FTestImportData>& Exports);
+	TMap<FName, UMaterialExpression*> CreateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports);
 
-	void AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FTestImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap);
+	// Material Graphs (little nodes that contain a graph)
+	bool HandleMaterialGraph(UObject* Parent, TSharedPtr<FJsonObject> JsonProperties, TMap<FName, FImportData> Exports);
+
+	void AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap);
 	
-	void AddComments(UObject* Parent, TSharedPtr<FJsonObject> Json, TMap<FName, FTestImportData>& Exports);
+	void AddComments(UObject* Parent, TSharedPtr<FJsonObject> Json, TMap<FName, FImportData>& Exports);
 	
 	void AddGenerics(UObject* Parent, UMaterialExpression* Expression, const TSharedPtr<FJsonObject>& Json);
 

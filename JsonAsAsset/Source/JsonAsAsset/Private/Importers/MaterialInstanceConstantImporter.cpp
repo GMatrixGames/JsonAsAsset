@@ -123,7 +123,7 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			StaticSwitchParameters.Add(Parameter);
 		}
 
-		MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
+		//MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
