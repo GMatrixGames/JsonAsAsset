@@ -5,6 +5,7 @@
 #include "Curves/CurveLinearColorAtlas.h"
 #include "Dom/JsonObject.h"
 #include "Factories/MaterialFunctionFactoryNew.h"
+#include "MaterialEditorModule.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "MaterialGraph/MaterialGraph.h"
 #include "MaterialGraph/MaterialGraphNode_Composite.h"
@@ -80,6 +81,8 @@
 #include "Materials/MaterialExpressionParticlePositionWS.h"
 #include "Materials/MaterialExpressionParticleRadius.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
+#include "Editor/MaterialEditor/Private/MaterialEditor.h"
+#include <Editor/MaterialEditor/Public/IMaterialEditor.h>
 
 bool UMaterialFunctionImporter::ImportData() {
 	try {
@@ -175,35 +178,62 @@ TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(U
 	return CreatedExpressionMap;
 }
 
-bool UMaterialFunctionImporter::HandleMaterialGraph(UMaterial* Parent, TSharedPtr<FJsonObject> JsonProperties, TMap<FName, FImportData> Exports) {
-	// Setup Composite Data
-	TSharedPtr<FJsonObject> SubgraphExpression = JsonProperties->GetObjectField("SubgraphExpression");
-	FName ExportName = GetExportNameOfSubobject(SubgraphExpression.Get()->GetStringField("ObjectName"));
-	const TSharedPtr<FJsonObject> CompositeProperties = Exports.Find(ExportName)->Json->GetObjectField("Properties");
+bool UMaterialFunctionImporter::HandleMaterialGraph(UMaterial* Parent, TSharedPtr<FJsonObject> JsonProperties, TMap<FName, FImportData>& Exports) {
+	// Find Subgraph Name
+	FString SubgraphName = JsonProperties->GetStringField("SubgraphName");
+	UMaterialExpressionComposite* Composite = NewObject<UMaterialExpressionComposite>(Parent, UMaterialExpressionComposite::StaticClass(), *SubgraphName, RF_Transactional);
 
-	float CompositeX = CompositeProperties->GetNumberField("MaterialExpressionEditorX");
-	float CompositeY = CompositeProperties->GetNumberField("MaterialExpressionEditorY");
+	// Create Material Graph
+	UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(FBlueprintEditorUtils::CreateNewGraph(Parent, NAME_None, UMaterialGraph::StaticClass(), UMaterialGraphSchema::StaticClass()));
+	MaterialGraph->Material = Parent;
+	MaterialGraph->SubgraphExpression = Composite;
 
-	// Find Material Graph
-	Parent->MaterialGraph = CastChecked<UMaterialGraph>(FBlueprintEditorUtils::CreateNewGraph(Parent, NAME_None, UMaterialGraph::StaticClass(), UMaterialGraphSchema::StaticClass()));
-	Parent->MaterialGraph->Material = Parent;
-	UMaterialGraph* OwnerMaterialGraph = Parent->MaterialGraph;
-
-	// Create Node
-	UMaterialGraphNode_Composite* GatewayNode = nullptr;
-	{
-		GatewayNode = Cast<UMaterialGraphNode_Composite>(FMaterialGraphSchemaAction_NewComposite::SpawnNode(OwnerMaterialGraph, FVector2D(CompositeX, CompositeY)));
-		GatewayNode->bCanRenameNode = true;
-		check(GatewayNode);
+	// Populate Material Graph with Nodes
+	TArray<FName> ExpressionNames;
+	const TArray<TSharedPtr<FJsonValue>>* Nodes;
+	if (JsonProperties->TryGetArrayField("Nodes", Nodes)) {
+		for (const TSharedPtr<FJsonValue> Expression : *Nodes) {
+			if (Expression->IsNull()) continue;
+			ExpressionNames.Add(GetExportNameOfSubobject(Expression->AsObject()->GetStringField("ObjectName")));
+		}
 	}
 
-	// New graph
-	UEdGraph* DestinationGraph = GatewayNode->BoundGraph;
-	UMaterialExpressionComposite* CompositeExpression = CastChecked<UMaterialExpressionComposite>(GatewayNode->MaterialExpression);
+	TMap<FName, UMaterialExpression*> CreatedExpressionMap;
+	TArray<FName> ExpressionNames_Graph;
 
-	FString SubgraphName;
-	if (CompositeProperties->TryGetStringField("SubgraphName", SubgraphName)) CompositeExpression->SubgraphName = SubgraphName;
+	for (FName Name : ExpressionNames) {
+		FName Type;
+		TSet<FName> Keys;
+		Exports.GetKeys(Keys);
 
+		FJsonObject* JsonOb = nullptr;
+
+		for (TTuple<FName, FImportData>& Key : Exports) {
+			if (Key.Key == Name) {
+				JsonOb = Key.Value.Json;
+				break;
+			}
+		}
+
+		TSharedPtr<FJsonObject> MatExp = JsonOb->GetObjectField("MaterialExpression");
+		ExpressionNames_Graph.Add(GetExportNameOfSubobject(MatExp->GetStringField("ObjectName")));
+		Name = GetExportNameOfSubobject(MatExp->GetStringField("ObjectName"));
+
+		for (TTuple<FName, FImportData>& Key : Exports) {
+			if (Key.Key == Name) {
+				Type = Key.Value.Type;
+				break;
+			}
+		}
+
+		UMaterialExpression* Ex = CreateEmptyExpression(Parent, Name, Type);
+		if (Ex == nullptr)
+			continue;
+
+		CreatedExpressionMap.Add(Name, Ex);
+	}
+
+	//AddExpressions(Parent, ExpressionNames_Graph, Exports, CreatedExpressionMap);
 	return false;
 }
 
@@ -1749,7 +1779,6 @@ UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* P
 	else if (Type == "MaterialExpressionTextureObjectParameter") Expression = NewObject<UMaterialExpressionTextureObjectParameter>(Parent, UMaterialExpressionTextureObjectParameter::StaticClass(), Name, RF_Transactional);
 	else if (Type == "MaterialExpressionFmod") Expression = NewObject<UMaterialExpressionFmod>(Parent, UMaterialExpressionFmod::StaticClass(), Name, RF_Transactional);
 	else if (Type == "MaterialExpressionTextureProperty") Expression = NewObject<UMaterialExpressionTextureProperty>(Parent, UMaterialExpressionTextureProperty::StaticClass(), Name, RF_Transactional);
-	else if (Type == "MaterialExpressionComposite") Expression = NewObject<UMaterialExpressionComposite>(Parent, UMaterialExpressionComposite::StaticClass(), Name, RF_Transactional);
 	else if (Type == "MaterialExpressionParticleColor") Expression = static_cast<UMaterialExpressionParticleColor*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionParticleColor")), Name, RF_Transactional));
 	else if (Type == "MaterialExpressionParticlePositionWS") Expression = static_cast<UMaterialExpressionParticlePositionWS*>(NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, TEXT("/Script/Engine.MaterialExpressionParticlePositionWS")), Name, RF_Transactional));
 	else if (Type == "MaterialExpressionWorldPosition") Expression = NewObject<UMaterialExpressionWorldPosition>(Parent, UMaterialExpressionWorldPosition::StaticClass(), Name, RF_Transactional);
