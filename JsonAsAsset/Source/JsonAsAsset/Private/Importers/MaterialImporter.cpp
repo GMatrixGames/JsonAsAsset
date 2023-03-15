@@ -154,18 +154,6 @@ bool UMaterialImporter::ImportData() {
 		// Iterate through all the expression names
 		AddExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap);
 
-		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
-			TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
-
-			FString ExType = Object->GetStringField("Type");
-			FString Name = Object->GetStringField("Name");
-
-			if (ExType == "MaterialGraph" && Name != "MaterialGraph_0") {
-				HandleMaterialGraph(Material, Object->GetObjectField("Properties"), Exports);
-				continue;
-			}
-		}
-
 		AddComments(Material, StringExpressionCollection, Exports);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

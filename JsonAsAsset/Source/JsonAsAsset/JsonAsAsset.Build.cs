@@ -13,9 +13,7 @@ public class JsonAsAsset : ModuleRules
 			{
 				"Core",
 				"Json",
-				"JsonUtilities",
-				"MaterialEditor"
-
+				"JsonUtilities"
 			}
 		);
 
@@ -30,8 +28,7 @@ public class JsonAsAsset : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"AnimationDataController",
-				"MaterialEditor"
+				"AnimationDataController"
 			}
 		);
 

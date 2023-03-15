@@ -4,24 +4,14 @@
 #include "JsonAsAssetStyle.h"
 #include "JsonAsAssetCommands.h"
 
-#include "Developer/DesktopPlatform/Public/IDesktopPlatform.h"
-#include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
-#include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
-#include "Runtime/Engine/Classes/Engine/World.h"
-
+#include "DesktopPlatformModule.h"
+#include "Interfaces/IMainFrameModule.h"
 #include "Misc/MessageDialog.h"
 #include "Json.h"
 #include "Misc/FileHelper.h"
 #include "ToolMenus.h"
 
 // | ------------------------------------------------------
-
-// ----> Asset Classes
-#include "Animation/MorphTarget.h"
-#include "Animation/AnimSequence.h"
-#include "Animation/AnimCurveTypes.h"
-#include "Animation/AnimTypes.h"
-#include "PhysicsEngine/ConstraintTypes.h"
 
 // ----> Importers
 #include "Importers/CurveFloatImporter.h"
@@ -69,14 +59,12 @@ void FJsonAsAssetModule::ShutdownModule() {
 
 void FJsonAsAssetModule::PluginButtonClicked() {
 	// Dialog for a JSON File
-	TArray<FString> OutFileNames = OpenFileDialog(FString("Open a JSON file"), FString("JSON Files|*.json"));
+	TArray<FString> OutFileNames = OpenFileDialog("Open a JSON file", "JSON Files|*.json");
 
 	// None selected
 	if (OutFileNames.Num() == 0) {
-		FText DialogText = FText::FromString(TEXT(
-			"A file is required to use this plugin, please select one next time."));
+		const FText DialogText = FText::FromString("A file is required to use this plugin, please select one next time.");
 		FMessageDialog::Open(EAppMsgType::Ok, DialogText);
-
 		return;
 	}
 
@@ -105,11 +93,11 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 
 		// If type is not supported, decline
 		if (!IImporter::CanImportAny(Types)) {
-			FText DialogText = FText::FromString("No exports from \"" + OutFileNames[0] + "\" can be imported!");
+			const FText DialogText = FText::FromString("No exports from \"" + OutFileNames[0] + "\" can be imported!");
 			FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 		}
 
-		for (TSharedPtr<FJsonValue>& Obj : DataObjects) {
+		for (const TSharedPtr<FJsonValue>& Obj : DataObjects) {
 			TSharedPtr<FJsonObject> DataObject = Obj->AsObject();
 
 			FString Type = DataObject->GetStringField("Type");

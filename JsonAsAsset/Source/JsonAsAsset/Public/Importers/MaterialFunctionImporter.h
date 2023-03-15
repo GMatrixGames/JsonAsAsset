@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "Materials/MaterialExpressionComposite.h"
 #include "Importer.h"
 
 class UMaterialFunctionImporter : public IImporter {
@@ -33,19 +32,16 @@ protected:
 		FName Type;
 		FJsonObject* Json;
 	};
-	
+
 	TSharedPtr<FJsonObject> FindEditorOnlyData(const FString& Type, TMap<FName, FImportData>& OutExports);
 
 	TMap<FName, UMaterialExpression*> CreateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports);
 
-	// Material Graphs (little nodes that contain a graph)
-	bool HandleMaterialGraph(UMaterial* Parent, TSharedPtr<FJsonObject> JsonProperties, TMap<FName, FImportData>& Exports);
-
 	void AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap);
-	
-	void AddComments(UObject* Parent, TSharedPtr<FJsonObject> Json, TMap<FName, FImportData>& Exports);
-	
-	void AddGenerics(UObject* Parent, UMaterialExpression* Expression, const TSharedPtr<FJsonObject>& Json);
+
+	void AddComments(UObject* Parent, const TSharedPtr<FJsonObject>& Json, TMap<FName, FImportData>& Exports);
+
+	bool AddGenerics(UObject* Parent, UMaterialExpression* Expression, const TSharedPtr<FJsonObject>& Json);
 
 	UMaterialExpression* CreateEmptyExpression(UObject* Parent, FName Name, FName Type) const;
 
