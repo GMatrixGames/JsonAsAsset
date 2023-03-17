@@ -1963,12 +1963,8 @@ void UMaterialFunctionImporter::AddComments(UObject* Parent, const TSharedPtr<FJ
 		for (const TSharedPtr<FJsonValue> ExpressionComment : *StringExpressionComments) {
 			if (ExpressionComment->IsNull()) continue;
 			FString ExportName = GetExportNameOfSubobject(ExpressionComment.Get()->AsObject()->GetStringField("ObjectName")).ToString();
-
-			FString Outer;
-			ExportName.Split(".", &Outer, &ExportName, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-			Outer.Split(".", nullptr, &Outer, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 			
-			const TSharedPtr<FJsonObject> Comment = Exports.Find(ExportName + "_" + Outer)->Json->GetObjectField("Properties");
+			const TSharedPtr<FJsonObject> Comment = Exports.Find(ExportName + "_" + Parent->GetName())->Json->GetObjectField("Properties");
 			UMaterialExpressionComment* MatComment = NewObject<UMaterialExpressionComment>(Parent, UMaterialExpressionComment::StaticClass(), NAME_None, RF_Transactional);
 
 			int SizeX;

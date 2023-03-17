@@ -88,7 +88,15 @@ protected:
 	};
 
 	inline static TArray<FString> IgnoredTypes = {
+		"Material",
 		"MaterialFunction",
+		"MaterialGraph",
+		"MaterialGraphNode",
+		"MaterialGraphNode_Comment",
+		"MaterialGraphNode_Composite",
+		"MaterialGraphNode_Knot",
+		"MaterialGraphNode_PinBase",
+		"MaterialGraphNode_Root",
 		"MaterialExpressionComposite",
 		"MaterialExpressionPinBase"
 	};
