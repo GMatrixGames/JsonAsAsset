@@ -124,8 +124,8 @@ protected:
 	FExpressionInput PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression, const FString& Type = "Default");
 	FExpressionOutput PopulateExpressionOutput(const FJsonObject* JsonProperties);
 
-	FString GetExpressionName(const FJsonObject* JsonProperties);
+	FString GetExpressionName(const FJsonObject* JsonProperties, UObject* Parent);
 
 	FFunctionExpressionOutput PopulateFuncExpressionOutput(const TSharedPtr<FJsonObject>& JsonProperties);
-	FFunctionExpressionInput PopulateFuncExpressionInput(const TSharedPtr<FJsonObject>& JsonProperties, TMap<FString, UMaterialExpression*>& CreatedExpressionMap);
+	FFunctionExpressionInput PopulateFuncExpressionInput(const TSharedPtr<FJsonObject>& JsonProperties, UObject* Parent, TMap<FString, UMaterialExpression*>& CreatedExpressionMap);
 };

@@ -106,7 +106,7 @@ bool UMaterialImporter::ImportData() {
 		const TSharedPtr<FJsonObject>* EmissiveColorPtr;
 		if (EdProps->TryGetObjectField("EmissiveColor", EmissiveColorPtr) && EmissiveColorPtr != nullptr) {
 			FJsonObject* EmissiveColorObject = EmissiveColorPtr->Get();
-			FString EmissiveColorExpressionName = GetExpressionName(EmissiveColorObject);
+			FString EmissiveColorExpressionName = GetExpressionName(EmissiveColorObject, Material);
 
 			if (CreatedExpressionMap.Contains(EmissiveColorExpressionName)) {
 				FExpressionInput Ex = PopulateExpressionInput(EmissiveColorObject, *CreatedExpressionMap.Find(EmissiveColorExpressionName), "Color");
@@ -118,7 +118,7 @@ bool UMaterialImporter::ImportData() {
 		const TSharedPtr<FJsonObject>* OpacityPtr;
 		if (EdProps->TryGetObjectField("Opacity", OpacityPtr) && OpacityPtr != nullptr) {
 			FJsonObject* OpacityObject = OpacityPtr->Get();
-			FString OpacityExpressionName = GetExpressionName(OpacityObject);
+			FString OpacityExpressionName = GetExpressionName(OpacityObject, Material);
 
 			if (CreatedExpressionMap.Contains(OpacityExpressionName)) {
 				FExpressionInput Ex = PopulateExpressionInput(OpacityObject, *CreatedExpressionMap.Find(OpacityExpressionName), "Scalar");
@@ -130,7 +130,7 @@ bool UMaterialImporter::ImportData() {
 		const TSharedPtr<FJsonObject>* OpacityMaskPtr;
 		if (EdProps->TryGetObjectField("OpacityMask", OpacityMaskPtr) && OpacityMaskPtr != nullptr) {
 			FJsonObject* OpacityMaskObject = OpacityMaskPtr->Get();
-			FString OpacityMaskExpressionName = GetExpressionName(OpacityMaskObject);
+			FString OpacityMaskExpressionName = GetExpressionName(OpacityMaskObject, Material);
 
 			if (CreatedExpressionMap.Contains(OpacityMaskExpressionName)) {
 				FExpressionInput Ex = PopulateExpressionInput(OpacityMaskObject, *CreatedExpressionMap.Find(OpacityMaskExpressionName), "Scalar");
@@ -142,7 +142,7 @@ bool UMaterialImporter::ImportData() {
 		const TSharedPtr<FJsonObject>* WorldPositionOffsetPtr;
 		if (EdProps->TryGetObjectField("WorldPositionOffset", WorldPositionOffsetPtr) && WorldPositionOffsetPtr != nullptr) {
 			FJsonObject* WorldPositionOffsetObject = WorldPositionOffsetPtr->Get();
-			FString WorldPositionOffsetExpressionName = GetExpressionName(WorldPositionOffsetObject);
+			FString WorldPositionOffsetExpressionName = GetExpressionName(WorldPositionOffsetObject, Material);
 
 			if (CreatedExpressionMap.Contains(WorldPositionOffsetExpressionName)) {
 				FExpressionInput Ex = PopulateExpressionInput(WorldPositionOffsetObject, *CreatedExpressionMap.Find(WorldPositionOffsetExpressionName), "Vector");
