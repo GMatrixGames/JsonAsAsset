@@ -151,6 +151,25 @@ bool UMaterialImporter::ImportData() {
 			}
 		}
 
+		const TArray<TSharedPtr<FJsonValue>>* StringParameterGroupData;
+		if (EdProps->TryGetArrayField("ParameterGroupData", StringParameterGroupData)) {
+			TArray<FParameterGroupData> ParameterGroupData;
+
+			for (const TSharedPtr<FJsonValue> ParameterGroupDataObject : *StringParameterGroupData) {
+				if (ParameterGroupDataObject->IsNull()) continue;
+				FParameterGroupData GroupData;
+
+				FString GroupName;
+				if (ParameterGroupDataObject->AsObject()->TryGetStringField("GroupName", GroupName)) GroupData.GroupName = GroupName;
+				int GroupSortPriority;
+				if (ParameterGroupDataObject->AsObject()->TryGetNumberField("GroupSortPriority", GroupSortPriority)) GroupData.GroupSortPriority = GroupSortPriority;
+
+				ParameterGroupData.Add(GroupData);
+			}
+
+			Material->GetEditorOnlyData()->ParameterGroupData = ParameterGroupData;
+		}
+
 		// Iterate through all the expression names
 		AddExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap);
 
