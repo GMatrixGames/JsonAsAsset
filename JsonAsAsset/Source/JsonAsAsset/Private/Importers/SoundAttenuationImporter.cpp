@@ -2,7 +2,6 @@
 
 #include "Importers/SoundAttenuationImporter.h"
 
-#include "AssetRegistry/AssetRegistryModule.h"
 #include "Dom/JsonObject.h"
 #include "Utilities/AssetUtilities.h"
 #include "Utilities/MathUtilities.h"
@@ -86,7 +85,6 @@ bool USoundAttenuationImporter::ImportData() {
 		int64 OcclusionInterpolationTime;
 		int64 OcclusionLowPassFilterFrequency;
 		int64 OcclusionVolumeAttenuation;
-		int64 OmniRadius;
 		int64 PriorityAttenuationDistanceMax;
 		int64 PriorityAttenuationDistanceMin;
 		int64 PriorityAttenuationMax;
@@ -169,9 +167,13 @@ bool USoundAttenuationImporter::ImportData() {
 		if (Attenuation->TryGetNumberField("OcclusionVolumeAttenuation", OcclusionVolumeAttenuation)) {
 			SoundAttenuation->Attenuation.OcclusionVolumeAttenuation = Attenuation->GetNumberField("OcclusionVolumeAttenuation");
 		}
+#if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 3) || ENGINE_MAJOR_VERSION == 4
+		int64 OmniRadius;
+
 		if (Attenuation->TryGetNumberField("OmniRadius", OmniRadius)) {
 			SoundAttenuation->Attenuation.OmniRadius = Attenuation->GetNumberField("OmniRadius");
 		}
+#endif
 		if (Attenuation->TryGetNumberField("PriorityAttenuationDistanceMax", PriorityAttenuationDistanceMax)) {
 			SoundAttenuation->Attenuation.PriorityAttenuationDistanceMax = Attenuation->GetNumberField("PriorityAttenuationDistanceMax");
 		}

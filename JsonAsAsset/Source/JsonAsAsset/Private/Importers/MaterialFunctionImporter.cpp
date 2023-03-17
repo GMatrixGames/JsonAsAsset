@@ -243,10 +243,11 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			FString InputTypeString;
 			if (Properties->TryGetStringField("InputType", InputTypeString)) {
-				EFunctionInputType InputType = FunctionInput_Vector3;
+				EFunctionInputType InputType = FunctionInput->InputType;
 
 				if (InputTypeString.EndsWith("FunctionInput_Scalar")) InputType = FunctionInput_Scalar;
 				else if (InputTypeString.EndsWith("FunctionInput_Vector2")) InputType = FunctionInput_Vector2;
+				else if (InputTypeString.EndsWith("FunctionInput_Vector3")) InputType = FunctionInput_Vector3;
 				else if (InputTypeString.EndsWith("FunctionInput_Vector4")) InputType = FunctionInput_Vector4;
 				else if (InputTypeString.EndsWith("FunctionInput_Texture2D")) InputType = FunctionInput_Texture2D;
 				else if (InputTypeString.EndsWith("FunctionInput_TextureCube")) InputType = FunctionInput_TextureCube;
@@ -580,23 +581,21 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			FString MipValueModeString;
 			if (Properties->TryGetStringField("MipValueMode", MipValueModeString)) {
-				ETextureMipValueMode MipValueMode;
+				ETextureMipValueMode MipValueMode = TextureSample->MipValueMode;
 
 				if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipLevel;
 				else if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipBias;
 				else if (MipValueModeString.EndsWith("TMVM_Derivative")) MipValueMode = TMVM_Derivative;
-				else MipValueMode = TMVM_None;
 
 				TextureSample->MipValueMode = MipValueMode;
 			}
 
 			FString SampleSourceString;
 			if (Properties->TryGetStringField("SamplerSource", SampleSourceString)) {
-				ESamplerSourceMode SamplerSource;
+				ESamplerSourceMode SamplerSource = TextureSample->SamplerSource;
 
 				if (SampleSourceString.EndsWith("SSM_Wrap_WorldGroupSettings")) SamplerSource = SSM_Wrap_WorldGroupSettings;
 				else if (SampleSourceString.EndsWith("SSM_Clamp_WorldGroupSettings")) SamplerSource = SSM_Clamp_WorldGroupSettings;
-				else SamplerSource = SSM_FromTextureAsset;
 
 				TextureSample->SamplerSource = SamplerSource;
 			}
@@ -630,7 +629,6 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				TArray<FFunctionExpressionOutput> FunctionOutputs;
 				for (const TSharedPtr<FJsonValue> FunctionOutputValue : *FunctionOutputsPtr) {
 					TSharedPtr<FJsonObject> FunctionOutputObject = FunctionOutputValue->AsObject();
-
 					FunctionOutputs.Add(PopulateFuncExpressionOutput(FunctionOutputObject));
 				}
 
@@ -1276,23 +1274,21 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			FString MipValueModeString;
 			if (Properties->TryGetStringField("MipValueMode", MipValueModeString)) {
-				ETextureMipValueMode MipValueMode;
+				ETextureMipValueMode MipValueMode = TextureSampleParameter2D->MipValueMode;
 
 				if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipLevel;
 				else if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipBias;
 				else if (MipValueModeString.EndsWith("TMVM_Derivative")) MipValueMode = TMVM_Derivative;
-				else MipValueMode = TMVM_None;
 
 				TextureSampleParameter2D->MipValueMode = MipValueMode;
 			}
 
 			FString SampleSourceString;
 			if (Properties->TryGetStringField("SamplerSource", SampleSourceString)) {
-				ESamplerSourceMode SamplerSource;
+				ESamplerSourceMode SamplerSource = TextureSampleParameter2D->SamplerSource;
 
 				if (SampleSourceString.EndsWith("SSM_Wrap_WorldGroupSettings")) SamplerSource = SSM_Wrap_WorldGroupSettings;
 				else if (SampleSourceString.EndsWith("SSM_Clamp_WorldGroupSettings")) SamplerSource = SSM_Clamp_WorldGroupSettings;
-				else SamplerSource = SSM_FromTextureAsset;
 
 				TextureSampleParameter2D->SamplerSource = SamplerSource;
 			}
@@ -1323,9 +1319,10 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			FString OutputTypeString;
 			if (Properties->TryGetStringField("OutputType", OutputTypeString)) {
-				ECustomMaterialOutputType OutputType = CMOT_Float1;
+				ECustomMaterialOutputType OutputType = Custom->OutputType;
 
-				if (OutputTypeString.EndsWith("CMOT_Float2")) OutputType = CMOT_Float2;
+				if (OutputTypeString.EndsWith("CMOT_Float1")) OutputType = CMOT_Float1;
+				else if (OutputTypeString.EndsWith("CMOT_Float2")) OutputType = CMOT_Float2;
 				else if (OutputTypeString.EndsWith("CMOT_Float3")) OutputType = CMOT_Float3;
 				else if (OutputTypeString.EndsWith("CMOT_Float4")) OutputType = CMOT_Float4;
 				else if (OutputTypeString.EndsWith("CMOT_MaterialAttributes")) OutputType = CMOT_MaterialAttributes;
@@ -1576,9 +1573,10 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			FString ClampModeString;
 			if (Properties->TryGetStringField("ClampMode", ClampModeString)) {
-				EClampMode ClampMode = CMODE_Clamp;
+				EClampMode ClampMode = Clamp->ClampMode;
 
-				if (ClampModeString.EndsWith("CMODE_ClampMin")) ClampMode = CMODE_ClampMin;
+				if (ClampModeString.EndsWith("CMODE_Clamp")) ClampMode = CMODE_Clamp;
+				else if (ClampModeString.EndsWith("CMODE_ClampMin")) ClampMode = CMODE_ClampMin;
 				else if (ClampModeString.EndsWith("CMODE_ClampMax")) ClampMode = CMODE_ClampMax;
 
 				Clamp->ClampMode = ClampMode;
@@ -1605,9 +1603,10 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			FString TransformSourceTypeString;
 			if (Properties->TryGetStringField("TransformSourceType", TransformSourceTypeString)) {
-				EMaterialPositionTransformSource TransformSourceType = TRANSFORMPOSSOURCE_Local;
+				EMaterialPositionTransformSource TransformSourceType = TransformPosition->TransformSourceType;
 
-				if (TransformSourceTypeString.EndsWith("TRANSFORMPOSSOURCE_World")) TransformSourceType = TRANSFORMPOSSOURCE_World;
+				if (TransformSourceTypeString.EndsWith("TRANSFORMPOSSOURCE_Local")) TransformSourceType = TRANSFORMPOSSOURCE_Local;
+				else if (TransformSourceTypeString.EndsWith("TRANSFORMPOSSOURCE_World")) TransformSourceType = TRANSFORMPOSSOURCE_World;
 				else if (TransformSourceTypeString.EndsWith("TRANSFORMPOSSOURCE_TranslatedWorld")) TransformSourceType = TRANSFORMPOSSOURCE_TranslatedWorld;
 				else if (TransformSourceTypeString.EndsWith("TRANSFORMPOSSOURCE_View")) TransformSourceType = TRANSFORMPOSSOURCE_View;
 				else if (TransformSourceTypeString.EndsWith("TRANSFORMPOSSOURCE_Instance")) TransformSourceType = TRANSFORMPOSSOURCE_Instance;
@@ -1617,9 +1616,10 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			FString TransformTypeString;
 			if (Properties->TryGetStringField("TransformType", TransformTypeString)) {
-				EMaterialPositionTransformSource TransformType = TRANSFORMPOSSOURCE_Local;
+				EMaterialPositionTransformSource TransformType = TransformPosition->TransformSourceType;
 
-				if (TransformTypeString.EndsWith("TRANSFORMPOSSOURCE_World")) TransformType = TRANSFORMPOSSOURCE_World;
+				if (TransformTypeString.EndsWith("TRANSFORMPOSSOURCE_Local")) TransformType = TRANSFORMPOSSOURCE_Local;
+				else if (TransformTypeString.EndsWith("TRANSFORMPOSSOURCE_World")) TransformType = TRANSFORMPOSSOURCE_World;
 				else if (TransformTypeString.EndsWith("TRANSFORMPOSSOURCE_TranslatedWorld")) TransformType = TRANSFORMPOSSOURCE_TranslatedWorld;
 				else if (TransformTypeString.EndsWith("TRANSFORMPOSSOURCE_View")) TransformType = TRANSFORMPOSSOURCE_View;
 				else if (TransformTypeString.EndsWith("TRANSFORMPOSSOURCE_Instance")) TransformType = TRANSFORMPOSSOURCE_Instance;
@@ -1795,23 +1795,22 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			FString MipValueModeString;
 			if (Properties->TryGetStringField("MipValueMode", MipValueModeString)) {
-				ETextureMipValueMode MipValueMode;
+				ETextureMipValueMode MipValueMode = TextureObjectParameter->MipValueMode;
 
 				if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipLevel;
 				else if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipBias;
 				else if (MipValueModeString.EndsWith("TMVM_Derivative")) MipValueMode = TMVM_Derivative;
-				else MipValueMode = TMVM_None;
 
 				TextureObjectParameter->MipValueMode = MipValueMode;
 			}
 
 			FString SampleSourceString;
 			if (Properties->TryGetStringField("SamplerSource", SampleSourceString)) {
-				ESamplerSourceMode SamplerSource;
+				ESamplerSourceMode SamplerSource = TextureObjectParameter->SamplerSource;
 
-				if (SampleSourceString.EndsWith("SSM_Wrap_WorldGroupSettings")) SamplerSource = SSM_Wrap_WorldGroupSettings;
+				if (SampleSourceString.EndsWith("SSM_FromTextureAsset")) SamplerSource = SSM_FromTextureAsset;
+				else if (SampleSourceString.EndsWith("SSM_Wrap_WorldGroupSettings")) SamplerSource = SSM_Wrap_WorldGroupSettings;
 				else if (SampleSourceString.EndsWith("SSM_Clamp_WorldGroupSettings")) SamplerSource = SSM_Clamp_WorldGroupSettings;
-				else SamplerSource = SSM_FromTextureAsset;
 
 				TextureObjectParameter->SamplerSource = SamplerSource;
 			}
@@ -1859,8 +1858,11 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			FString PropertyString;
 			if (Properties->TryGetStringField("Property", PropertyString)) {
-				EMaterialExposedTextureProperty Property = TMTM_TextureSize;
-				if (PropertyString.EndsWith("TMTM_TexelSize")) Property = TMTM_TexelSize;
+				EMaterialExposedTextureProperty Property = TextureProperty->Property;
+
+				if (PropertyString.EndsWith("TMTM_TextureSize")) Property = TMTM_TextureSize;
+				else if (PropertyString.EndsWith("TMTM_TexelSize")) Property = TMTM_TexelSize;
+
 				TextureProperty->Property = Property;
 			}
 
@@ -1870,9 +1872,10 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			FString WorldPositionShaderOffsetString;
 			if (Properties->TryGetStringField("WorldPositionShaderOffset", WorldPositionShaderOffsetString)) {
-				EWorldPositionIncludedOffsets WorldPositionShaderOffset = WPT_Default;
+				EWorldPositionIncludedOffsets WorldPositionShaderOffset = WorldPosition->WorldPositionShaderOffset;
 
-				if (WorldPositionShaderOffsetString.EndsWith("WPT_ExcludeAllShaderOffsets")) WorldPositionShaderOffset = WPT_ExcludeAllShaderOffsets;
+				if (WorldPositionShaderOffsetString.EndsWith("WPT_Default")) WorldPositionShaderOffset = WPT_Default;
+				else if (WorldPositionShaderOffsetString.EndsWith("WPT_ExcludeAllShaderOffsets")) WorldPositionShaderOffset = WPT_ExcludeAllShaderOffsets;
 				else if (WorldPositionShaderOffsetString.EndsWith("WPT_CameraRelative")) WorldPositionShaderOffset = WPT_CameraRelative;
 				else if (WorldPositionShaderOffsetString.EndsWith("WPT_CameraRelativeNoOffsets")) WorldPositionShaderOffset = WPT_CameraRelativeNoOffsets;
 
@@ -1989,10 +1992,6 @@ bool UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 	bool bRealtimePreview;
 	bool bShowOutputNameOnPin;
 
-	if (!Json->TryGetNumberField("MaterialExpressionEditorX", MaterialExpressionEditorX)) {
-		return false;
-	}
-
 	if (Json->TryGetNumberField("MaterialExpressionEditorX", MaterialExpressionEditorX)) Expression->MaterialExpressionEditorX = MaterialExpressionEditorX;
 	if (Json->TryGetNumberField("MaterialExpressionEditorY", MaterialExpressionEditorY)) Expression->MaterialExpressionEditorY = MaterialExpressionEditorY;
 
@@ -2035,9 +2034,10 @@ bool UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 
 		FString SamplerTypeString;
 		if (Json->TryGetStringField("SamplerType", SamplerTypeString)) {
-			EMaterialSamplerType SamplerType;
+			EMaterialSamplerType SamplerType = TextureBase->SamplerType;
 
-			if (SamplerTypeString.EndsWith("SAMPLERTYPE_Grayscale")) SamplerType = SAMPLERTYPE_Grayscale;
+			if (SamplerTypeString.EndsWith("SAMPLERTYPE_Color")) SamplerType = SAMPLERTYPE_Color;
+			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_Grayscale")) SamplerType = SAMPLERTYPE_Grayscale;
 			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_Alpha")) SamplerType = SAMPLERTYPE_Alpha;
 			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_Normal")) SamplerType = SAMPLERTYPE_Normal;
 			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_Masks")) SamplerType = SAMPLERTYPE_Masks;
@@ -2046,7 +2046,6 @@ bool UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_LinearGrayscale")) SamplerType = SAMPLERTYPE_LinearGrayscale;
 			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_Data")) SamplerType = SAMPLERTYPE_Data;
 			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_External")) SamplerType = SAMPLERTYPE_External;
-			else SamplerType = SAMPLERTYPE_Color;
 
 			TextureBase->SamplerType = SamplerType;
 		}
@@ -2059,8 +2058,8 @@ bool UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 }
 
 UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* Parent, const FName Name, const FName Type) const {
-	if (IgnoredTypes.Contains(Type)) return nullptr;
-	if (AcceptedTypes.Contains(Type)) {
+	if (IgnoredTypes.Contains(Type.ToString())) return nullptr;
+	if (AcceptedTypes.Contains(Type.ToString())) {
 		const FString Class = "/Script/Engine." + Type.ToString();
 		return NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, *Class), Name, RF_Transactional);
 	}
