@@ -84,19 +84,19 @@ bool UMaterialFunctionImporter::ImportData() {
 
 		// Define editor only data from the JSON
 		TMap<FName, FImportData> Exports;
-		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports)->GetObjectField("Properties");
+		TArray<FName> ExpressionNames;
+		const TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports, ExpressionNames)->GetObjectField("Properties");
 
 		// Find each node expression
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
 
-		TArray<FName> ExpressionNames;
-		const TArray<TSharedPtr<FJsonValue>>* StringExpressions;
-		if (StringExpressionCollection->TryGetArrayField("Expressions", StringExpressions)) {
-			for (const TSharedPtr<FJsonValue> Expression : *StringExpressions) {
-				if (Expression->IsNull()) continue;
-				ExpressionNames.Add(GetExportNameOfSubobject(Expression->AsObject()->GetStringField("ObjectName")));
-			}
-		}
+		// const TArray<TSharedPtr<FJsonValue>>* StringExpressions;
+		// if (StringExpressionCollection->TryGetArrayField("Expressions", StringExpressions)) {
+		// 	for (const TSharedPtr<FJsonValue> Expression : *StringExpressions) {
+		// 		if (Expression->IsNull()) continue;
+		// 		ExpressionNames.Add(GetExportNameOfSubobject(Expression->AsObject()->GetStringField("ObjectName")));
+		// 	}
+		// }
 
 		// Map out each expression for easier access
 		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(MaterialFunction, ExpressionNames, Exports);
@@ -113,7 +113,7 @@ bool UMaterialFunctionImporter::ImportData() {
 	return true;
 }
 
-TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FString& Type, TMap<FName, FImportData>& OutExports) {
+TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FString& Type, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames) {
 	TSharedPtr<FJsonObject> EditorOnlyData;
 
 	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
@@ -127,6 +127,7 @@ TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FStr
 			continue;
 		}
 
+		ExpressionNames.Add(FName(Name));
 		OutExports.Add(FName(Name), FImportData(ExType, Object));
 	}
 
@@ -1963,17 +1964,14 @@ void UMaterialFunctionImporter::AddComments(UObject* Parent, const TSharedPtr<FJ
 			UMaterialExpressionComment* MatComment = NewObject<UMaterialExpressionComment>(Parent, UMaterialExpressionComment::StaticClass(), ExportName, RF_Transactional);
 
 			int SizeX;
-			int SizeY;
-			int FontSize;
-
-			FString Text;
-
-			const TSharedPtr<FJsonObject>* CommentColor;
-
 			if (Comment->TryGetNumberField("SizeX", SizeX)) MatComment->SizeX = SizeX;
+			int SizeY;
 			if (Comment->TryGetNumberField("SizeY", SizeY)) MatComment->SizeY = SizeY;
+			FString Text;
 			if (Comment->TryGetStringField("Text", Text)) MatComment->Text = Text;
+			const TSharedPtr<FJsonObject>* CommentColor;
 			if (Comment->TryGetObjectField("CommentColor", CommentColor)) MatComment->CommentColor = FMathUtilities::ObjectToLinearColor(CommentColor->Get());
+			int FontSize;
 			if (Comment->TryGetNumberField("FontSize", FontSize)) MatComment->FontSize = FontSize;
 			AddGenerics(Parent, MatComment, Comment);
 
@@ -1983,7 +1981,7 @@ void UMaterialFunctionImporter::AddComments(UObject* Parent, const TSharedPtr<FJ
 	}
 }
 
-bool UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression* Expression, const TSharedPtr<FJsonObject>& Json) {
+void UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression* Expression, const TSharedPtr<FJsonObject>& Json) {
 	int MaterialExpressionEditorX;
 	int MaterialExpressionEditorY;
 	FString Desc;
@@ -2053,8 +2051,6 @@ bool UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 		bool IsDefaultMeshpaintTexture;
 		if (Json->TryGetBoolField("IsDefaultMeshpaintTexture", IsDefaultMeshpaintTexture)) TextureBase->IsDefaultMeshpaintTexture = IsDefaultMeshpaintTexture;
 	}
-
-	return true;
 }
 
 UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* Parent, const FName Name, const FName Type) const {
