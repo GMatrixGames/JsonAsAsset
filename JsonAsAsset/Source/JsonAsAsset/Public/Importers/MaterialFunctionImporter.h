@@ -98,7 +98,8 @@ protected:
 		"MaterialGraphNode_PinBase",
 		"MaterialGraphNode_Root",
 		"MaterialExpressionComposite",
-		"MaterialExpressionPinBase"
+		"MaterialExpressionPinBase",
+		"MaterialExpressionComment"
 	};
 
 	struct FImportData {
@@ -111,7 +112,7 @@ protected:
 		FJsonObject* Json;
 	};
 
-	TSharedPtr<FJsonObject> FindEditorOnlyData(const FString& Type, TMap<FString, FImportData>& OutExports, TArray<FString>& ExpressionNames);
+	TSharedPtr<FJsonObject> FindEditorOnlyData(const FString& Type, TMap<FString, FImportData>& OutExports, TArray<FString>& ExpressionNames, const UObject* Parent);
 
 	TMap<FString, UMaterialExpression*> CreateExpressions(UObject* Parent, TArray<FString>& ExpressionNames, TMap<FString, FImportData>& Exports);
 
@@ -124,8 +125,8 @@ protected:
 	FExpressionInput PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression, const FString& Type = "Default");
 	FExpressionOutput PopulateExpressionOutput(const FJsonObject* JsonProperties);
 
-	FString GetExpressionName(const FJsonObject* JsonProperties, UObject* Parent);
+	FString GetExpressionName(const FJsonObject* JsonProperties, const UObject* Parent);
 
 	FFunctionExpressionOutput PopulateFuncExpressionOutput(const TSharedPtr<FJsonObject>& JsonProperties);
-	FFunctionExpressionInput PopulateFuncExpressionInput(const TSharedPtr<FJsonObject>& JsonProperties, UObject* Parent, TMap<FString, UMaterialExpression*>& CreatedExpressionMap);
+	FFunctionExpressionInput PopulateFuncExpressionInput(const TSharedPtr<FJsonObject>& JsonProperties, const UObject* Parent, TMap<FString, UMaterialExpression*>& CreatedExpressionMap);
 };

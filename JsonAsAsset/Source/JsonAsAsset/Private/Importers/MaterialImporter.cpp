@@ -88,7 +88,7 @@ bool UMaterialImporter::ImportData() {
 		// Define editor only data from the JSON
 		TMap<FString, FImportData> Exports;
 		TArray<FString> ExpressionNames;
-		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports, ExpressionNames)->GetObjectField("Properties");
+		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports, ExpressionNames, Material)->GetObjectField("Properties");
 
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
 
