@@ -7,8 +7,12 @@
 #else
 #include "MaterialDomain.h"
 #endif
+#include "IMaterialEditor.h"
+#include "MaterialEditorModule.h"
 #include "Dom/JsonObject.h"
 #include "Factories/MaterialFactoryNew.h"
+#include "MaterialEditor/Private/MaterialEditor.h"
+#include "MaterialGraph/MaterialGraph.h"
 
 bool UMaterialImporter::ImportData() {
 	try {
@@ -177,46 +181,53 @@ bool UMaterialImporter::ImportData() {
 			FString Name = Object->GetStringField("Name");
 
 			if (ExType == "MaterialGraph" && Name != "MaterialGraph_0") {
-				TSharedPtr<FJsonObject> Properties = Object->GetObjectField("Properties");
+				// TSharedPtr<FJsonObject> Properties = Object->GetObjectField("Properties");
 
-				UMaterialFunctionFactoryNew* MaterialFunctionFactory = NewObject<UMaterialFunctionFactoryNew>();
-				UMaterialFunction* MaterialFunction = Cast<UMaterialFunction>(MaterialFunctionFactory->FactoryCreateNew(UMaterialFunction::StaticClass(), OutermostPkg, *(FileName + "_SubGraph_" + Name.Replace(TEXT(" "), TEXT(""))), RF_Standalone | RF_Public, nullptr, GWarn));
-				
-				// Clear any default expressions the engine adds (ex: Result)
-				MaterialFunction->GetExpressionCollection().Empty();
+				UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+				FMaterialEditor* AssetEditorInstance = reinterpret_cast<FMaterialEditor*>(AssetEditorSubsystem->OpenEditorForAsset(Material) ? AssetEditorSubsystem->FindEditorForAsset(Material, true) : nullptr);
 
-				TMap<FName, FImportData> NewExports;
-				TArray<FName> NewExpressionNames;
-				for (const TSharedPtr<FJsonValue> NewValue : AllJsonObjects) {
-					TSharedPtr<FJsonObject> NewObject = TSharedPtr(NewValue->AsObject());
-
-					FString OldExType = NewObject->GetStringField("Type");
-					FString Outer = NewObject->GetStringField("Outer");
-
-					if (Outer == Name) {
-						const TSharedPtr<FJsonObject>* MaterialExpression;
-
-						if (!NewObject->GetObjectField("Properties")->TryGetObjectField("MaterialExpression", MaterialExpression)) {
-							continue;
-						}
-
-						FName NewName = GetExportNameOfSubobject(MaterialExpression->Get()->GetStringField("ObjectName"));
-
-						FImportData* NewType = Exports.Find(NewName);
-						FString NewExType = NewType->Json->GetStringField("Type");
-
-						NewExpressionNames.Add(NewName);
-						NewExports.Add(NewName, FImportData(NewExType, NewType->Json));
-					}
-
-					continue;
+				if (AssetEditorInstance->Material->MaterialGraph != nullptr) {
+					UE_LOG(LogJson, Log, TEXT("The mat graph is valid!"))
 				}
 
-				TMap<FName, UMaterialExpression*> NewCreatedExpressionMap = CreateExpressions(MaterialFunction, NewExpressionNames, NewExports);
-				AddExpressions(MaterialFunction, NewExpressionNames, NewExports, NewCreatedExpressionMap);
-
-				HandleAssetCreation(MaterialFunction);
-				continue;
+				// UMaterialFunctionFactoryNew* MaterialFunctionFactory = NewObject<UMaterialFunctionFactoryNew>();
+				// UMaterialFunction* MaterialFunction = Cast<UMaterialFunction>(MaterialFunctionFactory->FactoryCreateNew(UMaterialFunction::StaticClass(), OutermostPkg, *(FileName + "_SubGraph_" + Name.Replace(TEXT(" "), TEXT(""))), RF_Standalone | RF_Public, nullptr, GWarn));
+				//
+				// // Clear any default expressions the engine adds (ex: Result)
+				// MaterialFunction->GetExpressionCollection().Empty();
+				//
+				// TMap<FName, FImportData> NewExports;
+				// TArray<FName> NewExpressionNames;
+				// for (const TSharedPtr<FJsonValue> NewValue : AllJsonObjects) {
+				// 	TSharedPtr<FJsonObject> NewObject = TSharedPtr(NewValue->AsObject());
+				//
+				// 	FString OldExType = NewObject->GetStringField("Type");
+				// 	FString Outer = NewObject->GetStringField("Outer");
+				//
+				// 	if (Outer == Name) {
+				// 		const TSharedPtr<FJsonObject>* MaterialExpression;
+				//
+				// 		if (!NewObject->GetObjectField("Properties")->TryGetObjectField("MaterialExpression", MaterialExpression)) {
+				// 			continue;
+				// 		}
+				//
+				// 		FName NewName = GetExportNameOfSubobject(MaterialExpression->Get()->GetStringField("ObjectName"));
+				//
+				// 		FImportData* NewType = Exports.Find(NewName);
+				// 		FString NewExType = NewType->Json->GetStringField("Type");
+				//
+				// 		NewExpressionNames.Add(NewName);
+				// 		NewExports.Add(NewName, FImportData(NewExType, NewType->Json));
+				// 	}
+				//
+				// 	continue;
+				// }
+				//
+				// TMap<FName, UMaterialExpression*> NewCreatedExpressionMap = CreateExpressions(MaterialFunction, NewExpressionNames, NewExports);
+				// AddExpressions(MaterialFunction, NewExpressionNames, NewExports, NewCreatedExpressionMap);
+				//
+				// HandleAssetCreation(MaterialFunction);
+				// continue;
 			}
 		}
 

@@ -168,7 +168,8 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 		UMaterialExpression* Expression = *CreatedExpressionMap.Find(Name);
 
 		if (bCheckOuter) {
-			if (Type->Json->GetStringField("Outer") != Parent->GetName()) {
+			FString Outer;
+			if (Type->Json->TryGetStringField("Outer", Outer) && Outer != Parent->GetName()) {
 				continue;
 			}
 		}
@@ -1953,7 +1954,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			Expression = FeatureLevelSwitch;
 		}
 
-		AddGenerics(Parent, Expression, Properties); // Skip reroutes that are under collapsed nodes
+		AddGenerics(Parent, Expression, Properties);
 		if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddExpression(Expression);
 		else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddExpression(Expression);
 	}
