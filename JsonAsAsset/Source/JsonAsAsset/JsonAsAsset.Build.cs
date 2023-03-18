@@ -28,7 +28,8 @@ public class JsonAsAsset : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"AnimationDataController"
+				"AnimationDataController",
+				"MaterialEditor"
 			}
 		);
 

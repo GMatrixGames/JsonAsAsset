@@ -170,8 +170,58 @@ bool UMaterialImporter::ImportData() {
 			Material->GetEditorOnlyData()->ParameterGroupData = ParameterGroupData;
 		}
 
+		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
+			TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
+
+			FString ExType = Object->GetStringField("Type");
+			FString Name = Object->GetStringField("Name");
+
+			if (ExType == "MaterialGraph" && Name != "MaterialGraph_0") {
+				TSharedPtr<FJsonObject> Properties = Object->GetObjectField("Properties");
+
+				UMaterialFunctionFactoryNew* MaterialFunctionFactory = NewObject<UMaterialFunctionFactoryNew>();
+				UMaterialFunction* MaterialFunction = Cast<UMaterialFunction>(MaterialFunctionFactory->FactoryCreateNew(UMaterialFunction::StaticClass(), OutermostPkg, *(FileName + "_SubGraph_" + Name.Replace(TEXT(" "), TEXT(""))), RF_Standalone | RF_Public, nullptr, GWarn));
+				
+				// Clear any default expressions the engine adds (ex: Result)
+				MaterialFunction->GetExpressionCollection().Empty();
+
+				TMap<FName, FImportData> NewExports;
+				TArray<FName> NewExpressionNames;
+				for (const TSharedPtr<FJsonValue> NewValue : AllJsonObjects) {
+					TSharedPtr<FJsonObject> NewObject = TSharedPtr(NewValue->AsObject());
+
+					FString OldExType = NewObject->GetStringField("Type");
+					FString Outer = NewObject->GetStringField("Outer");
+
+					if (Outer == Name) {
+						const TSharedPtr<FJsonObject>* MaterialExpression;
+
+						if (!NewObject->GetObjectField("Properties")->TryGetObjectField("MaterialExpression", MaterialExpression)) {
+							continue;
+						}
+
+						FName NewName = GetExportNameOfSubobject(MaterialExpression->Get()->GetStringField("ObjectName"));
+
+						FImportData* NewType = Exports.Find(NewName);
+						FString NewExType = NewType->Json->GetStringField("Type");
+
+						NewExpressionNames.Add(NewName);
+						NewExports.Add(NewName, FImportData(NewExType, NewType->Json));
+					}
+
+					continue;
+				}
+
+				TMap<FName, UMaterialExpression*> NewCreatedExpressionMap = CreateExpressions(MaterialFunction, NewExpressionNames, NewExports);
+				AddExpressions(MaterialFunction, NewExpressionNames, NewExports, NewCreatedExpressionMap);
+
+				HandleAssetCreation(MaterialFunction);
+				continue;
+			}
+		}
+
 		// Iterate through all the expression names
-		AddExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap);
+		AddExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
 
 		AddComments(Material, StringExpressionCollection, Exports);
 	} catch (const char* Exception) {

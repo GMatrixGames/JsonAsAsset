@@ -157,7 +157,7 @@ TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(U
 	return CreatedExpressionMap;
 }
 
-void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap) {
+void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter) {
 	for (FName Name : ExpressionNames) {
 		FImportData* Type = Exports.Find(Name);
 
@@ -166,6 +166,12 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 		// Find the expression from FName
 		if (!CreatedExpressionMap.Contains(Name)) continue;
 		UMaterialExpression* Expression = *CreatedExpressionMap.Find(Name);
+
+		if (bCheckOuter) {
+			if (Type->Json->GetStringField("Outer") != Parent->GetName()) {
+				continue;
+			}
+		}
 
 		// UE_LOG(LogJson, Warning, TEXT("Export Name: %s"), *Name.ToString())
 
@@ -1947,7 +1953,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			Expression = FeatureLevelSwitch;
 		}
 
-		if (!AddGenerics(Parent, Expression, Properties)) continue; // Skip reroutes that are under collapsed nodes
+		AddGenerics(Parent, Expression, Properties); // Skip reroutes that are under collapsed nodes
 		if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddExpression(Expression);
 		else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddExpression(Expression);
 	}

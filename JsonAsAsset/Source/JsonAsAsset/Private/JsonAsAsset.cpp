@@ -4,7 +4,8 @@
 #include "JsonAsAssetStyle.h"
 #include "JsonAsAssetCommands.h"
 
-#include "DesktopPlatformModule.h"
+#include "Developer/DesktopPlatform/Public/IDesktopPlatform.h"
+#include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "Misc/MessageDialog.h"
 #include "Json.h"
@@ -59,7 +60,7 @@ void FJsonAsAssetModule::ShutdownModule() {
 
 void FJsonAsAssetModule::PluginButtonClicked() {
 	// Dialog for a JSON File
-	TArray<FString> OutFileNames = OpenFileDialog("Open a JSON file", "JSON Files|*.json");
+	TArray<FString> OutFileNames = OpenFileDialog("Open a JSON file!", "JSON Files|*.json");
 
 	// None selected
 	if (OutFileNames.Num() == 0) {
