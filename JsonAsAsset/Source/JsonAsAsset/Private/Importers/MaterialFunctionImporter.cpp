@@ -82,12 +82,10 @@ bool UMaterialFunctionImporter::ImportData() {
 		// Clear any default expressions the engine adds (ex: Result)
 		MaterialFunction->GetExpressionCollection().Empty();
 
-		//// NOTE: EXPRESSION NAMES ARE IN THE FORMAT OF "MaterialExpression_INDEX_OUTERNAME" TO PREVENT OVERRIDING
-
 		// Define editor only data from the JSON
-		TMap<FString, FImportData> Exports;
-		TArray<FString> ExpressionNames;
-		const TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports, ExpressionNames, MaterialFunction)->GetObjectField("Properties");
+		TMap<FName, FImportData> Exports;
+		TArray<FName> ExpressionNames;
+		const TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports, ExpressionNames)->GetObjectField("Properties");
 
 		// Find each node expression
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
@@ -101,7 +99,7 @@ bool UMaterialFunctionImporter::ImportData() {
 		// }
 
 		// Map out each expression for easier access
-		TMap<FString, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(MaterialFunction, ExpressionNames, Exports);
+		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(MaterialFunction, ExpressionNames, Exports);
 
 		// Iterate through all the expression names
 		AddExpressions(MaterialFunction, ExpressionNames, Exports, CreatedExpressionMap);
@@ -115,7 +113,7 @@ bool UMaterialFunctionImporter::ImportData() {
 	return true;
 }
 
-TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FString& Type, TMap<FString, FImportData>& OutExports, TArray<FString>& ExpressionNames, const UObject* Parent) {
+TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FString& Type, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames) {
 	TSharedPtr<FJsonObject> EditorOnlyData;
 
 	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
@@ -123,38 +121,33 @@ TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FStr
 
 		FString ExType = Object->GetStringField("Type");
 		FString Name = Object->GetStringField("Name");
-		FString Outer;
-		if (!Object->TryGetStringField("Outer", Outer)) {
-			Outer = Parent->GetName();
-		}
 
 		if (ExType == Type + "EditorOnlyData") {
 			EditorOnlyData = Object;
 			continue;
 		}
 
-		FString Combo = Name + "_" + Outer;
-		ExpressionNames.Add(Combo);
-		OutExports.Add(Combo, FImportData(ExType, Object));
+		ExpressionNames.Add(FName(Name));
+		OutExports.Add(FName(Name), FImportData(ExType, Object));
 	}
 
 	return EditorOnlyData;
 }
 
-TMap<FString, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(UObject* Parent, TArray<FString>& ExpressionNames, TMap<FString, FImportData>& Exports) {
-	TMap<FString, UMaterialExpression*> CreatedExpressionMap;
+TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports) {
+	TMap<FName, UMaterialExpression*> CreatedExpressionMap;
 
-	for (FString Name : ExpressionNames) {
-		FString Type;
+	for (FName Name : ExpressionNames) {
+		FName Type;
 
-		for (TTuple<FString, FImportData>& Key : Exports) {
+		for (TTuple<FName, FImportData>& Key : Exports) {
 			if (Key.Key == Name) {
 				Type = Key.Value.Type;
 				break;
 			}
 		}
 
-		UMaterialExpression* Ex = CreateEmptyExpression(Parent, NAME_None, FName(Type));
+		UMaterialExpression* Ex = CreateEmptyExpression(Parent, Name, Type);
 		if (Ex == nullptr)
 			continue;
 
@@ -164,14 +157,12 @@ TMap<FString, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions
 	return CreatedExpressionMap;
 }
 
-void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>& ExpressionNames, TMap<FString, FImportData>& Exports, TMap<FString, UMaterialExpression*>& CreatedExpressionMap) {
-	for (FString Name : ExpressionNames) {
+void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap) {
+	for (FName Name : ExpressionNames) {
 		FImportData* Type = Exports.Find(Name);
 
-		const TSharedPtr<FJsonObject>* Props;
-		if (!Type->Json->TryGetObjectField("Properties", Props)) continue;
-		TSharedPtr<FJsonObject> Properties = *Props;
-		
+		TSharedPtr<FJsonObject> Properties = Type->Json->GetObjectField("Properties");
+
 		// Find the expression from FName
 		if (!CreatedExpressionMap.Contains(Name)) continue;
 		UMaterialExpression* Expression = *CreatedExpressionMap.Find(Name);
@@ -192,7 +183,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
@@ -211,7 +202,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
@@ -222,7 +213,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
@@ -237,7 +228,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* PreviewPtr = nullptr;
 			if (Properties->TryGetObjectField("Preview", PreviewPtr) && PreviewPtr != nullptr) {
 				FJsonObject* PreviewObject = PreviewPtr->Get();
-				FString PreviewExpressionName = GetExpressionName(PreviewObject, Parent);
+				FName PreviewExpressionName = GetExpressionName(PreviewObject);
 
 				if (CreatedExpressionMap.Contains(PreviewExpressionName)) {
 					FExpressionInput Preview = PopulateExpressionInput(PreviewObject, *CreatedExpressionMap.Find(PreviewExpressionName));
@@ -288,7 +279,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
@@ -303,7 +294,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
@@ -325,7 +316,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
@@ -336,7 +327,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
@@ -356,7 +347,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					LinearInterpolate->A = A;
@@ -366,7 +357,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					LinearInterpolate->B = B;
@@ -376,7 +367,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* AlphaPtr = nullptr;
 			if (Properties->TryGetObjectField("Alpha", AlphaPtr) && AlphaPtr != nullptr) {
 				FJsonObject* AlphaObject = AlphaPtr->Get();
-				FString AlphaExpressionName = GetExpressionName(AlphaObject, Parent);
+				FName AlphaExpressionName = GetExpressionName(AlphaObject);
 				if (CreatedExpressionMap.Contains(AlphaExpressionName)) {
 					FExpressionInput Alpha = PopulateExpressionInput(AlphaObject, *CreatedExpressionMap.Find(AlphaExpressionName));
 					LinearInterpolate->Alpha = Alpha;
@@ -397,7 +388,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
@@ -437,7 +428,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
@@ -457,7 +448,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
@@ -472,7 +463,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					Multiply->A = A;
@@ -482,7 +473,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					Multiply->B = B;
@@ -532,7 +523,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* CoordinatesPtr = nullptr;
 			if (Properties->TryGetObjectField("Coordinates", CoordinatesPtr) && CoordinatesPtr != nullptr) {
 				FJsonObject* CoordinatesObject = CoordinatesPtr->Get();
-				FString CoordinatesExpressionName = GetExpressionName(CoordinatesObject, Parent);
+				FName CoordinatesExpressionName = GetExpressionName(CoordinatesObject);
 				if (CreatedExpressionMap.Contains(CoordinatesExpressionName)) {
 					FExpressionInput Coordinates = PopulateExpressionInput(CoordinatesObject, *CreatedExpressionMap.Find(CoordinatesExpressionName));
 					TextureSample->Coordinates = Coordinates;
@@ -542,7 +533,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* TextureObjectPtr = nullptr;
 			if (Properties->TryGetObjectField("TextureObject", TextureObjectPtr) && TextureObjectPtr != nullptr) {
 				FJsonObject* TextureObjectObject = TextureObjectPtr->Get();
-				FString TextureObjectExpressionName = GetExpressionName(TextureObjectObject, Parent);
+				FName TextureObjectExpressionName = GetExpressionName(TextureObjectObject);
 				if (CreatedExpressionMap.Contains(TextureObjectExpressionName)) {
 					FExpressionInput TextureObject = PopulateExpressionInput(TextureObjectObject, *CreatedExpressionMap.Find(TextureObjectExpressionName));
 					TextureSample->TextureObject = TextureObject;
@@ -552,7 +543,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* MipValuePtr = nullptr;
 			if (Properties->TryGetObjectField("MipValue", MipValuePtr) && MipValuePtr != nullptr) {
 				FJsonObject* MipValueObject = MipValuePtr->Get();
-				FString MipValueExpressionName = GetExpressionName(MipValueObject, Parent);
+				FName MipValueExpressionName = GetExpressionName(MipValueObject);
 				if (CreatedExpressionMap.Contains(MipValueExpressionName)) {
 					FExpressionInput MipValue = PopulateExpressionInput(MipValueObject, *CreatedExpressionMap.Find(MipValueExpressionName));
 					TextureSample->MipValue = MipValue;
@@ -562,7 +553,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* CoordinatesDXPtr = nullptr;
 			if (Properties->TryGetObjectField("CoordinatesDX", CoordinatesDXPtr) && CoordinatesDXPtr != nullptr) {
 				FJsonObject* CoordinatesDXObject = CoordinatesDXPtr->Get();
-				FString CoordinatesDXExpressionName = GetExpressionName(CoordinatesDXObject, Parent);
+				FName CoordinatesDXExpressionName = GetExpressionName(CoordinatesDXObject);
 				if (CreatedExpressionMap.Contains(CoordinatesDXExpressionName)) {
 					FExpressionInput CoordinatesDX = PopulateExpressionInput(CoordinatesDXObject, *CreatedExpressionMap.Find(CoordinatesDXExpressionName));
 					TextureSample->CoordinatesDX = CoordinatesDX;
@@ -572,7 +563,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* CoordinatesDYPtr = nullptr;
 			if (Properties->TryGetObjectField("CoordinatesDY", CoordinatesDYPtr) && CoordinatesDYPtr != nullptr) {
 				FJsonObject* CoordinatesDYObject = CoordinatesDYPtr->Get();
-				FString CoordinatesDYExpressionName = GetExpressionName(CoordinatesDYObject, Parent);
+				FName CoordinatesDYExpressionName = GetExpressionName(CoordinatesDYObject);
 				if (CreatedExpressionMap.Contains(CoordinatesDYExpressionName)) {
 					FExpressionInput CoordinatesDY = PopulateExpressionInput(CoordinatesDYObject, *CreatedExpressionMap.Find(CoordinatesDYExpressionName));
 					TextureSample->CoordinatesDY = CoordinatesDY;
@@ -582,7 +573,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* AutomaticViewMipBiasValuePtr = nullptr;
 			if (Properties->TryGetObjectField("AutomaticViewMipBiasValue", AutomaticViewMipBiasValuePtr) && AutomaticViewMipBiasValuePtr != nullptr) {
 				FJsonObject* AutomaticViewMipBiasValueObject = AutomaticViewMipBiasValuePtr->Get();
-				FString AutomaticViewMipBiasValueExpressionName = GetExpressionName(AutomaticViewMipBiasValueObject, Parent);
+				FName AutomaticViewMipBiasValueExpressionName = GetExpressionName(AutomaticViewMipBiasValueObject);
 				if (CreatedExpressionMap.Contains(AutomaticViewMipBiasValueExpressionName)) {
 					FExpressionInput AutomaticViewMipBiasValue = PopulateExpressionInput(AutomaticViewMipBiasValueObject, *CreatedExpressionMap.Find(AutomaticViewMipBiasValueExpressionName));
 					TextureSample->AutomaticViewMipBiasValue = AutomaticViewMipBiasValue;
@@ -628,7 +619,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 				for (const TSharedPtr<FJsonValue> FunctionInputValue : *FunctionInputsPtr) {
 					TSharedPtr<FJsonObject> FunctionInputObject = FunctionInputValue->AsObject();
 
-					FunctionInputs.Add(PopulateFuncExpressionInput(FunctionInputObject, Parent, CreatedExpressionMap));
+					FunctionInputs.Add(PopulateFuncExpressionInput(FunctionInputObject, CreatedExpressionMap));
 				}
 
 				MaterialFunctionCall->FunctionInputs = FunctionInputs;
@@ -652,7 +643,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					Max->A = A;
@@ -662,7 +653,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					Max->B = B;
@@ -726,7 +717,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* CoordinatePtr = nullptr;
 			if (Properties->TryGetObjectField("Coordinate", CoordinatePtr) && CoordinatePtr != nullptr) {
 				FJsonObject* CoordinateObject = CoordinatePtr->Get();
-				FString CoordinateExpressionName = GetExpressionName(CoordinateObject, Parent);
+				FName CoordinateExpressionName = GetExpressionName(CoordinateObject);
 				if (CreatedExpressionMap.Contains(CoordinateExpressionName)) {
 					FExpressionInput Coordinate = PopulateExpressionInput(CoordinateObject, *CreatedExpressionMap.Find(CoordinateExpressionName));
 					Panner->Coordinate = Coordinate;
@@ -736,7 +727,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* TimePtr = nullptr;
 			if (Properties->TryGetObjectField("Time", TimePtr) && TimePtr != nullptr) {
 				FJsonObject* TimeObject = TimePtr->Get();
-				FString TimeExpressionName = GetExpressionName(TimeObject, Parent);
+				FName TimeExpressionName = GetExpressionName(TimeObject);
 				if (CreatedExpressionMap.Contains(TimeExpressionName)) {
 					FExpressionInput Time = PopulateExpressionInput(TimeObject, *CreatedExpressionMap.Find(TimeExpressionName));
 					Panner->Time = Time;
@@ -746,7 +737,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* SpeedPtr = nullptr;
 			if (Properties->TryGetObjectField("Speed", SpeedPtr) && SpeedPtr != nullptr) {
 				FJsonObject* SpeedObject = SpeedPtr->Get();
-				FString SpeedExpressionName = GetExpressionName(SpeedObject, Parent);
+				FName SpeedExpressionName = GetExpressionName(SpeedObject);
 				if (CreatedExpressionMap.Contains(SpeedExpressionName)) {
 					FExpressionInput Speed = PopulateExpressionInput(SpeedObject, *CreatedExpressionMap.Find(SpeedExpressionName));
 					Panner->Speed = Speed;
@@ -770,7 +761,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 					NamedRerouteDeclaration->Input = Input;
@@ -791,7 +782,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 					Reroute->Input = Input;
@@ -805,7 +796,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					Subtract->A = A;
@@ -815,7 +806,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					Subtract->B = B;
@@ -834,7 +825,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 					Saturate->Input = Input;
@@ -848,7 +839,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* CoordinatePtr = nullptr;
 			if (Properties->TryGetObjectField("Coordinate", CoordinatePtr) && CoordinatePtr != nullptr) {
 				FJsonObject* CoordinateObject = CoordinatePtr->Get();
-				FString CoordinateExpressionName = GetExpressionName(CoordinateObject, Parent);
+				FName CoordinateExpressionName = GetExpressionName(CoordinateObject);
 				if (CreatedExpressionMap.Contains(CoordinateExpressionName)) {
 					FExpressionInput Coordinate = PopulateExpressionInput(CoordinateObject, *CreatedExpressionMap.Find(CoordinateExpressionName));
 					Rotator->Coordinate = Coordinate;
@@ -858,7 +849,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* TimePtr = nullptr;
 			if (Properties->TryGetObjectField("Time", TimePtr) && TimePtr != nullptr) {
 				FJsonObject* TimeObject = TimePtr->Get();
-				FString TimeExpressionName = GetExpressionName(TimeObject, Parent);
+				FName TimeExpressionName = GetExpressionName(TimeObject);
 				if (CreatedExpressionMap.Contains(TimeExpressionName)) {
 					FExpressionInput Time = PopulateExpressionInput(TimeObject, *CreatedExpressionMap.Find(TimeExpressionName));
 					Rotator->Time = Time;
@@ -882,7 +873,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					Min->A = A;
@@ -892,7 +883,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					Min->B = B;
@@ -923,7 +914,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 					Sine->Input = Input;
@@ -940,7 +931,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* MinPtr = nullptr;
 			if ((Properties->TryGetObjectField("min", MinPtr) || Properties->TryGetObjectField("Min", MinPtr)) && MinPtr != nullptr) {
 				FJsonObject* MinObject = MinPtr->Get();
-				FString MinExpressionName = GetExpressionName(MinObject, Parent);
+				FName MinExpressionName = GetExpressionName(MinObject);
 				if (CreatedExpressionMap.Contains(MinExpressionName)) {
 					FExpressionInput Min = PopulateExpressionInput(MinObject, *CreatedExpressionMap.Find(MinExpressionName));
 					SmoothStep->Min = Min;
@@ -950,7 +941,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* MaxPtr = nullptr;
 			if ((Properties->TryGetObjectField("max", MaxPtr) || Properties->TryGetObjectField("Max", MaxPtr)) && MaxPtr != nullptr) {
 				FJsonObject* MaxObject = MaxPtr->Get();
-				FString MaxExpressionName = GetExpressionName(MaxObject, Parent);
+				FName MaxExpressionName = GetExpressionName(MaxObject);
 				if (CreatedExpressionMap.Contains(MaxExpressionName)) {
 					FExpressionInput Max = PopulateExpressionInput(MaxObject, *CreatedExpressionMap.Find(MaxExpressionName));
 					SmoothStep->Max = Max;
@@ -960,7 +951,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* ValuePtr = nullptr;
 			if (Properties->TryGetObjectField("Value", ValuePtr) && ValuePtr != nullptr) {
 				FJsonObject* ValueObject = ValuePtr->Get();
-				FString ValueExpressionName = GetExpressionName(ValueObject, Parent);
+				FName ValueExpressionName = GetExpressionName(ValueObject);
 				if (CreatedExpressionMap.Contains(ValueExpressionName)) {
 					FExpressionInput Value = PopulateExpressionInput(ValueObject, *CreatedExpressionMap.Find(ValueExpressionName));
 					SmoothStep->Value = Value;
@@ -981,7 +972,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					AppendVector->A = A;
@@ -991,7 +982,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					AppendVector->B = B;
@@ -1005,7 +996,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					Divide->A = A;
@@ -1015,7 +1006,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					Divide->B = B;
@@ -1034,7 +1025,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					Distance->A = A;
@@ -1044,7 +1035,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					Distance->B = B;
@@ -1065,7 +1056,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* YPtr = nullptr;
 			if (Properties->TryGetObjectField("Y", YPtr) && YPtr != nullptr) {
 				FJsonObject* YObject = YPtr->Get();
-				FString YExpressionName = GetExpressionName(YObject, Parent);
+				FName YExpressionName = GetExpressionName(YObject);
 				if (CreatedExpressionMap.Contains(YExpressionName)) {
 					FExpressionInput Y = PopulateExpressionInput(YObject, *CreatedExpressionMap.Find(YExpressionName));
 					Step->Y = Y;
@@ -1075,7 +1066,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* XPtr = nullptr;
 			if (Properties->TryGetObjectField("X", XPtr) && XPtr != nullptr) {
 				FJsonObject* XObject = XPtr->Get();
-				FString XExpressionName = GetExpressionName(XObject, Parent);
+				FName XExpressionName = GetExpressionName(XObject);
 				if (CreatedExpressionMap.Contains(XExpressionName)) {
 					FExpressionInput X = PopulateExpressionInput(XObject, *CreatedExpressionMap.Find(XExpressionName));
 					Step->X = X;
@@ -1094,7 +1085,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					DotProduct->A = A;
@@ -1104,7 +1095,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					DotProduct->B = B;
@@ -1121,7 +1112,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					StaticSwitch->A = A;
@@ -1131,7 +1122,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					StaticSwitch->B = B;
@@ -1141,7 +1132,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* ValuePtr = nullptr;
 			if (Properties->TryGetObjectField("Value", ValuePtr) && ValuePtr != nullptr) {
 				FJsonObject* ValueObject = ValuePtr->Get();
-				FString ValueExpressionName = GetExpressionName(ValueObject, Parent);
+				FName ValueExpressionName = GetExpressionName(ValueObject);
 				if (CreatedExpressionMap.Contains(ValueExpressionName)) {
 					FExpressionInput Value = PopulateExpressionInput(ValueObject, *CreatedExpressionMap.Find(ValueExpressionName));
 					StaticSwitch->Value = Value;
@@ -1155,7 +1146,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BasePtr = nullptr;
 			if (Properties->TryGetObjectField("Base", BasePtr) && BasePtr != nullptr) {
 				FJsonObject* BaseObject = BasePtr->Get();
-				FString BaseExpressionName = GetExpressionName(BaseObject, Parent);
+				FName BaseExpressionName = GetExpressionName(BaseObject);
 				if (CreatedExpressionMap.Contains(BaseExpressionName)) {
 					FExpressionInput Base = PopulateExpressionInput(BaseObject, *CreatedExpressionMap.Find(BaseExpressionName));
 					Power->Base = Base;
@@ -1165,7 +1156,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* ExponentPtr = nullptr;
 			if (Properties->TryGetObjectField("Exponent", ExponentPtr) && ExponentPtr != nullptr) {
 				FJsonObject* ExponentObject = ExponentPtr->Get();
-				FString ExponentExpressionName = GetExpressionName(ExponentObject, Parent);
+				FName ExponentExpressionName = GetExpressionName(ExponentObject);
 				if (CreatedExpressionMap.Contains(ExponentExpressionName)) {
 					FExpressionInput Exponent = PopulateExpressionInput(ExponentObject, *CreatedExpressionMap.Find(ExponentExpressionName));
 					Power->Exponent = Exponent;
@@ -1182,7 +1173,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 					Round->Input = Input;
@@ -1225,7 +1216,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* CoordinatesPtr = nullptr;
 			if (Properties->TryGetObjectField("Coordinates", CoordinatesPtr) && CoordinatesPtr != nullptr) {
 				FJsonObject* CoordinatesObject = CoordinatesPtr->Get();
-				FString CoordinatesExpressionName = GetExpressionName(CoordinatesObject, Parent);
+				FName CoordinatesExpressionName = GetExpressionName(CoordinatesObject);
 				if (CreatedExpressionMap.Contains(CoordinatesExpressionName)) {
 					FExpressionInput Coordinates = PopulateExpressionInput(CoordinatesObject, *CreatedExpressionMap.Find(CoordinatesExpressionName));
 					TextureSampleParameter2D->Coordinates = Coordinates;
@@ -1235,7 +1226,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* TextureObjectPtr = nullptr;
 			if (Properties->TryGetObjectField("TextureObject", TextureObjectPtr) && TextureObjectPtr != nullptr) {
 				FJsonObject* TextureObjectObject = TextureObjectPtr->Get();
-				FString TextureObjectExpressionName = GetExpressionName(TextureObjectObject, Parent);
+				FName TextureObjectExpressionName = GetExpressionName(TextureObjectObject);
 				if (CreatedExpressionMap.Contains(TextureObjectExpressionName)) {
 					FExpressionInput TextureObject = PopulateExpressionInput(TextureObjectObject, *CreatedExpressionMap.Find(TextureObjectExpressionName));
 					TextureSampleParameter2D->TextureObject = TextureObject;
@@ -1245,7 +1236,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* MipValuePtr = nullptr;
 			if (Properties->TryGetObjectField("MipValue", MipValuePtr) && MipValuePtr != nullptr) {
 				FJsonObject* MipValueObject = MipValuePtr->Get();
-				FString MipValueExpressionName = GetExpressionName(MipValueObject, Parent);
+				FName MipValueExpressionName = GetExpressionName(MipValueObject);
 				if (CreatedExpressionMap.Contains(MipValueExpressionName)) {
 					FExpressionInput MipValue = PopulateExpressionInput(MipValueObject, *CreatedExpressionMap.Find(MipValueExpressionName));
 					TextureSampleParameter2D->MipValue = MipValue;
@@ -1255,7 +1246,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* CoordinatesDXPtr = nullptr;
 			if (Properties->TryGetObjectField("CoordinatesDX", CoordinatesDXPtr) && CoordinatesDXPtr != nullptr) {
 				FJsonObject* CoordinatesDXObject = CoordinatesDXPtr->Get();
-				FString CoordinatesDXExpressionName = GetExpressionName(CoordinatesDXObject, Parent);
+				FName CoordinatesDXExpressionName = GetExpressionName(CoordinatesDXObject);
 				if (CreatedExpressionMap.Contains(CoordinatesDXExpressionName)) {
 					FExpressionInput CoordinatesDX = PopulateExpressionInput(CoordinatesDXObject, *CreatedExpressionMap.Find(CoordinatesDXExpressionName));
 					TextureSampleParameter2D->CoordinatesDX = CoordinatesDX;
@@ -1265,7 +1256,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* CoordinatesDYPtr = nullptr;
 			if (Properties->TryGetObjectField("CoordinatesDY", CoordinatesDYPtr) && CoordinatesDYPtr != nullptr) {
 				FJsonObject* CoordinatesDYObject = CoordinatesDYPtr->Get();
-				FString CoordinatesDYExpressionName = GetExpressionName(CoordinatesDYObject, Parent);
+				FName CoordinatesDYExpressionName = GetExpressionName(CoordinatesDYObject);
 				if (CreatedExpressionMap.Contains(CoordinatesDYExpressionName)) {
 					FExpressionInput CoordinatesDY = PopulateExpressionInput(CoordinatesDYObject, *CreatedExpressionMap.Find(CoordinatesDYExpressionName));
 					TextureSampleParameter2D->CoordinatesDY = CoordinatesDY;
@@ -1275,7 +1266,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* AutomaticViewMipBiasValuePtr = nullptr;
 			if (Properties->TryGetObjectField("AutomaticViewMipBiasValue", AutomaticViewMipBiasValuePtr) && AutomaticViewMipBiasValuePtr != nullptr) {
 				FJsonObject* AutomaticViewMipBiasValueObject = AutomaticViewMipBiasValuePtr->Get();
-				FString AutomaticViewMipBiasValueExpressionName = GetExpressionName(AutomaticViewMipBiasValueObject, Parent);
+				FName AutomaticViewMipBiasValueExpressionName = GetExpressionName(AutomaticViewMipBiasValueObject);
 				if (CreatedExpressionMap.Contains(AutomaticViewMipBiasValueExpressionName)) {
 					FExpressionInput AutomaticViewMipBiasValue = PopulateExpressionInput(AutomaticViewMipBiasValueObject, *CreatedExpressionMap.Find(AutomaticViewMipBiasValueExpressionName));
 					TextureSampleParameter2D->AutomaticViewMipBiasValue = AutomaticViewMipBiasValue;
@@ -1313,7 +1304,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 					Floor->Input = Input;
@@ -1354,7 +1345,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 					const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 					if (StringInput->AsObject()->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 						FJsonObject* InputObject = InputPtr->Get();
-						FString InputExpressionName = GetExpressionName(InputObject, Parent);
+						FName InputExpressionName = GetExpressionName(InputObject);
 
 						if (CreatedExpressionMap.Contains(InputExpressionName)) {
 							FExpressionInput ExInput = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
@@ -1437,7 +1428,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 					Ceil->Input = Input;
@@ -1451,7 +1442,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					If->A = A;
@@ -1461,7 +1452,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					If->B = B;
@@ -1471,7 +1462,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* AGreaterThanBPtr = nullptr;
 			if (Properties->TryGetObjectField("AGreaterThanB", AGreaterThanBPtr) && AGreaterThanBPtr != nullptr) {
 				FJsonObject* AGreaterThanBObject = AGreaterThanBPtr->Get();
-				FString AGreaterThanBExpressionName = GetExpressionName(AGreaterThanBObject, Parent);
+				FName AGreaterThanBExpressionName = GetExpressionName(AGreaterThanBObject);
 				if (CreatedExpressionMap.Contains(AGreaterThanBExpressionName)) {
 					FExpressionInput AGreaterThanB = PopulateExpressionInput(AGreaterThanBObject, *CreatedExpressionMap.Find(AGreaterThanBExpressionName));
 					If->AGreaterThanB = AGreaterThanB;
@@ -1481,7 +1472,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* AEqualsBPtr = nullptr;
 			if (Properties->TryGetObjectField("AEqualsB", AEqualsBPtr) && AEqualsBPtr != nullptr) {
 				FJsonObject* AEqualsBObject = AEqualsBPtr->Get();
-				FString AEqualsBExpressionName = GetExpressionName(AEqualsBObject, Parent);
+				FName AEqualsBExpressionName = GetExpressionName(AEqualsBObject);
 				if (CreatedExpressionMap.Contains(AEqualsBExpressionName)) {
 					FExpressionInput AEqualsB = PopulateExpressionInput(AEqualsBObject, *CreatedExpressionMap.Find(AEqualsBExpressionName));
 					If->AEqualsB = AEqualsB;
@@ -1491,7 +1482,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* ALessThanBPtr = nullptr;
 			if (Properties->TryGetObjectField("ALessThanB", ALessThanBPtr) && ALessThanBPtr != nullptr) {
 				FJsonObject* ALessThanBObject = ALessThanBPtr->Get();
-				FString ALessThanBExpressionName = GetExpressionName(ALessThanBObject, Parent);
+				FName ALessThanBExpressionName = GetExpressionName(ALessThanBObject);
 				if (CreatedExpressionMap.Contains(ALessThanBExpressionName)) {
 					FExpressionInput ALessThanB = PopulateExpressionInput(ALessThanBObject, *CreatedExpressionMap.Find(ALessThanBExpressionName));
 					If->ALessThanB = ALessThanB;
@@ -1510,7 +1501,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 					Cosine->Input = Input;
@@ -1527,7 +1518,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 					Desaturation->Input = Input;
@@ -1537,7 +1528,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* FractionPtr = nullptr;
 			if (Properties->TryGetObjectField("Fraction", FractionPtr) && FractionPtr != nullptr) {
 				FJsonObject* FractionObject = FractionPtr->Get();
-				FString FractionExpressionName = GetExpressionName(FractionObject, Parent);
+				FName FractionExpressionName = GetExpressionName(FractionObject);
 				if (CreatedExpressionMap.Contains(FractionExpressionName)) {
 					FExpressionInput Fraction = PopulateExpressionInput(FractionObject, *CreatedExpressionMap.Find(FractionExpressionName));
 					Desaturation->Fraction = Fraction;
@@ -1554,7 +1545,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 					Clamp->Input = Input;
@@ -1564,7 +1555,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* MinPtr = nullptr;
 			if ((Properties->TryGetObjectField("min", MinPtr) || Properties->TryGetObjectField("Min", MinPtr)) && MinPtr != nullptr) {
 				FJsonObject* MinObject = MinPtr->Get();
-				FString MinExpressionName = GetExpressionName(MinObject, Parent);
+				FName MinExpressionName = GetExpressionName(MinObject);
 				if (CreatedExpressionMap.Contains(MinExpressionName)) {
 					FExpressionInput Min = PopulateExpressionInput(MinObject, *CreatedExpressionMap.Find(MinExpressionName));
 					Clamp->Min = Min;
@@ -1574,7 +1565,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* MaxPtr = nullptr;
 			if ((Properties->TryGetObjectField("max", MaxPtr) || Properties->TryGetObjectField("Max", MaxPtr)) && MaxPtr != nullptr) {
 				FJsonObject* MaxObject = MaxPtr->Get();
-				FString MaxExpressionName = GetExpressionName(MaxObject, Parent);
+				FName MaxExpressionName = GetExpressionName(MaxObject);
 				if (CreatedExpressionMap.Contains(MaxExpressionName)) {
 					FExpressionInput Max = PopulateExpressionInput(MaxObject, *CreatedExpressionMap.Find(MaxExpressionName));
 					Clamp->Max = Max;
@@ -1604,7 +1595,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 				FJsonObject* InputObject = InputPtr->Get();
-				FString InputExpressionName = GetExpressionName(InputObject, Parent);
+				FName InputExpressionName = GetExpressionName(InputObject);
 				if (CreatedExpressionMap.Contains(InputExpressionName)) {
 					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 					TransformPosition->Input = Input;
@@ -1644,7 +1635,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					SphereMask->A = A;
@@ -1654,7 +1645,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					SphereMask->B = B;
@@ -1664,7 +1655,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* RadiusPtr = nullptr;
 			if (Properties->TryGetObjectField("Radius", RadiusPtr) && RadiusPtr != nullptr) {
 				FJsonObject* RadiusObject = RadiusPtr->Get();
-				FString RadiusExpressionName = GetExpressionName(RadiusObject, Parent);
+				FName RadiusExpressionName = GetExpressionName(RadiusObject);
 				if (CreatedExpressionMap.Contains(RadiusExpressionName)) {
 					FExpressionInput Radius = PopulateExpressionInput(RadiusObject, *CreatedExpressionMap.Find(RadiusExpressionName));
 					SphereMask->Radius = Radius;
@@ -1674,7 +1665,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* HardnessPtr = nullptr;
 			if (Properties->TryGetObjectField("Hardness", HardnessPtr) && HardnessPtr != nullptr) {
 				FJsonObject* HardnessObject = HardnessPtr->Get();
-				FString HardnessExpressionName = GetExpressionName(HardnessObject, Parent);
+				FName HardnessExpressionName = GetExpressionName(HardnessObject);
 				if (CreatedExpressionMap.Contains(HardnessExpressionName)) {
 					FExpressionInput Hardness = PopulateExpressionInput(HardnessObject, *CreatedExpressionMap.Find(HardnessExpressionName));
 					SphereMask->Hardness = Hardness;
@@ -1703,7 +1694,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* InputTimePtr = nullptr;
 			if (Properties->TryGetObjectField("InputTime", InputTimePtr) && InputTimePtr != nullptr) {
 				FJsonObject* InputTimeObject = InputTimePtr->Get();
-				FString InputTimeExpressionName = GetExpressionName(InputTimeObject, Parent);
+				FName InputTimeExpressionName = GetExpressionName(InputTimeObject);
 				if (CreatedExpressionMap.Contains(InputTimeExpressionName)) {
 					FExpressionInput InputTime = PopulateExpressionInput(InputTimeObject, *CreatedExpressionMap.Find(InputTimeExpressionName));
 					CurveAtlasRowParameter->InputTime = InputTime;
@@ -1746,7 +1737,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* CoordinatesPtr = nullptr;
 			if (Properties->TryGetObjectField("Coordinates", CoordinatesPtr) && CoordinatesPtr != nullptr) {
 				FJsonObject* CoordinatesObject = CoordinatesPtr->Get();
-				FString CoordinatesExpressionName = GetExpressionName(CoordinatesObject, Parent);
+				FName CoordinatesExpressionName = GetExpressionName(CoordinatesObject);
 				if (CreatedExpressionMap.Contains(CoordinatesExpressionName)) {
 					FExpressionInput Coordinates = PopulateExpressionInput(CoordinatesObject, *CreatedExpressionMap.Find(CoordinatesExpressionName));
 					TextureObjectParameter->Coordinates = Coordinates;
@@ -1756,7 +1747,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* TextureObjectPtr = nullptr;
 			if (Properties->TryGetObjectField("TextureObject", TextureObjectPtr) && TextureObjectPtr != nullptr) {
 				FJsonObject* TextureObjectObject = TextureObjectPtr->Get();
-				FString TextureObjectExpressionName = GetExpressionName(TextureObjectObject, Parent);
+				FName TextureObjectExpressionName = GetExpressionName(TextureObjectObject);
 				if (CreatedExpressionMap.Contains(TextureObjectExpressionName)) {
 					FExpressionInput TextureObject = PopulateExpressionInput(TextureObjectObject, *CreatedExpressionMap.Find(TextureObjectExpressionName));
 					TextureObjectParameter->TextureObject = TextureObject;
@@ -1766,7 +1757,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* MipValuePtr = nullptr;
 			if (Properties->TryGetObjectField("MipValue", MipValuePtr) && MipValuePtr != nullptr) {
 				FJsonObject* MipValueObject = MipValuePtr->Get();
-				FString MipValueExpressionName = GetExpressionName(MipValueObject, Parent);
+				FName MipValueExpressionName = GetExpressionName(MipValueObject);
 				if (CreatedExpressionMap.Contains(MipValueExpressionName)) {
 					FExpressionInput MipValue = PopulateExpressionInput(MipValueObject, *CreatedExpressionMap.Find(MipValueExpressionName));
 					TextureObjectParameter->MipValue = MipValue;
@@ -1776,7 +1767,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* CoordinatesDXPtr = nullptr;
 			if (Properties->TryGetObjectField("CoordinatesDX", CoordinatesDXPtr) && CoordinatesDXPtr != nullptr) {
 				FJsonObject* CoordinatesDXObject = CoordinatesDXPtr->Get();
-				FString CoordinatesDXExpressionName = GetExpressionName(CoordinatesDXObject, Parent);
+				FName CoordinatesDXExpressionName = GetExpressionName(CoordinatesDXObject);
 				if (CreatedExpressionMap.Contains(CoordinatesDXExpressionName)) {
 					FExpressionInput CoordinatesDX = PopulateExpressionInput(CoordinatesDXObject, *CreatedExpressionMap.Find(CoordinatesDXExpressionName));
 					TextureObjectParameter->CoordinatesDX = CoordinatesDX;
@@ -1786,7 +1777,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* CoordinatesDYPtr = nullptr;
 			if (Properties->TryGetObjectField("CoordinatesDY", CoordinatesDYPtr) && CoordinatesDYPtr != nullptr) {
 				FJsonObject* CoordinatesDYObject = CoordinatesDYPtr->Get();
-				FString CoordinatesDYExpressionName = GetExpressionName(CoordinatesDYObject, Parent);
+				FName CoordinatesDYExpressionName = GetExpressionName(CoordinatesDYObject);
 				if (CreatedExpressionMap.Contains(CoordinatesDYExpressionName)) {
 					FExpressionInput CoordinatesDY = PopulateExpressionInput(CoordinatesDYObject, *CreatedExpressionMap.Find(CoordinatesDYExpressionName));
 					TextureObjectParameter->CoordinatesDY = CoordinatesDY;
@@ -1796,7 +1787,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* AutomaticViewMipBiasValuePtr = nullptr;
 			if (Properties->TryGetObjectField("AutomaticViewMipBiasValue", AutomaticViewMipBiasValuePtr) && AutomaticViewMipBiasValuePtr != nullptr) {
 				FJsonObject* AutomaticViewMipBiasValueObject = AutomaticViewMipBiasValuePtr->Get();
-				FString AutomaticViewMipBiasValueExpressionName = GetExpressionName(AutomaticViewMipBiasValueObject, Parent);
+				FName AutomaticViewMipBiasValueExpressionName = GetExpressionName(AutomaticViewMipBiasValueObject);
 				if (CreatedExpressionMap.Contains(AutomaticViewMipBiasValueExpressionName)) {
 					FExpressionInput AutomaticViewMipBiasValue = PopulateExpressionInput(AutomaticViewMipBiasValueObject, *CreatedExpressionMap.Find(AutomaticViewMipBiasValueExpressionName));
 					TextureObjectParameter->AutomaticViewMipBiasValue = AutomaticViewMipBiasValue;
@@ -1835,7 +1826,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();
-				FString AExpressionName = GetExpressionName(AObject, Parent);
+				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
 					Fmod->A = A;
@@ -1845,7 +1836,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* BPtr = nullptr;
 			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
 				FJsonObject* BObject = BPtr->Get();
-				FString BExpressionName = GetExpressionName(BObject, Parent);
+				FName BExpressionName = GetExpressionName(BObject);
 				if (CreatedExpressionMap.Contains(BExpressionName)) {
 					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
 					Fmod->B = B;
@@ -1859,7 +1850,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* TextureObjectPtr = nullptr;
 			if (Properties->TryGetObjectField("TextureObject", TextureObjectPtr) && TextureObjectPtr != nullptr) {
 				FJsonObject* TextureObjectObject = TextureObjectPtr->Get();
-				FString TextureObjectExpressionName = GetExpressionName(TextureObjectObject, Parent);
+				FName TextureObjectExpressionName = GetExpressionName(TextureObjectObject);
 				if (CreatedExpressionMap.Contains(TextureObjectExpressionName)) {
 					FExpressionInput TextureObject = PopulateExpressionInput(TextureObjectObject, *CreatedExpressionMap.Find(TextureObjectExpressionName));
 					TextureProperty->TextureObject = TextureObject;
@@ -1899,7 +1890,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* VectorInputPtr = nullptr;
 			if (Properties->TryGetObjectField("VectorInput", VectorInputPtr) && VectorInputPtr != nullptr) {
 				FJsonObject* VectorInputObject = VectorInputPtr->Get();
-				FString VectorInputExpressionName = GetExpressionName(VectorInputObject, Parent);
+				FName VectorInputExpressionName = GetExpressionName(VectorInputObject);
 				if (CreatedExpressionMap.Contains(VectorInputExpressionName)) {
 					FExpressionInput VectorInput = PopulateExpressionInput(VectorInputObject, *CreatedExpressionMap.Find(VectorInputExpressionName));
 					Normalize->VectorInput = VectorInput;
@@ -1932,7 +1923,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			const TSharedPtr<FJsonObject>* DefaultPtr = nullptr;
 			if (Properties->TryGetObjectField("Default", DefaultPtr) && DefaultPtr != nullptr) {
 				FJsonObject* DefaultObject = DefaultPtr->Get();
-				FString DefaultExpressionName = GetExpressionName(DefaultObject, Parent);
+				FName DefaultExpressionName = GetExpressionName(DefaultObject);
 				if (CreatedExpressionMap.Contains(DefaultExpressionName)) {
 					FExpressionInput Default = PopulateExpressionInput(DefaultObject, *CreatedExpressionMap.Find(DefaultExpressionName));
 					FeatureLevelSwitch->Default = Default;
@@ -1944,7 +1935,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 				int i = 0;
 				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
 					FJsonObject* InputObject = InputValue->AsObject().Get();
-					FString InputExpressionName = GetExpressionName(InputObject, Parent);
+					FName InputExpressionName = GetExpressionName(InputObject);
 					if (CreatedExpressionMap.Contains(InputExpressionName)) {
 						FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 						FeatureLevelSwitch->Inputs[i] = Input;
@@ -1956,21 +1947,21 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FString>&
 			Expression = FeatureLevelSwitch;
 		}
 
-		AddGenerics(Parent, Expression, Properties);
+		if (!AddGenerics(Parent, Expression, Properties)) continue; // Skip reroutes that are under collapsed nodes
 		if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddExpression(Expression);
 		else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddExpression(Expression);
 	}
 }
 
-void UMaterialFunctionImporter::AddComments(UObject* Parent, const TSharedPtr<FJsonObject>& Json, TMap<FString, FImportData>& Exports) {
+void UMaterialFunctionImporter::AddComments(UObject* Parent, const TSharedPtr<FJsonObject>& Json, TMap<FName, FImportData>& Exports) {
 	const TArray<TSharedPtr<FJsonValue>>* StringExpressionComments;
 	if (Json->TryGetArrayField("EditorComments", StringExpressionComments)) {
 		for (const TSharedPtr<FJsonValue> ExpressionComment : *StringExpressionComments) {
 			if (ExpressionComment->IsNull()) continue;
-			FString ExportName = GetExportNameOfSubobject(ExpressionComment.Get()->AsObject()->GetStringField("ObjectName")).ToString();
+			FName ExportName = GetExportNameOfSubobject(ExpressionComment.Get()->AsObject()->GetStringField("ObjectName"));
 
-			const TSharedPtr<FJsonObject> Comment = Exports.Find(ExportName + "_" + Parent->GetName())->Json->GetObjectField("Properties");
-			UMaterialExpressionComment* MatComment = NewObject<UMaterialExpressionComment>(Parent, UMaterialExpressionComment::StaticClass(), NAME_None, RF_Transactional);
+			const TSharedPtr<FJsonObject> Comment = Exports.Find(ExportName)->Json->GetObjectField("Properties");
+			UMaterialExpressionComment* MatComment = NewObject<UMaterialExpressionComment>(Parent, UMaterialExpressionComment::StaticClass(), ExportName, RF_Transactional);
 
 			int SizeX;
 			if (Comment->TryGetNumberField("SizeX", SizeX)) MatComment->SizeX = SizeX;
@@ -2141,27 +2132,17 @@ FExpressionOutput UMaterialFunctionImporter::PopulateExpressionOutput(const FJso
 	return Output;
 }
 
-FString UMaterialFunctionImporter::GetExpressionName(const FJsonObject* JsonProperties, const UObject* Parent) {
+FName UMaterialFunctionImporter::GetExpressionName(const FJsonObject* JsonProperties) {
 	const TSharedPtr<FJsonValue> ExpressionField = JsonProperties->TryGetField("Expression");
 
-	if (ExpressionField->IsNull()) return "";
+	if (ExpressionField->IsNull()) return NAME_None;
 	const TSharedPtr<FJsonObject> ExpressionObject = ExpressionField->AsObject();
 	FString ObjectName;
 	if (ExpressionObject->TryGetStringField("ObjectName", ObjectName)) {
-		FString Name = GetExportNameOfSubobject(ObjectName).ToString();
-		FString Outer;
-		Name.Split(".", &Outer, &Name, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-		Outer.Split(".", nullptr, &Outer, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-
-		// If no outer is supplied here
-		if (Outer == "") {
-			Outer = Parent->GetName();
-		}
-
-		return Name + "_" + Outer;
+		return GetExportNameOfSubobject(ObjectName);
 	}
 
-	return "";
+	return NAME_None;
 }
 
 FFunctionExpressionOutput UMaterialFunctionImporter::PopulateFuncExpressionOutput(const TSharedPtr<FJsonObject>& JsonProperties) {
@@ -2178,7 +2159,7 @@ FFunctionExpressionOutput UMaterialFunctionImporter::PopulateFuncExpressionOutpu
 	return Output;
 }
 
-FFunctionExpressionInput UMaterialFunctionImporter::PopulateFuncExpressionInput(const TSharedPtr<FJsonObject>& JsonProperties, const UObject* Parent, TMap<FString, UMaterialExpression*>& CreatedExpressionMap) {
+FFunctionExpressionInput UMaterialFunctionImporter::PopulateFuncExpressionInput(const TSharedPtr<FJsonObject>& JsonProperties, TMap<FName, UMaterialExpression*>& CreatedExpressionMap) {
 	FFunctionExpressionInput Input;
 
 	FString ExpressionInputId;
@@ -2187,7 +2168,7 @@ FFunctionExpressionInput UMaterialFunctionImporter::PopulateFuncExpressionInput(
 	const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 	if (JsonProperties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
 		const FJsonObject* InputObject = InputPtr->Get();
-		const FString InputExpressionName = GetExpressionName(InputObject, Parent);
+		const FName InputExpressionName = GetExpressionName(InputObject);
 
 		if (CreatedExpressionMap.Contains(InputExpressionName)) {
 			const FExpressionInput ExInput = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));

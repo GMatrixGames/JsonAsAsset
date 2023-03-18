@@ -4,8 +4,7 @@
 #include "JsonAsAssetStyle.h"
 #include "JsonAsAssetCommands.h"
 
-#include "Developer/DesktopPlatform/Public/IDesktopPlatform.h"
-#include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
+#include "DesktopPlatformModule.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "Misc/MessageDialog.h"
 #include "Json.h"

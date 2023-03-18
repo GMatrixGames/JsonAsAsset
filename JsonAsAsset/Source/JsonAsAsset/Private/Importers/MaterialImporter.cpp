@@ -86,9 +86,9 @@ bool UMaterialImporter::ImportData() {
 		Material->GetExpressionCollection().Empty();
 
 		// Define editor only data from the JSON
-		TMap<FString, FImportData> Exports;
-		TArray<FString> ExpressionNames;
-		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports, ExpressionNames, Material)->GetObjectField("Properties");
+		TMap<FName, FImportData> Exports;
+		TArray<FName> ExpressionNames;
+		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports, ExpressionNames)->GetObjectField("Properties");
 
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
 
@@ -101,12 +101,12 @@ bool UMaterialImporter::ImportData() {
 		// }
 
 		// Map out each expression for easier access
-		TMap<FString, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(Material, ExpressionNames, Exports);
+		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(Material, ExpressionNames, Exports);
 
 		const TSharedPtr<FJsonObject>* EmissiveColorPtr;
 		if (EdProps->TryGetObjectField("EmissiveColor", EmissiveColorPtr) && EmissiveColorPtr != nullptr) {
 			FJsonObject* EmissiveColorObject = EmissiveColorPtr->Get();
-			FString EmissiveColorExpressionName = GetExpressionName(EmissiveColorObject, Material);
+			FName EmissiveColorExpressionName = GetExpressionName(EmissiveColorObject);
 
 			if (CreatedExpressionMap.Contains(EmissiveColorExpressionName)) {
 				FExpressionInput Ex = PopulateExpressionInput(EmissiveColorObject, *CreatedExpressionMap.Find(EmissiveColorExpressionName), "Color");
@@ -118,7 +118,7 @@ bool UMaterialImporter::ImportData() {
 		const TSharedPtr<FJsonObject>* OpacityPtr;
 		if (EdProps->TryGetObjectField("Opacity", OpacityPtr) && OpacityPtr != nullptr) {
 			FJsonObject* OpacityObject = OpacityPtr->Get();
-			FString OpacityExpressionName = GetExpressionName(OpacityObject, Material);
+			FName OpacityExpressionName = GetExpressionName(OpacityObject);
 
 			if (CreatedExpressionMap.Contains(OpacityExpressionName)) {
 				FExpressionInput Ex = PopulateExpressionInput(OpacityObject, *CreatedExpressionMap.Find(OpacityExpressionName), "Scalar");
@@ -130,7 +130,7 @@ bool UMaterialImporter::ImportData() {
 		const TSharedPtr<FJsonObject>* OpacityMaskPtr;
 		if (EdProps->TryGetObjectField("OpacityMask", OpacityMaskPtr) && OpacityMaskPtr != nullptr) {
 			FJsonObject* OpacityMaskObject = OpacityMaskPtr->Get();
-			FString OpacityMaskExpressionName = GetExpressionName(OpacityMaskObject, Material);
+			FName OpacityMaskExpressionName = GetExpressionName(OpacityMaskObject);
 
 			if (CreatedExpressionMap.Contains(OpacityMaskExpressionName)) {
 				FExpressionInput Ex = PopulateExpressionInput(OpacityMaskObject, *CreatedExpressionMap.Find(OpacityMaskExpressionName), "Scalar");
@@ -142,7 +142,7 @@ bool UMaterialImporter::ImportData() {
 		const TSharedPtr<FJsonObject>* WorldPositionOffsetPtr;
 		if (EdProps->TryGetObjectField("WorldPositionOffset", WorldPositionOffsetPtr) && WorldPositionOffsetPtr != nullptr) {
 			FJsonObject* WorldPositionOffsetObject = WorldPositionOffsetPtr->Get();
-			FString WorldPositionOffsetExpressionName = GetExpressionName(WorldPositionOffsetObject, Material);
+			FName WorldPositionOffsetExpressionName = GetExpressionName(WorldPositionOffsetObject);
 
 			if (CreatedExpressionMap.Contains(WorldPositionOffsetExpressionName)) {
 				FExpressionInput Ex = PopulateExpressionInput(WorldPositionOffsetObject, *CreatedExpressionMap.Find(WorldPositionOffsetExpressionName), "Vector");
