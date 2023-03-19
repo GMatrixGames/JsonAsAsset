@@ -106,8 +106,8 @@ bool UMaterialFunctionImporter::ImportData() {
 TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames) {
 	TSharedPtr<FJsonObject> EditorOnlyData;
 
-	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
-		TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
+	for (const TSharedPtr<FJsonObject> Value : FilterExportsByOuter(Outer)) {
+		TSharedPtr<FJsonObject> Object = TSharedPtr(Value);
 
 		FString ExType = Object->GetStringField("Type");
 		FString Name = Object->GetStringField("Name");
@@ -118,7 +118,6 @@ TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FStr
 		}
 
 		FString ExOuter;
-		if (!Object->TryGetStringField("Outer", ExOuter) || ExOuter != Outer) continue;
 
 		ExpressionNames.Add(FName(Name));
 		OutExports.Add(FName(Name), FImportData(ExType, ExOuter, Object));
@@ -135,7 +134,7 @@ TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(U
 		bool bFound = false;
 
 		for (TTuple<FName, FImportData>& Key : Exports) {
-			if (Key.Key == Name && Key.Value.Outer == Outer) {
+			if (Key.Key == Name && Key.Value.Outer == FName(*Outer)) {
 				Type = Key.Value.Type;
 				bFound = true;
 				break;
