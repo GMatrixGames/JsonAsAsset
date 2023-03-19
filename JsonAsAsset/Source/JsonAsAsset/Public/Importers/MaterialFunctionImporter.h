@@ -84,12 +84,12 @@ protected:
 		"MaterialExpressionEyeAdaptation",
 		"MaterialExpressionEyeAdaptationInverse",
 		"MaterialExpressionCameraPositionWS",
-		"MaterialExpressionFeatureLevelSwitch"
+		"MaterialExpressionFeatureLevelSwitch",
+		"MaterialExpressionPinBase"
 	};
 
 	inline static TArray<FString> IgnoredTypes = {
-		"MaterialExpressionComposite",
-		"MaterialExpressionPinBase"
+		"MaterialExpressionComposite"
 	};
 
 	struct FImportData {
