@@ -65,7 +65,7 @@ protected:
 
 	FName GetExportNameOfSubobject(const FString& PackageIndex);
 	TArray<TSharedPtr<FJsonValue>> FilterExportsByOuter(const FString& Outer);
-	TSharedPtr<FJsonValue> GetExportByObjectPath(const TSharedPtr<FJsonObject>* Object);
+	TSharedPtr<FJsonValue> GetExportByObjectPath(const TSharedPtr<FJsonObject>& Object);
 
 	FString FileName;
 	TSharedPtr<FJsonObject> JsonObject;

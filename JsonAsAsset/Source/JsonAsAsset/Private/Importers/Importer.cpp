@@ -50,12 +50,12 @@ TArray<TSharedPtr<FJsonValue>> IImporter::FilterExportsByOuter(const FString& Ou
 	return ReturnValue;
 }
 
-TSharedPtr<FJsonValue> IImporter::GetExportByObjectPath(const TSharedPtr<FJsonObject>* Object)
+TSharedPtr<FJsonValue> IImporter::GetExportByObjectPath(const TSharedPtr<FJsonObject>& Object)
 {
-	const TSharedPtr<FJsonObject> ValueObject = TSharedPtr<FJsonObject>(Object->Get());
+	const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Object);
 
 	FString StringIndex;
 	ValueObject->GetStringField("ObjectPath").Split(".", nullptr, &StringIndex);
 
-	return AllJsonObjects[float(FCString::Atod(*StringIndex))];
+	return AllJsonObjects[FCString::Atod(*StringIndex)];
 }
