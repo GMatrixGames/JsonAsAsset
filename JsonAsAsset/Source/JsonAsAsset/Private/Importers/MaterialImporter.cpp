@@ -244,13 +244,16 @@ bool UMaterialImporter::ImportData() {
 
 			if (ExType == "MaterialGraph" && Name != "MaterialGraph_0") {
 				TSharedPtr<FJsonObject> Properties = Object->GetObjectField("Properties");
-				FJsonObject* SubgraphExpression = nullptr;
+				TSharedPtr<FJsonObject> SubgraphExpression;
 
 				// Set SubgraphExpression
 				const TSharedPtr<FJsonObject>* SubgraphExpressionPtr = nullptr;
 				if (Properties->TryGetObjectField("SubgraphExpression", SubgraphExpressionPtr) && SubgraphExpressionPtr != nullptr) {
 					FJsonObject* SubgraphExpressionObject = SubgraphExpressionPtr->Get();
-					SubgraphExpression = (Exports.Find(GetExportNameOfSubobject(SubgraphExpressionObject->GetStringField("ObjectName")))->Json)->GetObjectField("Properties").Get();
+					FName ExportName = GetExportNameOfSubobject(SubgraphExpressionObject->GetStringField("ObjectName"));
+
+					FImportData Export = *Exports.Find(ExportName);
+					SubgraphExpression = Export.Json->GetObjectField("Properties");
 				}
 
 				// Find Material Graph
@@ -276,7 +279,7 @@ bool UMaterialImporter::ImportData() {
 					CompositeExpression->Material = Material;
 					CompositeExpression->SubgraphName = Name;
 
-					AddGenerics(Material, CompositeExpression, TSharedPtr<FJsonObject>(SubgraphExpression));
+					AddGenerics(Material, CompositeExpression, SubgraphExpression);
 				}
 
 				// Setup Input/Output Expressions

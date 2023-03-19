@@ -41,7 +41,8 @@ TArray<TSharedPtr<FJsonValue>> IImporter::FilterExportsByOuter(const FString& Ou
 	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
 		const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Value->AsObject());
 
-		if (ValueObject->GetStringField("Outer") == Outer) {
+		FString ExOuter;
+		if (ValueObject->TryGetStringField("Outer", ExOuter) && ExOuter == Outer) {
 			ReturnValue.Add(TSharedPtr(Value));
 		}
 	}
