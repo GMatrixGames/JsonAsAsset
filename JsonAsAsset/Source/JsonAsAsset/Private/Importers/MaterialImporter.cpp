@@ -7,8 +7,6 @@
 #else
 #include "MaterialDomain.h"
 #endif
-#include "IMaterialEditor.h"
-#include "MaterialEditorModule.h"
 #include "Dom/JsonObject.h"
 #include "Factories/MaterialFactoryNew.h"
 #include "MaterialEditor/Private/MaterialEditor.h"
@@ -25,27 +23,27 @@ void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin
 	FString MaterialExpressionGuid;
 	if (Expression->TryGetStringField("MaterialExpressionGuid", MaterialExpressionGuid)) Pin->MaterialExpressionGuid = FGuid(MaterialExpressionGuid);
 
-	/*// Handle reroute pins
-	const TArray<TSharedPtr<FJsonValue>>* ReroutePins;
-	if (Expression->TryGetArrayField("ReroutePins", ReroutePins)) {
-		for (const TSharedPtr<FJsonValue> ReroutePin : *ReroutePins) {
-			if (ReroutePin->IsNull()) continue;
-			TSharedPtr<FJsonObject> ReroutePinObject = ReroutePin->AsObject();
-
-			// Find Reroute Expression
-			FName ExpressionName = GetExpressionName(ReroutePinObject.Get());
-
-			FString Name;
-			ExpressionName.ToString().Split("'", nullptr, &Name, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-			Name.Split(":", nullptr, &Name);
-			Name = Name.Replace(TEXT("'"), TEXT(""));
-
-			UMaterialExpressionReroute* RerouteExpression = Cast<UMaterialExpressionReroute>(*CreatedExpressionMap.Find(ExpressionName));
-
-			// Add reroute to pin
-			Pin->ReroutePins.Add(FCompositeReroute(FName(*ReroutePinObject->GetStringField("Name")), RerouteExpression));
-		}
-	}*/
+	// Handle reroute pins
+	// const TArray<TSharedPtr<FJsonValue>>* ReroutePins;
+	// if (Expression->TryGetArrayField("ReroutePins", ReroutePins)) {
+	// 	for (const TSharedPtr<FJsonValue> ReroutePin : *ReroutePins) {
+	// 		if (ReroutePin->IsNull()) continue;
+	// 		TSharedPtr<FJsonObject> ReroutePinObject = ReroutePin->AsObject();
+	//
+	// 		// Find Reroute Expression
+	// 		FName ExpressionName = GetExpressionName(ReroutePinObject.Get());
+	//
+	// 		FString Name;
+	// 		ExpressionName.ToString().Split("'", nullptr, &Name, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+	// 		Name.Split(":", nullptr, &Name);
+	// 		Name = Name.Replace(TEXT("'"), TEXT(""));
+	//
+	// 		UMaterialExpressionReroute* RerouteExpression = Cast<UMaterialExpressionReroute>(*CreatedExpressionMap.Find(ExpressionName));
+	//
+	// 		// Add reroute to pin
+	// 		Pin->ReroutePins.Add(FCompositeReroute(FName(*ReroutePinObject->GetStringField("Name")), RerouteExpression));
+	// 	}
+	// }
 
 	// Set Pin Direction
 	FString PinDirection;
@@ -148,7 +146,7 @@ bool UMaterialImporter::ImportData() {
 		// Define editor only data from the JSON
 		TMap<FName, FImportData> Exports;
 		TArray<FName> ExpressionNames;
-		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Material->GetFullName(), Exports, ExpressionNames)->GetObjectField("Properties");
+		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Material->GetName(), Exports, ExpressionNames)->GetObjectField("Properties");
 
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
 
@@ -161,7 +159,7 @@ bool UMaterialImporter::ImportData() {
 		// }
 
 		// Map out each expression for easier access
-		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(Material, Material->GetFullName(), ExpressionNames, Exports);
+		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(Material, Material->GetName(), ExpressionNames, Exports);
 
 		const TSharedPtr<FJsonObject>* EmissiveColorPtr;
 		if (EdProps->TryGetObjectField("EmissiveColor", EmissiveColorPtr) && EmissiveColorPtr != nullptr) {
@@ -257,12 +255,15 @@ bool UMaterialImporter::ImportData() {
 
 				// Find Material Graph
 				UMaterialGraph* MaterialGraph = AssetEditorInstance->Material->MaterialGraph;
-				if (MaterialGraph == nullptr)
+
+				if (MaterialGraph == nullptr) {
 					UE_LOG(LogJson, Log, TEXT("The mat graph not valid!"))
+				}
+
 				MaterialGraph->Modify();
 
 				// Create the composite node that will serve as the gateway into the subgraph
-				UMaterialGraphNode_Composite* GatewayNode = NULL;
+				UMaterialGraphNode_Composite* GatewayNode = nullptr;
 				{
 					GatewayNode = Cast<UMaterialGraphNode_Composite>(FMaterialGraphSchemaAction_NewComposite::SpawnNode(MaterialGraph, FVector2D(SubgraphExpression->GetNumberField("MaterialExpressionEditorX"), SubgraphExpression->GetNumberField("MaterialExpressionEditorY"))));
 					GatewayNode->bCanRenameNode = true;
@@ -272,21 +273,10 @@ bool UMaterialImporter::ImportData() {
 				UEdGraph* DestinationGraph = GatewayNode->BoundGraph;
 				UMaterialExpressionComposite* CompositeExpression = CastChecked<UMaterialExpressionComposite>(GatewayNode->MaterialExpression);
 				{
-					FString MaterialExpressionGuid;
-					if (SubgraphExpression->TryGetStringField("MaterialExpressionGuid", MaterialExpressionGuid)) CompositeExpression->MaterialExpressionGuid = FGuid(MaterialExpressionGuid);
 					CompositeExpression->Material = Material;
 					CompositeExpression->SubgraphName = Name;
 
-					const TArray<TSharedPtr<FJsonValue>>* OutputsPtr;
-					if (SubgraphExpression->TryGetArrayField("Outputs", OutputsPtr)) {
-						TArray<FExpressionOutput> Outputs;
-						for (const TSharedPtr<FJsonValue> OutputValue : *OutputsPtr) {
-							TSharedPtr<FJsonObject> OutputObject = OutputValue->AsObject();
-							Outputs.Add(PopulateFuncExpressionOutput(OutputObject).Output);
-						}
-
-						CompositeExpression->Outputs = Outputs;
-					}
+					AddGenerics(Material, CompositeExpression, TSharedPtr<FJsonObject>(SubgraphExpression));
 				}
 
 				// Setup Input/Output Expressions
@@ -317,7 +307,6 @@ bool UMaterialImporter::ImportData() {
 
 		AssetEditorInstance->UpdateMaterialAfterGraphChange();
 		Material->PostEditChange();
-
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
