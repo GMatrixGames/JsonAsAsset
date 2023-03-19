@@ -66,6 +66,10 @@ void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin
 
 		Pin->Outputs = Outputs;
 	}
+
+	Pin->MarkPackageDirty();
+	Pin->Modify();
+
 }
 
 bool UMaterialImporter::ImportData() {
@@ -273,17 +277,19 @@ bool UMaterialImporter::ImportData() {
 					check(GatewayNode);
 				}
 
-				UEdGraph* DestinationGraph = GatewayNode->BoundGraph;
+				UMaterialGraph* DestinationGraph = Cast<UMaterialGraph>(GatewayNode->BoundGraph);
 				UMaterialExpressionComposite* CompositeExpression = CastChecked<UMaterialExpressionComposite>(GatewayNode->MaterialExpression);
 				{
 					CompositeExpression->Material = Material;
 					CompositeExpression->SubgraphName = Name;
 
+					GatewayNode->Rename(*Name, DestinationGraph);
+					//DestinationGraph->Rename(*Name);
 					AddGenerics(Material, CompositeExpression, SubgraphExpression);
 				}
 
 				// Setup Input/Output Expressions
-				{
+				/* {
 					const TSharedPtr<FJsonObject>* InputExpressions;
 					if (SubgraphExpression->TryGetObjectField("InputExpressions", InputExpressions)) {
 						TSharedPtr<FJsonObject> InputExpression = TSharedPtr<FJsonObject>(InputExpressions->Get());
@@ -295,8 +301,38 @@ bool UMaterialImporter::ImportData() {
 					if (SubgraphExpression->TryGetObjectField("OutputExpressions", OutputExpressions)) {
 						TSharedPtr<FJsonObject> OutputExpression = TSharedPtr<FJsonObject>(OutputExpressions->Get());
 
+
 						ComposeExpressionPinBase(CompositeExpression->OutputExpressions, CreatedExpressionMap, OutputExpression, Exports);
 					};
+				} */
+
+				// Add Sub-Graph Nodes
+				{
+					TArray<TSharedPtr<FJsonValue>> MaterialGraphNodes = FilterGraphNodesBySubgraphExpression(CompositeExpression);
+					TMap<FName, FImportData> SubGraphExports;
+					TMap<FName, UMaterialExpression*> SubgraphExpressionMapping;
+					TArray<FName> SubGraphExpressionNames;
+
+					// Go through each expression
+					for (const TSharedPtr<FJsonValue> _GraphNode : MaterialGraphNodes) {
+						const TSharedPtr<FJsonObject> MaterialGraphObject = TSharedPtr(_GraphNode->AsObject());
+
+						FString GraphNode_Type = MaterialGraphObject->GetStringField("Type");
+						FString GraphNode_Name = MaterialGraphObject->GetStringField("Name");
+
+						UMaterialExpression* Ex = CreateEmptyExpression(Material, FName(*GraphNode_Name), FName(*GraphNode_Type));
+						Ex->SubgraphExpression = CompositeExpression;
+						Ex->Material = Material;
+
+						SubGraphExpressionNames.Add(FName(GraphNode_Name));
+						SubGraphExports.Add(FName(GraphNode_Name), FImportData(GraphNode_Type, Material->GetName(), MaterialGraphObject));
+						SubgraphExpressionMapping.Add(FName(*GraphNode_Name), Ex);
+					}
+					
+					// Add all the expression properties
+					AddExpressions(MaterialGraph, SubGraphExpressionNames, SubGraphExports, SubgraphExpressionMapping);
+
+					// Attach a new 
 				}
 
 				GatewayNode->ReconstructNode();
@@ -316,4 +352,39 @@ bool UMaterialImporter::ImportData() {
 	}
 
 	return true;
+}
+
+// Filter out Material Graph Nodes
+// by checking their subgraph expression (composite)
+TArray<TSharedPtr<FJsonValue>> UMaterialImporter::FilterGraphNodesBySubgraphExpression(UMaterialExpressionComposite* SubgraphExpression)
+{
+	TArray<TSharedPtr<FJsonValue>> ReturnValue = TArray<TSharedPtr<FJsonValue>>();
+
+	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
+		const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Value->AsObject());
+		const TSharedPtr<FJsonObject> Properties = TSharedPtr(ValueObject->GetObjectField("Properties"));
+
+		const TSharedPtr<FJsonObject>* MaterialExpression;
+		if (Properties->TryGetObjectField("MaterialExpression", MaterialExpression)) {
+			FString ObjectName;
+			if (MaterialExpression->Get()->TryGetStringField("ObjectName", ObjectName)) {
+				for (const TSharedPtr<FJsonValue> _Value : AllJsonObjects) {
+					const TSharedPtr<FJsonObject> _ValueObject = TSharedPtr(_Value->AsObject());
+
+					if (_ValueObject->GetStringField("Name") == GetExportNameOfSubobject(ObjectName).ToString()) {
+						const TSharedPtr<FJsonObject> _Properties = TSharedPtr(_ValueObject->GetObjectField("Properties"));
+
+						const TSharedPtr<FJsonObject>* _SubgraphExpression;
+						if (_Properties->TryGetObjectField("SubgraphExpression", _SubgraphExpression)) {
+							if (SubgraphExpression->GetFullName() == GetExportNameOfSubobject(_SubgraphExpression->Get()->GetStringField("ObjectName")).ToString()) {
+								ReturnValue.Add(_Value);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return ReturnValue;
 }

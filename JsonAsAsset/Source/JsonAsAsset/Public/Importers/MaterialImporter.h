@@ -14,4 +14,6 @@ public:
 
 	void ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, const TSharedPtr<FJsonObject>& _JsonObject, TMap<FName, FImportData>& Exports);
 	virtual bool ImportData() override;
+
+	TArray<TSharedPtr<FJsonValue>> FilterGraphNodesBySubgraphExpression(UMaterialExpressionComposite* SubgraphExpression);
 };
