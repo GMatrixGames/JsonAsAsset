@@ -13,6 +13,62 @@
 #include "Factories/MaterialFactoryNew.h"
 #include "MaterialEditor/Private/MaterialEditor.h"
 #include "MaterialGraph/MaterialGraph.h"
+#include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphNode_Composite.h>
+#include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphSchema.h>
+
+void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, const TSharedPtr<FJsonObject>& _JsonObject, TMap<FName, FImportData>& Exports) {
+	FJsonObject* Expression = (Exports.Find(GetExportNameOfSubobject(_JsonObject->GetStringField("ObjectName")))->Json)->GetObjectField("Properties").Get();
+
+	Pin->MaterialExpressionEditorX = Expression->GetNumberField("MaterialExpressionEditorX");
+	Pin->MaterialExpressionEditorY = Expression->GetNumberField("MaterialExpressionEditorY");
+
+	FString MaterialExpressionGuid;
+	if (Expression->TryGetStringField("MaterialExpressionGuid", MaterialExpressionGuid)) Pin->MaterialExpressionGuid = FGuid(MaterialExpressionGuid);
+
+	/*// Handle reroute pins
+	const TArray<TSharedPtr<FJsonValue>>* ReroutePins;
+	if (Expression->TryGetArrayField("ReroutePins", ReroutePins)) {
+		for (const TSharedPtr<FJsonValue> ReroutePin : *ReroutePins) {
+			if (ReroutePin->IsNull()) continue;
+			TSharedPtr<FJsonObject> ReroutePinObject = ReroutePin->AsObject();
+
+			// Find Reroute Expression
+			FName ExpressionName = GetExpressionName(ReroutePinObject.Get());
+
+			FString Name;
+			ExpressionName.ToString().Split("'", nullptr, &Name, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+			Name.Split(":", nullptr, &Name);
+			Name = Name.Replace(TEXT("'"), TEXT(""));
+
+			UMaterialExpressionReroute* RerouteExpression = Cast<UMaterialExpressionReroute>(*CreatedExpressionMap.Find(ExpressionName));
+
+			// Add reroute to pin
+			Pin->ReroutePins.Add(FCompositeReroute(FName(*ReroutePinObject->GetStringField("Name")), RerouteExpression));
+		}
+	}*/
+
+	// Set Pin Direction
+	FString PinDirection;
+	if (Expression->GetObjectField("Properties")->TryGetStringField("PinDirection", PinDirection)) {
+		EEdGraphPinDirection Enum_PinDirection = EGPD_Input;
+
+		if (PinDirection.EndsWith("EGPD_Input")) Enum_PinDirection = EGPD_Input;
+		else if (PinDirection.EndsWith("EGPD_Output")) Enum_PinDirection = EGPD_Output;
+
+		Pin->PinDirection = Enum_PinDirection;
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* OutputsPtr;
+	if (Expression->TryGetArrayField("Outputs", OutputsPtr)) {
+		TArray<FExpressionOutput> Outputs;
+		for (const TSharedPtr<FJsonValue> OutputValue : *OutputsPtr) {
+			TSharedPtr<FJsonObject> OutputObject = OutputValue->AsObject();
+			Outputs.Add(PopulateFuncExpressionOutput(OutputObject).Output);
+		}
+
+		Pin->Outputs = Outputs;
+	}
+}
 
 bool UMaterialImporter::ImportData() {
 	try {
@@ -174,6 +230,14 @@ bool UMaterialImporter::ImportData() {
 			Material->GetEditorOnlyData()->ParameterGroupData = ParameterGroupData;
 		}
 
+		// Iterate through all the expression names
+		AddExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
+		AddComments(Material, StringExpressionCollection, Exports);
+
+		// Create Editor
+		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+		FMaterialEditor* AssetEditorInstance = reinterpret_cast<FMaterialEditor*>(AssetEditorSubsystem->OpenEditorForAsset(Material) ? AssetEditorSubsystem->FindEditorForAsset(Material, true) : nullptr);
+
 		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
 			TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
 
@@ -181,60 +245,79 @@ bool UMaterialImporter::ImportData() {
 			FString Name = Object->GetStringField("Name");
 
 			if (ExType == "MaterialGraph" && Name != "MaterialGraph_0") {
-				// TSharedPtr<FJsonObject> Properties = Object->GetObjectField("Properties");
+				TSharedPtr<FJsonObject> Properties = Object->GetObjectField("Properties");
+				FJsonObject* SubgraphExpression = nullptr;
 
-				UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
-				FMaterialEditor* AssetEditorInstance = reinterpret_cast<FMaterialEditor*>(AssetEditorSubsystem->OpenEditorForAsset(Material) ? AssetEditorSubsystem->FindEditorForAsset(Material, true) : nullptr);
-
-				if (AssetEditorInstance->Material->MaterialGraph != nullptr) {
-					UE_LOG(LogJson, Log, TEXT("The mat graph is valid!"))
+				// Set SubgraphExpression
+				const TSharedPtr<FJsonObject>* SubgraphExpressionPtr = nullptr;
+				if (Properties->TryGetObjectField("SubgraphExpression", SubgraphExpressionPtr) && SubgraphExpressionPtr != nullptr) {
+					FJsonObject* SubgraphExpressionObject = SubgraphExpressionPtr->Get();
+					SubgraphExpression = (Exports.Find(GetExportNameOfSubobject(SubgraphExpressionObject->GetStringField("ObjectName")))->Json)->GetObjectField("Properties").Get();
 				}
 
-				// UMaterialFunctionFactoryNew* MaterialFunctionFactory = NewObject<UMaterialFunctionFactoryNew>();
-				// UMaterialFunction* MaterialFunction = Cast<UMaterialFunction>(MaterialFunctionFactory->FactoryCreateNew(UMaterialFunction::StaticClass(), OutermostPkg, *(FileName + "_SubGraph_" + Name.Replace(TEXT(" "), TEXT(""))), RF_Standalone | RF_Public, nullptr, GWarn));
-				//
-				// // Clear any default expressions the engine adds (ex: Result)
-				// MaterialFunction->GetExpressionCollection().Empty();
-				//
-				// TMap<FName, FImportData> NewExports;
-				// TArray<FName> NewExpressionNames;
-				// for (const TSharedPtr<FJsonValue> NewValue : AllJsonObjects) {
-				// 	TSharedPtr<FJsonObject> NewObject = TSharedPtr(NewValue->AsObject());
-				//
-				// 	FString OldExType = NewObject->GetStringField("Type");
-				// 	FString Outer = NewObject->GetStringField("Outer");
-				//
-				// 	if (Outer == Name) {
-				// 		const TSharedPtr<FJsonObject>* MaterialExpression;
-				//
-				// 		if (!NewObject->GetObjectField("Properties")->TryGetObjectField("MaterialExpression", MaterialExpression)) {
-				// 			continue;
-				// 		}
-				//
-				// 		FName NewName = GetExportNameOfSubobject(MaterialExpression->Get()->GetStringField("ObjectName"));
-				//
-				// 		FImportData* NewType = Exports.Find(NewName);
-				// 		FString NewExType = NewType->Json->GetStringField("Type");
-				//
-				// 		NewExpressionNames.Add(NewName);
-				// 		NewExports.Add(NewName, FImportData(NewExType, NewType->Json));
-				// 	}
-				//
-				// 	continue;
-				// }
-				//
-				// TMap<FName, UMaterialExpression*> NewCreatedExpressionMap = CreateExpressions(MaterialFunction, NewExpressionNames, NewExports);
-				// AddExpressions(MaterialFunction, NewExpressionNames, NewExports, NewCreatedExpressionMap);
-				//
-				// HandleAssetCreation(MaterialFunction);
-				// continue;
+				// Find Material Graph
+				UMaterialGraph* MaterialGraph = AssetEditorInstance->Material->MaterialGraph;
+				if (MaterialGraph == nullptr)
+					UE_LOG(LogJson, Log, TEXT("The mat graph not valid!"))
+				MaterialGraph->Modify();
+
+				// Create the composite node that will serve as the gateway into the subgraph
+				UMaterialGraphNode_Composite* GatewayNode = NULL;
+				{
+					GatewayNode = Cast<UMaterialGraphNode_Composite>(FMaterialGraphSchemaAction_NewComposite::SpawnNode(MaterialGraph, FVector2D(SubgraphExpression->GetNumberField("MaterialExpressionEditorX"), SubgraphExpression->GetNumberField("MaterialExpressionEditorY"))));
+					GatewayNode->bCanRenameNode = true;
+					check(GatewayNode);
+				}
+
+				UEdGraph* DestinationGraph = GatewayNode->BoundGraph;
+				UMaterialExpressionComposite* CompositeExpression = CastChecked<UMaterialExpressionComposite>(GatewayNode->MaterialExpression);
+				{
+					FString MaterialExpressionGuid;
+					if (SubgraphExpression->TryGetStringField("MaterialExpressionGuid", MaterialExpressionGuid)) CompositeExpression->MaterialExpressionGuid = FGuid(MaterialExpressionGuid);
+					CompositeExpression->Material = Material;
+					CompositeExpression->SubgraphName = Name;
+
+					const TArray<TSharedPtr<FJsonValue>>* OutputsPtr;
+					if (SubgraphExpression->TryGetArrayField("Outputs", OutputsPtr)) {
+						TArray<FExpressionOutput> Outputs;
+						for (const TSharedPtr<FJsonValue> OutputValue : *OutputsPtr) {
+							TSharedPtr<FJsonObject> OutputObject = OutputValue->AsObject();
+							Outputs.Add(PopulateFuncExpressionOutput(OutputObject).Output);
+						}
+
+						CompositeExpression->Outputs = Outputs;
+					}
+				}
+
+				// Setup Input/Output Expressions
+				{
+					const TSharedPtr<FJsonObject>* InputExpressions;
+					if (SubgraphExpression->TryGetObjectField("InputExpressions", InputExpressions)) {
+						TSharedPtr<FJsonObject> InputExpression = TSharedPtr<FJsonObject>(InputExpressions->Get());
+
+						ComposeExpressionPinBase(CompositeExpression->InputExpressions, CreatedExpressionMap, InputExpression, Exports);
+					};
+
+					const TSharedPtr<FJsonObject>* OutputExpressions;
+					if (SubgraphExpression->TryGetObjectField("OutputExpressions", OutputExpressions)) {
+						TSharedPtr<FJsonObject> OutputExpression = TSharedPtr<FJsonObject>(OutputExpressions->Get());
+
+						ComposeExpressionPinBase(CompositeExpression->OutputExpressions, CreatedExpressionMap, OutputExpression, Exports);
+					};
+				}
+
+				GatewayNode->ReconstructNode();
+				Cast<UMaterialGraphNode>(CompositeExpression->InputExpressions->GraphNode)->ReconstructNode();
+				Cast<UMaterialGraphNode>(CompositeExpression->OutputExpressions->GraphNode)->ReconstructNode();
+
+				// Update Original Material
+				AssetEditorInstance->UpdateMaterialAfterGraphChange();
 			}
 		}
 
-		// Iterate through all the expression names
-		AddExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
+		AssetEditorInstance->UpdateMaterialAfterGraphChange();
+		Material->PostEditChange();
 
-		AddComments(Material, StringExpressionCollection, Exports);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Importer.h"
+#include "Materials/MaterialExpressionComposite.h"
 #include "MaterialFunctionImporter.h"
 
 class UMaterialImporter : public UMaterialFunctionImporter {
@@ -11,5 +12,6 @@ public:
 		UMaterialFunctionImporter(FileName, JsonObject, Package, OutermostPkg, AllJsonObjects) {
 	}
 
+	void ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, const TSharedPtr<FJsonObject>& _JsonObject, TMap<FName, FImportData>& Exports);
 	virtual bool ImportData() override;
 };
