@@ -132,7 +132,7 @@ TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(U
 		bool bFound = false;
 
 		for (TTuple<FName, FImportData>& Key : Exports) {
-			if (Key.Key == Name && Key.Value.Outer == Outer) {
+			if (Key.Key == Name && Key.Value.Outer == FName(*Outer)) {
 				Type = Key.Value.Type;
 				bFound = true;
 				break;
