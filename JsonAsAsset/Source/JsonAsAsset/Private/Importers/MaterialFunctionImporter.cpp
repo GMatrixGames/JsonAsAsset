@@ -85,21 +85,11 @@ bool UMaterialFunctionImporter::ImportData() {
 		// Define editor only data from the JSON
 		TMap<FName, FImportData> Exports;
 		TArray<FName> ExpressionNames;
-		const TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports, ExpressionNames)->GetObjectField("Properties");
-
-		// Find each node expression
+		const TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), MaterialFunction->GetFullName(), Exports, ExpressionNames)->GetObjectField("Properties");
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
 
-		// const TArray<TSharedPtr<FJsonValue>>* StringExpressions;
-		// if (StringExpressionCollection->TryGetArrayField("Expressions", StringExpressions)) {
-		// 	for (const TSharedPtr<FJsonValue> Expression : *StringExpressions) {
-		// 		if (Expression->IsNull()) continue;
-		// 		ExpressionNames.Add(GetExportNameOfSubobject(Expression->AsObject()->GetStringField("ObjectName")));
-		// 	}
-		// }
-
 		// Map out each expression for easier access
-		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(MaterialFunction, ExpressionNames, Exports);
+		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(MaterialFunction, MaterialFunction->GetFullName(), ExpressionNames, Exports);
 
 		// Iterate through all the expression names
 		AddExpressions(MaterialFunction, ExpressionNames, Exports, CreatedExpressionMap);
@@ -113,7 +103,7 @@ bool UMaterialFunctionImporter::ImportData() {
 	return true;
 }
 
-TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FString& Type, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames) {
+TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FString& Type, FString Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames) {
 	TSharedPtr<FJsonObject> EditorOnlyData;
 
 	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
@@ -127,26 +117,33 @@ TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FStr
 			continue;
 		}
 
+		if (Object->GetStringField("Outer") != Outer) continue;
+
 		ExpressionNames.Add(FName(Name));
-		OutExports.Add(FName(Name), FImportData(ExType, Object));
+		OutExports.Add(FName(Name), FImportData(ExType, Object.Get()));
 	}
 
 	return EditorOnlyData;
 }
 
-TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports) {
+TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(UObject* Parent, FString Outer, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports) {
 	TMap<FName, UMaterialExpression*> CreatedExpressionMap;
 
 	for (FName Name : ExpressionNames) {
 		FName Type;
+		bool bFound;
 
 		for (TTuple<FName, FImportData>& Key : Exports) {
-			if (Key.Key == Name) {
+			TSharedPtr<FJsonObject> JOb = TSharedPtr<FJsonObject>(Key.Value.Json);
+
+			if (Key.Key == Name && JOb->GetStringField("Outer") == Outer) {
 				Type = Key.Value.Type;
+				bFound = true;
 				break;
 			}
 		}
 
+		if (!bFound) continue;
 		UMaterialExpression* Ex = CreateEmptyExpression(Parent, Name, Type);
 		if (Ex == nullptr)
 			continue;

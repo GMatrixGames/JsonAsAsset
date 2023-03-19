@@ -64,6 +64,7 @@ protected:
 	bool HandleAssetCreation(UObject* Asset);
 
 	FName GetExportNameOfSubobject(const FString& PackageIndex);
+	TArray<TSharedPtr<FJsonValue>> FilterExportsByOuter(const FString& Outer);
 
 	FString FileName;
 	TSharedPtr<FJsonObject> JsonObject;

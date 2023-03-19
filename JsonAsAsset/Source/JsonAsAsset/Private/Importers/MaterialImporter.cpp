@@ -148,7 +148,7 @@ bool UMaterialImporter::ImportData() {
 		// Define editor only data from the JSON
 		TMap<FName, FImportData> Exports;
 		TArray<FName> ExpressionNames;
-		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Exports, ExpressionNames)->GetObjectField("Properties");
+		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Material->GetFullName(), Exports, ExpressionNames)->GetObjectField("Properties");
 
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
 
@@ -161,7 +161,7 @@ bool UMaterialImporter::ImportData() {
 		// }
 
 		// Map out each expression for easier access
-		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(Material, ExpressionNames, Exports);
+		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(Material, Material->GetFullName(), ExpressionNames, Exports);
 
 		const TSharedPtr<FJsonObject>* EmissiveColorPtr;
 		if (EdProps->TryGetObjectField("EmissiveColor", EmissiveColorPtr) && EmissiveColorPtr != nullptr) {

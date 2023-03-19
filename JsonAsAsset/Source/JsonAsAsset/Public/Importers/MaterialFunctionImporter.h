@@ -95,26 +95,26 @@ protected:
 	struct FImportData {
 		FImportData(const FName Type, const TSharedPtr<FJsonObject>& Json) {
 			this->Type = Type;
-			this->Json = Json.Get();
+			this->Json = TSharedPtr<FJsonObject>(Json.Get());
 		}
 
 		FImportData(const FString& Type, const TSharedPtr<FJsonObject>& Json) {
 			this->Type = FName(Type);
-			this->Json = Json.Get();
+			this->Json = TSharedPtr<FJsonObject>(Json.Get());
 		}
 
 		FImportData(const FString& Type, FJsonObject* Json) {
 			this->Type = FName(Type);
-			this->Json = Json;
+			this->Json = TSharedPtr<FJsonObject>(Json);
 		}
 
 		FName Type;
-		FJsonObject* Json;
+		TSharedPtr<FJsonObject> Json;
 	};
 
-	TSharedPtr<FJsonObject> FindEditorOnlyData(const FString& Type, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames);
+	TSharedPtr<FJsonObject> FindEditorOnlyData(const FString& Type, FString Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames);
 
-	TMap<FName, UMaterialExpression*> CreateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports);
+	TMap<FName, UMaterialExpression*> CreateExpressions(UObject* Parent, FString Outer, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports);
 
 	void AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter = false);
 	void AddComments(UObject* Parent, const TSharedPtr<FJsonObject>& Json, TMap<FName, FImportData>& Exports);

@@ -33,3 +33,18 @@ FName IImporter::GetExportNameOfSubobject(const FString& PackageIndex) {
 	Name = Name.Replace(TEXT("'"), TEXT(""));
 	return FName(Name);
 }
+
+TArray<TSharedPtr<FJsonValue>> IImporter::FilterExportsByOuter(const FString& Outer)
+{
+	TArray<TSharedPtr<FJsonValue>> ReturnValue = TArray<TSharedPtr<FJsonValue>>();
+
+	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
+		TSharedPtr<FJsonObject> ValueObject = TSharedPtr<FJsonObject>(Value->AsObject());
+
+		if (ValueObject->GetStringField("Outer") == Outer) {
+			ReturnValue.Add(Value);
+		}
+	}
+
+	return AllJsonObjects;
+}
