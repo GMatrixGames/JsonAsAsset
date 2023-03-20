@@ -323,6 +323,8 @@ bool UMaterialImporter::ImportData() {
 						NewNode->MaterialExpression = Expression;
 
 						DestinationGraph->AddNode(NewNode);
+
+						NewNode->ReconstructNode();
 					}
 
 					// Setup Input/Output Expressions
