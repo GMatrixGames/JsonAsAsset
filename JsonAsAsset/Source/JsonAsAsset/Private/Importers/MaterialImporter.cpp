@@ -16,7 +16,7 @@
 
 void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, const TSharedPtr<FJsonObject>& _JsonObject, TMap<FName, FImportData>& Exports) {
 	FJsonObject* Expression = (Exports.Find(GetExportNameOfSubobject(_JsonObject->GetStringField("ObjectName")))->Json)->GetObjectField("Properties").Get();
-	
+
 	Pin->GraphNode->NodePosX = Expression->GetNumberField("MaterialExpressionEditorX");
 	Pin->GraphNode->NodePosY = Expression->GetNumberField("MaterialExpressionEditorY");
 	Pin->MaterialExpressionEditorX = Expression->GetNumberField("MaterialExpressionEditorX");
@@ -25,19 +25,19 @@ void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin
 	FString MaterialExpressionGuid;
 	if (Expression->TryGetStringField("MaterialExpressionGuid", MaterialExpressionGuid)) Pin->MaterialExpressionGuid = FGuid(MaterialExpressionGuid);
 
-	 const TArray<TSharedPtr<FJsonValue>>* ReroutePins;
-	 if (Expression->TryGetArrayField("ReroutePins", ReroutePins)) {
-	 	for (const TSharedPtr<FJsonValue> ReroutePin : *ReroutePins) {
-	 		if (ReroutePin->IsNull()) continue;
+	const TArray<TSharedPtr<FJsonValue>>* ReroutePins;
+	if (Expression->TryGetArrayField("ReroutePins", ReroutePins)) {
+		for (const TSharedPtr<FJsonValue> ReroutePin : *ReroutePins) {
+			if (ReroutePin->IsNull()) continue;
 			TSharedPtr<FJsonObject> ReroutePinObject = ReroutePin->AsObject();
 			TSharedPtr<FJsonObject> RerouteObj = GetExportByObjectPath(ReroutePinObject.Get()->GetObjectField("Expression"))->AsObject();
-			
-	 		UMaterialExpressionReroute* RerouteExpression = Cast<UMaterialExpressionReroute>(*CreatedExpressionMap.Find(FName(RerouteObj->GetStringField("Name"))));
-	
-	 		// Add reroute to pin
-	 		Pin->ReroutePins.Add(FCompositeReroute(FName(*ReroutePinObject->GetStringField("Name")), RerouteExpression));
-	 	}
-	 }
+
+			UMaterialExpressionReroute* RerouteExpression = Cast<UMaterialExpressionReroute>(*CreatedExpressionMap.Find(FName(RerouteObj->GetStringField("Name"))));
+
+			// Add reroute to pin
+			Pin->ReroutePins.Add(FCompositeReroute(FName(*ReroutePinObject->GetStringField("Name")), RerouteExpression));
+		}
+	}
 
 	// Set Pin Direction
 	FString PinDirection;
@@ -63,7 +63,6 @@ void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin
 
 	Pin->MarkPackageDirty();
 	Pin->Modify();
-
 }
 
 bool UMaterialImporter::ImportData() {
@@ -278,7 +277,7 @@ bool UMaterialImporter::ImportData() {
 				{
 					CompositeExpression->Material = Material;
 					CompositeExpression->SubgraphName = Name;
-					
+
 					AddGenerics(Material, CompositeExpression, SubgraphExpression);
 				}
 
@@ -304,19 +303,18 @@ bool UMaterialImporter::ImportData() {
 
 						Ex->SubgraphExpression = CompositeExpression;
 						Ex->Material = Material;
-						
+
 						SubGraphExpressionNames.Add(GraphNodeNameName);
 						SubGraphExports.Add(GraphNodeNameName, FImportData(GraphNode_Type, Material->GetName(), MaterialGraphObject));
 						SubgraphExpressionMapping.Add(GraphNodeNameName, Ex);
 					}
-					
+
 					// Add all the expression properties
 					AddExpressions(MaterialGraph, SubGraphExpressionNames, Exports, SubgraphExpressionMapping);
 
 					// All expressions (hopefully) have their properties
 					// so now we just make a material graph node for each
-					for (const TPair<FName, UMaterialExpression*>& pair : SubgraphExpressionMapping)
-					{
+					for (const TPair<FName, UMaterialExpression*>& pair : SubgraphExpressionMapping) {
 						UMaterialExpression* Expression = pair.Value;
 						UMaterialGraphNode* NewNode = NewObject<UMaterialGraphNode>(DestinationGraph, UMaterialGraphNode::StaticClass(), NAME_None, RF_Transactional);
 
@@ -366,8 +364,7 @@ bool UMaterialImporter::ImportData() {
 
 // Filter out Material Graph Nodes
 // by checking their subgraph expression (composite)
-TArray<TSharedPtr<FJsonValue>> UMaterialImporter::FilterGraphNodesBySubgraphExpression(const FString& Outer)
-{
+TArray<TSharedPtr<FJsonValue>> UMaterialImporter::FilterGraphNodesBySubgraphExpression(const FString& Outer) {
 	TArray<TSharedPtr<FJsonValue>> ReturnValue = TArray<TSharedPtr<FJsonValue>>();
 
 	/*
