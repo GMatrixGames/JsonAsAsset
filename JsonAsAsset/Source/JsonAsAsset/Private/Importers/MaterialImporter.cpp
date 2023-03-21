@@ -23,25 +23,25 @@ void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin
 	Pin->MaterialExpressionEditorY = Expression->GetNumberField("MaterialExpressionEditorY");
 
 	FString MaterialExpressionGuid;
-	//if (Expression->TryGetStringField("MaterialExpressionGuid", MaterialExpressionGuid)) Pin->MaterialExpressionGuid = FGuid(MaterialExpressionGuid);
+	if (Expression->TryGetStringField("MaterialExpressionGuid", MaterialExpressionGuid)) Pin->MaterialExpressionGuid = FGuid(MaterialExpressionGuid);
 
 	const TArray<TSharedPtr<FJsonValue>>* ReroutePins;
 	if (Expression->TryGetArrayField("ReroutePins", ReroutePins)) {
 		for (const TSharedPtr<FJsonValue> ReroutePin : *ReroutePins) {
 			if (ReroutePin->IsNull()) continue;
 			TSharedPtr<FJsonObject> ReroutePinObject = ReroutePin->AsObject();
-			TSharedPtr<FJsonObject> RerouteObj = GetExportByObjectPath(ReroutePinObject.Get()->GetObjectField("Expression"))->AsObject();
+			TSharedPtr<FJsonObject> RerouteObj = GetExportByObjectPath(ReroutePinObject->GetObjectField("Expression"))->AsObject();
 
 			UMaterialExpressionReroute* RerouteExpression = Cast<UMaterialExpressionReroute>(*CreatedExpressionMap.Find(FName(RerouteObj->GetStringField("Name"))));
 
 			// Add reroute to pin
-			Pin->ReroutePins.Add(FCompositeReroute(FName(*ReroutePinObject->GetStringField("Name")), RerouteExpression));
+			Pin->ReroutePins.Add(FCompositeReroute(FName(ReroutePinObject->GetStringField("Name")), RerouteExpression));
 		}
 	}
 
 	// Set Pin Direction
 	FString PinDirection;
-	if (Expression->GetObjectField("Properties")->TryGetStringField("PinDirection", PinDirection)) {
+	if (Expression->TryGetStringField("PinDirection", PinDirection)) {
 		EEdGraphPinDirection Enum_PinDirection = EGPD_Input;
 
 		if (PinDirection.EndsWith("EGPD_Input")) Enum_PinDirection = EGPD_Input;
@@ -55,14 +55,14 @@ void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin
 		TArray<FExpressionOutput> Outputs;
 		for (const TSharedPtr<FJsonValue> OutputValue : *OutputsPtr) {
 			TSharedPtr<FJsonObject> OutputObject = OutputValue->AsObject();
-			Outputs.Add(PopulateFuncExpressionOutput(OutputObject).Output);
+			Outputs.Add(PopulateExpressionOutput(OutputObject.Get()));
 		}
 
 		Pin->Outputs = Outputs;
 	}
 
 	//Pin->MarkPackageDirty();
-	//Pin->Modify();
+	Pin->Modify();
 }
 
 bool UMaterialImporter::ImportData() {
@@ -281,7 +281,8 @@ bool UMaterialImporter::ImportData() {
 					AddGenerics(Material, CompositeExpression, SubgraphExpression);
 				}
 
-				DestinationGraph->Material = Material;
+				DestinationGraph->Rename(*CompositeExpression->SubgraphName);
+				DestinationGraph->Material = MaterialGraph->Material;
 
 				// Add Sub-Graph Nodes
 				{
@@ -299,26 +300,26 @@ bool UMaterialImporter::ImportData() {
 
 						FName GraphNodeNameName = FName(GraphNode_Name);
 
-						UMaterialExpression* Ex = CreateEmptyExpression(Material, GraphNodeNameName, FName(GraphNode_Type));
+						UMaterialExpression* Ex = CreateEmptyExpression(MaterialGraph->Material, GraphNodeNameName, FName(GraphNode_Type));
 						if (Ex == nullptr)
 							continue;
 
 						Ex->SubgraphExpression = CompositeExpression;
-						Ex->Material = Material;
+						Ex->Material = MaterialGraph->Material;
 
 						SubGraphExpressionNames.Add(GraphNodeNameName);
-						SubGraphExports.Add(GraphNodeNameName, FImportData(GraphNode_Type, Material->GetName(), MaterialGraphObject));
+						SubGraphExports.Add(GraphNodeNameName, FImportData(GraphNode_Type, MaterialGraph->Material->GetName(), MaterialGraphObject));
 						SubgraphExpressionMapping.Add(GraphNodeNameName, Ex);
 					}
 
 					// Add all the expression properties
-					AddExpressions(Material, SubGraphExpressionNames, Exports, SubgraphExpressionMapping, true);
+					AddExpressions(MaterialGraph->Material, SubGraphExpressionNames, Exports, SubgraphExpressionMapping, true);
 
 					// All expressions (hopefully) have their properties
 					// so now we just make a material graph node for each
 					for (const TPair<FName, UMaterialExpression*>& pair : SubgraphExpressionMapping) {
 						UMaterialExpression* Expression = pair.Value;
-						UMaterialGraphNode* NewNode = DestinationGraph->AddExpression(Expression, true);
+						UMaterialGraphNode* NewNode = DestinationGraph->AddExpression(Expression, false);
 
 						const FGuid NewGuid = FGuid::NewGuid();
 						NewNode->NodeGuid = NewGuid;
@@ -338,19 +339,19 @@ bool UMaterialImporter::ImportData() {
 							TSharedPtr<FJsonObject> InputExpression = TSharedPtr<FJsonObject>(InputExpressions->Get());
 
 							ComposeExpressionPinBase(CompositeExpression->InputExpressions, CreatedExpressionMap, InputExpression, Exports);
-						};
+						}
 
 						const TSharedPtr<FJsonObject>* OutputExpressions;
 						if (SubgraphExpression->TryGetObjectField("OutputExpressions", OutputExpressions)) {
 							TSharedPtr<FJsonObject> OutputExpression = TSharedPtr<FJsonObject>(OutputExpressions->Get());
 
 							ComposeExpressionPinBase(CompositeExpression->OutputExpressions, CreatedExpressionMap, OutputExpression, Exports);
-						};
+						}
 					}
 				}
 
-				CompositeExpression->InputExpressions->Material = Material;
-				CompositeExpression->OutputExpressions->Material = Material;
+				CompositeExpression->InputExpressions->Material = MaterialGraph->Material;
+				CompositeExpression->OutputExpressions->Material = MaterialGraph->Material;
 
 				GatewayNode->ReconstructNode();
 				Cast<UMaterialGraphNode>(CompositeExpression->InputExpressions->GraphNode)->ReconstructNode();
