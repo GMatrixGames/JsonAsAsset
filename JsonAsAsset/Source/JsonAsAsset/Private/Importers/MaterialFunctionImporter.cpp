@@ -19,9 +19,24 @@
 #include "Materials/MaterialExpressionCosine.h"
 #include "Materials/MaterialExpressionCurveAtlasRowParameter.h"
 #include "Materials/MaterialExpressionCustom.h"
+#include "Materials/MaterialExpressionSkyAtmosphereLightDirection.h"
+#include "Materials/MaterialExpressionSkyAtmosphereLightIlluminance.h"
+#include "Materials/MaterialExpressionSkyAtmosphereViewLuminance.h"
 #include "Materials/MaterialExpressionDesaturation.h"
 #include "Materials/MaterialExpressionDistance.h"
 #include "Materials/MaterialExpressionDivide.h"
+#include "Materials/MaterialExpressionCrossProduct.h"
+#include "Materials/MaterialExpressionDepthFade.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialExpressionDeriveNormalZ.h"
+#include "Materials/MaterialExpressionQualitySwitch.h"
+#include "Materials/MaterialExpressionReflectionCapturePassSwitch.h"
+#include "Materials/MaterialExpressionRotateAboutAxis.h"
+#include "Materials/MaterialExpressionShadingPathSwitch.h"
+#include "Materials/MaterialExpressionTransform.h"
+#include "Materials/MaterialExpressionCameraVectorWS.h"
+#include "Materials/MaterialExpressionVertexInterpolator.h"
+#include "Materials/MaterialExpressionVertexNormalWS.h"
 #include "Materials/MaterialExpressionDotProduct.h"
 #include "Materials/MaterialExpressionFloor.h"
 #include "Materials/MaterialExpressionFmod.h"
@@ -47,6 +62,7 @@
 #include "Materials/MaterialExpressionSphereMask.h"
 #include "Materials/MaterialExpressionStaticBool.h"
 #include "Materials/MaterialExpressionStaticSwitch.h"
+#include "Materials/MaterialExpressionCollectionParameter.h"
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialExpressionStep.h"
 #include "Materials/MaterialExpressionSubtract.h"
@@ -150,7 +166,7 @@ TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(U
 	return CreatedExpressionMap;
 }
 
-void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter) {
+void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter, bool bSubgraph) {
 	for (FName Name : ExpressionNames) {
 		FImportData* Type = Exports.Find(Name);
 
@@ -908,6 +924,21 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetStringField("DeclarationGuid", DeclarationGuid)) NamedRerouteUsage->DeclarationGuid = FGuid(DeclarationGuid);
 
 			Expression = NamedRerouteUsage;
+		}
+		else if (Type->Type == "MaterialExpressionCollectionParameter") {
+			UMaterialExpressionCollectionParameter* CollectionParameter = Cast<UMaterialExpressionCollectionParameter>(Expression);
+
+			const TSharedPtr<FJsonObject>* Collection = nullptr;
+			if (Properties->TryGetObjectField("Collection", Collection) && Collection != nullptr) {
+				CollectionParameter->Collection = LoadObject<UMaterialParameterCollection>(Collection);
+			}
+
+			FString ParameterName;
+			if (Properties->TryGetStringField("ParameterName", ParameterName)) CollectionParameter->ParameterName = FName(ParameterName);
+			FString ParameterId;
+			if (Properties->TryGetStringField("ParameterId", ParameterId)) CollectionParameter->ParameterId = FGuid(ParameterId);
+
+			Expression = CollectionParameter;
 		} else if (Type->Type == "MaterialExpressionSine") {
 			UMaterialExpressionSine* Sine = Cast<UMaterialExpressionSine>(Expression);
 
@@ -1019,6 +1050,8 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetNumberField("ConstB", ConstB)) Divide->ConstB = ConstB;
 
 			Expression = Divide;
+		} else if (Type->Type == "MaterialExpressionCameraVectorWS") {
+
 		} else if (Type->Type == "MaterialExpressionDistance") {
 			UMaterialExpressionDistance* Distance = Cast<UMaterialExpressionDistance>(Expression);
 
@@ -1043,6 +1076,194 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = Distance;
+		} else if (Type->Type == "MaterialExpressionCrossProduct") {
+			UMaterialExpressionCrossProduct* CrossProduct = Cast<UMaterialExpressionCrossProduct>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					CrossProduct->A = A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					CrossProduct->B = B;
+				}
+			}
+
+			Expression = CrossProduct;
+		} else if (Type->Type == "MaterialExpressionTransform") {
+			// DIDNT ADD WORLD SPACE BS
+			UMaterialExpressionTransform* Transform = Cast<UMaterialExpressionTransform>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Input", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					Transform->Input = A;
+				}
+			}
+
+			Expression = Transform;
+		} else if (Type->Type == "MaterialExpressionVertexInterpolator") {
+			UMaterialExpressionVertexInterpolator* VertexInterpolator = Cast<UMaterialExpressionVertexInterpolator>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Input", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					VertexInterpolator->Input = A;
+				}
+			}
+
+			Expression = VertexInterpolator;
+		} else if (Type->Type == "MaterialExpressionDepthFade") {
+			UMaterialExpressionDepthFade* DepthFade = static_cast<UMaterialExpressionDepthFade*>(Expression);
+
+			const TSharedPtr<FJsonObject>* InOpacityPtr = nullptr;
+			if (Properties->TryGetObjectField("InOpacity", InOpacityPtr) && InOpacityPtr != nullptr) {
+				FJsonObject* InOpacityObject = InOpacityPtr->Get();
+				FName InOpacityExpressionName = GetExpressionName(InOpacityObject);
+				if (CreatedExpressionMap.Contains(InOpacityExpressionName)) {
+					FExpressionInput InOpacity = PopulateExpressionInput(InOpacityObject, *CreatedExpressionMap.Find(InOpacityExpressionName));
+					DepthFade->InOpacity = InOpacity;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* FadeDistancePtr = nullptr;
+			if (Properties->TryGetObjectField("FadeDistance", FadeDistancePtr) && FadeDistancePtr != nullptr) {
+				FJsonObject* FadeDistanceObject = FadeDistancePtr->Get();
+				FName FadeDistanceExpressionName = GetExpressionName(FadeDistanceObject);
+				if (CreatedExpressionMap.Contains(FadeDistanceExpressionName)) {
+					FExpressionInput FadeDistance = PopulateExpressionInput(FadeDistanceObject, *CreatedExpressionMap.Find(FadeDistanceExpressionName));
+					DepthFade->FadeDistance = FadeDistance;
+				}
+			}
+
+			Expression = DepthFade;
+		} else if (Type->Type == "MaterialExpressionDeriveNormalZ") {
+			UMaterialExpressionDeriveNormalZ* DeriveNormalZ = static_cast<UMaterialExpressionDeriveNormalZ*>(Expression);
+
+			const TSharedPtr<FJsonObject>* InXYPtr = nullptr;
+			if (Properties->TryGetObjectField("InXY", InXYPtr) && InXYPtr != nullptr) {
+				FJsonObject* InXYObject = InXYPtr->Get();
+				FName InXYExpressionName = GetExpressionName(InXYObject);
+				if (CreatedExpressionMap.Contains(InXYExpressionName)) {
+					FExpressionInput InXY = PopulateExpressionInput(InXYObject, *CreatedExpressionMap.Find(InXYExpressionName));
+					DeriveNormalZ->InXY = InXY;
+				}
+			}
+
+			Expression = DeriveNormalZ;
+		} else if (Type->Type == "MaterialExpressionQualitySwitch") {
+			// TODO: Add different qualities
+			UMaterialExpressionQualitySwitch* QualitySwitch = Cast<UMaterialExpressionQualitySwitch>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Default", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					QualitySwitch->Default = A;
+				}
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* InputsPtr;
+			if (Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
+				int i = 0;
+				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
+					FJsonObject* InputObject = InputValue->AsObject().Get();
+					FName InputExpressionName = GetExpressionName(InputObject);
+					if (CreatedExpressionMap.Contains(InputExpressionName)) {
+						FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+						QualitySwitch->Inputs[i] = Input;
+					}
+					i++;
+				}
+			}
+
+			Expression = QualitySwitch;
+		} else if (Type->Type == "MaterialExpressionReflectionCapturePassSwitch") {
+			UMaterialExpressionReflectionCapturePassSwitch* ReflectionCapturePassSwitch = static_cast<UMaterialExpressionReflectionCapturePassSwitch*>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Default", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					ReflectionCapturePassSwitch->Default = A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("Reflection", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					ReflectionCapturePassSwitch->Reflection = B;
+				}
+			}
+
+			Expression = ReflectionCapturePassSwitch;
+		} else if (Type->Type == "MaterialExpressionRotateAboutAxis") {
+			UMaterialExpressionRotateAboutAxis* RotateAboutAxis = Cast<UMaterialExpressionRotateAboutAxis>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("NormalizedRotationAxis", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					RotateAboutAxis->NormalizedRotationAxis = A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("RotationAngle", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					RotateAboutAxis->RotationAngle = B;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* CPtr = nullptr;
+			if (Properties->TryGetObjectField("PivotPoint", CPtr) && CPtr != nullptr) {
+				FJsonObject* CObject = CPtr->Get();
+				FName CExpressionName = GetExpressionName(CObject);
+				if (CreatedExpressionMap.Contains(CExpressionName)) {
+					FExpressionInput C = PopulateExpressionInput(CObject, *CreatedExpressionMap.Find(CExpressionName));
+					RotateAboutAxis->PivotPoint = C;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* DPtr = nullptr;
+			if (Properties->TryGetObjectField("Position", DPtr) && DPtr != nullptr) {
+				FJsonObject* DObject = DPtr->Get();
+				FName DExpressionName = GetExpressionName(DObject);
+				if (CreatedExpressionMap.Contains(DExpressionName)) {
+					FExpressionInput D = PopulateExpressionInput(DObject, *CreatedExpressionMap.Find(DExpressionName));
+					RotateAboutAxis->Position = D;
+				}
+			}
+
+			Expression = RotateAboutAxis;
 		} else if (Type->Type == "MaterialExpressionStaticBool") {
 			UMaterialExpressionStaticBool* StaticBool = Cast<UMaterialExpressionStaticBool>(Expression);
 
@@ -1945,11 +2166,83 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = FeatureLevelSwitch;
+		} else if (Type->Type == "MaterialExpressionShadingPathSwitch") {
+			UMaterialExpressionShadingPathSwitch* ShadingPathSwitch = Cast<UMaterialExpressionShadingPathSwitch>(Expression);
+
+			const TSharedPtr<FJsonObject>* DefaultPtr = nullptr;
+			if (Properties->TryGetObjectField("Default", DefaultPtr) && DefaultPtr != nullptr) {
+				FJsonObject* DefaultObject = DefaultPtr->Get();
+				FName DefaultExpressionName = GetExpressionName(DefaultObject);
+				if (CreatedExpressionMap.Contains(DefaultExpressionName)) {
+					FExpressionInput Default = PopulateExpressionInput(DefaultObject, *CreatedExpressionMap.Find(DefaultExpressionName));
+					ShadingPathSwitch->Default = Default;
+				}
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* InputsPtr;
+			if (Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
+				int i = 0;
+				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
+					FJsonObject* InputObject = InputValue->AsObject().Get();
+					FName InputExpressionName = GetExpressionName(InputObject);
+					if (CreatedExpressionMap.Contains(InputExpressionName)) {
+						FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+						ShadingPathSwitch->Inputs[i] = Input;
+					}
+					i++;
+				}
+			}
+
+			Expression = ShadingPathSwitch;
+		} else if (Type->Type == "MaterialExpressionSkyAtmosphereLightDirection") {
+			UMaterialExpressionSkyAtmosphereLightDirection* SkyAtmosphereLightDirection = static_cast<UMaterialExpressionSkyAtmosphereLightDirection*>(Expression);
+
+			int LightIndex;
+			if (Properties->TryGetNumberField("LightIndex", LightIndex)) SkyAtmosphereLightDirection->LightIndex = LightIndex;
+
+			Expression = SkyAtmosphereLightDirection;
+		} else if (Type->Type == "MaterialExpressionSkyAtmosphereLightDiskLuminance") {
+			UMaterialExpressionSkyAtmosphereLightDiskLuminance* SkyAtmosphereLightDiskLuminance = static_cast<UMaterialExpressionSkyAtmosphereLightDiskLuminance*>(Expression);
+
+			int LightIndex;
+			if (Properties->TryGetNumberField("LightIndex", LightIndex)) SkyAtmosphereLightDiskLuminance->LightIndex = LightIndex;
+
+			Expression = SkyAtmosphereLightDiskLuminance;
+		} else if (Type->Type == "MaterialExpressionSkyAtmosphereAerialPerspective") {
+			UMaterialExpressionSkyAtmosphereAerialPerspective* AerialPerspective = static_cast<UMaterialExpressionSkyAtmosphereAerialPerspective*>(Expression);
+
+			const TSharedPtr<FJsonObject>* DefaultPtr = nullptr;
+			if (Properties->TryGetObjectField("WorldPosition", DefaultPtr) && DefaultPtr != nullptr) {
+				FJsonObject* DefaultObject = DefaultPtr->Get();
+				FName DefaultExpressionName = GetExpressionName(DefaultObject);
+				if (CreatedExpressionMap.Contains(DefaultExpressionName)) {
+					FExpressionInput Default = PopulateExpressionInput(DefaultObject, *CreatedExpressionMap.Find(DefaultExpressionName));
+					AerialPerspective->WorldPosition = Default;
+				}
+			}
+
+			Expression = AerialPerspective;
+		} else if (Type->Type == "MaterialExpressionSkyAtmosphereLightIlluminance") {
+			UMaterialExpressionSkyAtmosphereLightIlluminance* LightIlluminance = static_cast<UMaterialExpressionSkyAtmosphereLightIlluminance*>(Expression);
+
+			const TSharedPtr<FJsonObject>* DefaultPtr = nullptr;
+			if (Properties->TryGetObjectField("WorldPosition", DefaultPtr) && DefaultPtr != nullptr) {
+				FJsonObject* DefaultObject = DefaultPtr->Get();
+				FName DefaultExpressionName = GetExpressionName(DefaultObject);
+				if (CreatedExpressionMap.Contains(DefaultExpressionName)) {
+					FExpressionInput Default = PopulateExpressionInput(DefaultObject, *CreatedExpressionMap.Find(DefaultExpressionName));
+					LightIlluminance->WorldPosition = Default;
+				}
+			}
+
+			Expression = LightIlluminance;
 		}
 
 		AddGenerics(Parent, Expression, Properties);
-		if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddExpression(Expression);
-		else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddExpression(Expression);
+		if (!bSubgraph) {
+			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddExpression(Expression);
+			else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddExpression(Expression);
+		}
 	}
 }
 
@@ -2135,6 +2428,7 @@ FExpressionOutput UMaterialFunctionImporter::PopulateExpressionOutput(const FJso
 FName UMaterialFunctionImporter::GetExpressionName(const FJsonObject* JsonProperties) {
 	const TSharedPtr<FJsonValue> ExpressionField = JsonProperties->TryGetField("Expression");
 
+	if (ExpressionField == nullptr) return NAME_None;
 	if (ExpressionField->IsNull()) return NAME_None;
 	const TSharedPtr<FJsonObject> ExpressionObject = ExpressionField->AsObject();
 	FString ObjectName;

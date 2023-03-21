@@ -23,7 +23,7 @@ void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin
 	Pin->MaterialExpressionEditorY = Expression->GetNumberField("MaterialExpressionEditorY");
 
 	FString MaterialExpressionGuid;
-	if (Expression->TryGetStringField("MaterialExpressionGuid", MaterialExpressionGuid)) Pin->MaterialExpressionGuid = FGuid(MaterialExpressionGuid);
+	//if (Expression->TryGetStringField("MaterialExpressionGuid", MaterialExpressionGuid)) Pin->MaterialExpressionGuid = FGuid(MaterialExpressionGuid);
 
 	const TArray<TSharedPtr<FJsonValue>>* ReroutePins;
 	if (Expression->TryGetArrayField("ReroutePins", ReroutePins)) {
@@ -61,8 +61,8 @@ void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin
 		Pin->Outputs = Outputs;
 	}
 
-	Pin->MarkPackageDirty();
-	Pin->Modify();
+	//Pin->MarkPackageDirty();
+	//Pin->Modify();
 }
 
 bool UMaterialImporter::ImportData() {
@@ -281,6 +281,8 @@ bool UMaterialImporter::ImportData() {
 					AddGenerics(Material, CompositeExpression, SubgraphExpression);
 				}
 
+				DestinationGraph->Material = Material;
+
 				// Add Sub-Graph Nodes
 				{
 					TArray<TSharedPtr<FJsonValue>> MaterialGraphNodes = FilterGraphNodesBySubgraphExpression(SubgraphExpressionName);
@@ -310,20 +312,22 @@ bool UMaterialImporter::ImportData() {
 					}
 
 					// Add all the expression properties
-					AddExpressions(MaterialGraph, SubGraphExpressionNames, Exports, SubgraphExpressionMapping);
+					AddExpressions(Material, SubGraphExpressionNames, Exports, SubgraphExpressionMapping, true);
 
 					// All expressions (hopefully) have their properties
 					// so now we just make a material graph node for each
 					for (const TPair<FName, UMaterialExpression*>& pair : SubgraphExpressionMapping) {
 						UMaterialExpression* Expression = pair.Value;
-						UMaterialGraphNode* NewNode = NewObject<UMaterialGraphNode>(DestinationGraph, UMaterialGraphNode::StaticClass(), NAME_None, RF_Transactional);
+						UMaterialGraphNode* NewNode = DestinationGraph->AddExpression(Expression, true);
+
+						const FGuid NewGuid = FGuid::NewGuid();
+						NewNode->NodeGuid = NewGuid;
 
 						NewNode->NodePosX = Expression->MaterialExpressionEditorX;
 						NewNode->NodePosY = Expression->MaterialExpressionEditorY;
 						NewNode->MaterialExpression = Expression;
 
 						DestinationGraph->AddNode(NewNode);
-
 						NewNode->ReconstructNode();
 					}
 
@@ -345,9 +349,15 @@ bool UMaterialImporter::ImportData() {
 					}
 				}
 
+				CompositeExpression->InputExpressions->Material = Material;
+				CompositeExpression->OutputExpressions->Material = Material;
+
 				GatewayNode->ReconstructNode();
 				Cast<UMaterialGraphNode>(CompositeExpression->InputExpressions->GraphNode)->ReconstructNode();
 				Cast<UMaterialGraphNode>(CompositeExpression->OutputExpressions->GraphNode)->ReconstructNode();
+
+				DestinationGraph->RebuildGraph();
+				DestinationGraph->LinkMaterialExpressionsFromGraph();
 
 				// Update Original Material
 				AssetEditorInstance->UpdateMaterialAfterGraphChange();

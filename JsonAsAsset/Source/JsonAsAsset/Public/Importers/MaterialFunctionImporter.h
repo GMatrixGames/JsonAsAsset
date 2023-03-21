@@ -84,7 +84,25 @@ protected:
 		"MaterialExpressionEyeAdaptation",
 		"MaterialExpressionEyeAdaptationInverse",
 		"MaterialExpressionCameraPositionWS",
-		"MaterialExpressionFeatureLevelSwitch"
+		"MaterialExpressionFeatureLevelSwitch",
+		"MaterialExpressionCrossProduct",
+		"MaterialExpressionDepthFade",
+		"MaterialExpressionDeriveNormalZ",
+		"MaterialExpressionQualitySwitch",
+		"MaterialExpressionReflectionCapturePassSwitch",
+		"MaterialExpressionRotateAboutAxis",
+		"MaterialExpressionShadingPathSwitch",
+		"MaterialExpressionTransform",
+		"MaterialExpressionVertexInterpolator",
+		"MaterialExpressionVertexNormalWS",
+		"MaterialExpressionCameraVectorWS",
+		"MaterialExpressionCollectionParameter",
+		"MaterialExpressionSkyAtmosphereViewLuminance",
+		"MaterialExpressionSkyAtmosphereAerialPerspective",
+		"MaterialExpressionSkyAtmosphereLightDirection",
+		"MaterialExpressionSkyAtmosphereLightIlluminance",
+		"MaterialExpressionSkyAtmosphereDistantLightScatteredLuminance",
+		"MaterialExpressionSkyAtmosphereLightDiskLuminance"
 	};
 
 	inline static TArray<FString> IgnoredTypes = {
@@ -120,7 +138,7 @@ protected:
 
 	TMap<FName, UMaterialExpression*> CreateExpressions(UObject* Parent, const FString& Outer, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports);
 
-	void AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter = false);
+	void AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter = false, bool bSubgraph = false);
 	void AddComments(UObject* Parent, const TSharedPtr<FJsonObject>& Json, TMap<FName, FImportData>& Exports);
 	void AddGenerics(UObject* Parent, UMaterialExpression* Expression, const TSharedPtr<FJsonObject>& Json);
 
