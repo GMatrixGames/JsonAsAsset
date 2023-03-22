@@ -242,6 +242,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				}
 			}
 
+			bool DefaultValue;
+			if (Properties->TryGetBoolField("DefaultValue", DefaultValue)) StaticSwitchParameter->DefaultValue = DefaultValue;
+
 			Expression = StaticSwitchParameter;
 		} else if (Type->Type == "MaterialExpressionFunctionInput") {
 			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>(Expression);
