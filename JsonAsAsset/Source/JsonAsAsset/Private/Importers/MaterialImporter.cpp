@@ -31,7 +31,6 @@ void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin
 			if (ReroutePin->IsNull()) continue;
 			TSharedPtr<FJsonObject> ReroutePinObject = ReroutePin->AsObject();
 			TSharedPtr<FJsonObject> RerouteObj = GetExportByObjectPath(ReroutePinObject->GetObjectField("Expression"))->AsObject();
-
 			UMaterialExpressionReroute* RerouteExpression = Cast<UMaterialExpressionReroute>(*CreatedExpressionMap.Find(FName(RerouteObj->GetStringField("Name"))));
 
 			// Add reroute to pin
@@ -312,6 +311,23 @@ bool UMaterialImporter::ImportData() {
 						SubgraphExpressionMapping.Add(GraphNodeNameName, Ex);
 					}
 
+					// Setup Input/Output Expressions
+					{
+						const TSharedPtr<FJsonObject>* InputExpressions;
+						if (SubgraphExpression->TryGetObjectField("InputExpressions", InputExpressions)) {
+							TSharedPtr<FJsonObject> InputExpression = TSharedPtr<FJsonObject>(InputExpressions->Get());
+
+							ComposeExpressionPinBase(CompositeExpression->InputExpressions, CreatedExpressionMap, InputExpression, Exports);
+						}
+
+						const TSharedPtr<FJsonObject>* OutputExpressions;
+						if (SubgraphExpression->TryGetObjectField("OutputExpressions", OutputExpressions)) {
+							TSharedPtr<FJsonObject> OutputExpression = TSharedPtr<FJsonObject>(OutputExpressions->Get());
+
+							ComposeExpressionPinBase(CompositeExpression->OutputExpressions, CreatedExpressionMap, OutputExpression, Exports);
+						}
+					}
+
 					// Add all the expression properties
 					AddExpressions(MaterialGraph->Material, SubGraphExpressionNames, Exports, SubgraphExpressionMapping, true);
 
@@ -330,23 +346,6 @@ bool UMaterialImporter::ImportData() {
 
 						DestinationGraph->AddNode(NewNode);
 						NewNode->ReconstructNode();
-					}
-
-					// Setup Input/Output Expressions
-					{
-						const TSharedPtr<FJsonObject>* InputExpressions;
-						if (SubgraphExpression->TryGetObjectField("InputExpressions", InputExpressions)) {
-							TSharedPtr<FJsonObject> InputExpression = TSharedPtr<FJsonObject>(InputExpressions->Get());
-
-							ComposeExpressionPinBase(CompositeExpression->InputExpressions, CreatedExpressionMap, InputExpression, Exports);
-						}
-
-						const TSharedPtr<FJsonObject>* OutputExpressions;
-						if (SubgraphExpression->TryGetObjectField("OutputExpressions", OutputExpressions)) {
-							TSharedPtr<FJsonObject> OutputExpression = TSharedPtr<FJsonObject>(OutputExpressions->Get());
-
-							ComposeExpressionPinBase(CompositeExpression->OutputExpressions, CreatedExpressionMap, OutputExpression, Exports);
-						}
 					}
 				}
 
