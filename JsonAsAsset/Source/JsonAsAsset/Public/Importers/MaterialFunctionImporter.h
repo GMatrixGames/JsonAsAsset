@@ -102,7 +102,14 @@ protected:
 		"MaterialExpressionSkyAtmosphereLightDirection",
 		"MaterialExpressionSkyAtmosphereLightIlluminance",
 		"MaterialExpressionSkyAtmosphereDistantLightScatteredLuminance",
-		"MaterialExpressionSkyAtmosphereLightDiskLuminance"
+		"MaterialExpressionSkyAtmosphereLightDiskLuminance",
+		"MaterialExpressionBumpOffset",
+		"MaterialExpressionFresnel",
+		"MaterialExpressionMaterialProxyReplace",
+		"MaterialExpressionSetMaterialAttributes",
+		"MaterialExpressionSquareRoot",
+		"MaterialExpressionTwoSidedSign",
+		"MaterialExpressionVertexColor"
 	};
 
 	inline static TArray<FString> IgnoredTypes = {
