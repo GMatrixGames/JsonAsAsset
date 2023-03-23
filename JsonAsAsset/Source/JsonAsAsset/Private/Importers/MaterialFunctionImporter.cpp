@@ -2380,7 +2380,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			Expression = LightIlluminance;
 		} else if (Type->Type == "MaterialExpressionTruncate") {
-			UMaterialExpressionTruncate* Truncate = Cast<UMaterialExpressionTruncate>(Expression);
+			UMaterialExpressionTruncate* Truncate = static_cast<UMaterialExpressionTruncate*>(Expression);
 
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
 			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
