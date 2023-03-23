@@ -111,6 +111,20 @@ protected:
 		"MaterialExpressionTwoSidedSign",
 		"MaterialExpressionVertexColor",
 		"MaterialExpressionTruncate"
+		"MaterialExpressionActorPositionWS",
+		"MaterialExpressionPixelNormalWS",
+		"MaterialExpressionPreSkinnedPosition",
+		"MaterialExpressionReflectionVectorWS",
+		"MaterialExpressionShadingModel",
+		"MaterialExpressionViewProperty",
+		"MaterialExpressionAtmosphericLightVector",
+		"MaterialExpressionChannelMaskParameter",
+		"MaterialExpressionRayTracingQualitySwitch",
+		"MaterialExpressionDistanceCullFade",
+		"MaterialExpressionBlendMaterialAttributes",
+		"MaterialExpressionStaticComponentMaskParameter",
+		"MaterialExpressionPixelNormalWS",
+		"MaterialExpressionShaderStageSwitch"
 	};
 
 	inline static TArray<FString> IgnoredTypes = {
@@ -143,7 +157,7 @@ protected:
 		FJsonObject* Json;
 	};
 
-	TSharedPtr<FJsonObject> FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames);
+	TSharedPtr<FJsonObject> FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames, bool bFilterByOuter = true);
 
 	TMap<FName, UMaterialExpression*> CreateExpressions(UObject* Parent, const FString& Outer, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports);
 

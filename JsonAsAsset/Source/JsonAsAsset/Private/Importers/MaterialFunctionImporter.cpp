@@ -25,13 +25,21 @@
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
 #include "Materials/MaterialExpressionSquareRoot.h"
 #include "Materials/MaterialExpressionSkyAtmosphereLightDirection.h"
+#include "Materials/MaterialExpressionShaderStageSwitch.h"
 #include "Materials/MaterialExpressionSkyAtmosphereLightIlluminance.h"
+#include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
+#include "Materials/MaterialExpressionReflectionVectorWS.h"
+#include "Materials/MaterialExpressionViewProperty.h"
+#include "Materials/MaterialExpressionChannelMaskParameter.h"
+#include "Materials/MaterialExpressionShadingModel.h"
+#include "Materials/MaterialExpressionSkyAtmosphereViewLuminance.h"
 #include "Materials/MaterialExpressionDesaturation.h"
 #include "Materials/MaterialExpressionDistance.h"
 #include "Materials/MaterialExpressionDivide.h"
 #include "Materials/MaterialExpressionCrossProduct.h"
 #include "Materials/MaterialExpressionDepthFade.h"
 #include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialExpressionRayTracingQualitySwitch.h"
 #include "Materials/MaterialExpressionDeriveNormalZ.h"
 #include "Materials/MaterialExpressionQualitySwitch.h"
 #include "Materials/MaterialExpressionReflectionCapturePassSwitch.h"
@@ -46,7 +54,9 @@
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
 #include "Materials/MaterialExpressionIf.h"
+#include "Materials/MaterialExpressionBlendMaterialAttributes.h"
 #include "Materials/MaterialExpressionLinearInterpolate.h"
+#include "Materials/MaterialExpressionGetMaterialAttributes.h"
 #include "Materials/MaterialExpressionMax.h"
 #include "Materials/MaterialExpressionMin.h"
 #include "Materials/MaterialExpressionMultiply.h"
@@ -104,7 +114,7 @@ bool UMaterialFunctionImporter::ImportData() {
 		// Define editor only data from the JSON
 		TMap<FName, FImportData> Exports;
 		TArray<FName> ExpressionNames;
-		const TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), MaterialFunction->GetName(), Exports, ExpressionNames)->GetObjectField("Properties");
+		const TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), MaterialFunction->GetName(), Exports, ExpressionNames, false)->GetObjectField("Properties");
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
 
 		// Map out each expression for easier access
@@ -122,10 +132,10 @@ bool UMaterialFunctionImporter::ImportData() {
 	return true;
 }
 
-TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames) {
+TSharedPtr<FJsonObject> UMaterialFunctionImporter::FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames, bool bFilterByOuter) {
 	TSharedPtr<FJsonObject> EditorOnlyData;
 
-	for (const TSharedPtr<FJsonValue> Value : FilterExportsByOuter(Outer)) {
+	for (const TSharedPtr<FJsonValue> Value : (bFilterByOuter ? FilterExportsByOuter(Outer) : AllJsonObjects)) {
 		TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
 
 		FString ExType = Object->GetStringField("Type");
@@ -508,7 +518,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetNumberField("ConstB", ConstB)) Multiply->ConstB = ConstB;
 
 			Expression = Multiply;
-		} else if (Type->Type == "MaterialExpressionVectorParameter") {
+		} if (Type->Type == "MaterialExpressionVectorParameter" || Type->Type == "MaterialExpressionChannelMaskParameter") {
 			UMaterialExpressionVectorParameter* VectorParameter = Cast<UMaterialExpressionVectorParameter>(Expression);
 
 			const TSharedPtr<FJsonObject>* DefaultValue;
@@ -1354,6 +1364,30 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetNumberField("BaseReflectFraction", BaseReflectFraction)) Frensel->BaseReflectFraction = BaseReflectFraction;
 
 			Expression = Frensel;
+		} else if (Type->Type == "MaterialExpressionRayTracingQualitySwitch") {
+			UMaterialExpressionRayTracingQualitySwitch* RayTracingQualitySwitch = static_cast<UMaterialExpressionRayTracingQualitySwitch*>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Normal", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					RayTracingQualitySwitch->Normal = A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("RayTraced", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					RayTracingQualitySwitch->RayTraced = B;
+				}
+			}
+
+			Expression = RayTracingQualitySwitch;
 		} else if (Type->Type == "MaterialExpressionMaterialProxyReplace") {
 			UMaterialExpressionMaterialProxyReplace* MaterialProxyReplace = static_cast<UMaterialExpressionMaterialProxyReplace*>(Expression);
 
@@ -1378,6 +1412,238 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = MaterialProxyReplace;
+		} else if (Type->Type == "MaterialExpressionShaderStageSwitch") {
+			UMaterialExpressionShaderStageSwitch* ShaderStageSwitch = Cast<UMaterialExpressionShaderStageSwitch>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("PixelShader", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					ShaderStageSwitch->PixelShader = A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("VertexShader", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					ShaderStageSwitch->VertexShader = B;
+				}
+			}
+
+			Expression = ShaderStageSwitch;
+		} else if (Type->Type == "MaterialExpressionReflectionVectorWS") {
+			UMaterialExpressionReflectionVectorWS* ReflectionVectorWS = Cast<UMaterialExpressionReflectionVectorWS>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("CustomWorldNormal", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					ReflectionVectorWS->CustomWorldNormal = A;
+				}
+			}
+
+			bool bNormalizeCustomWorldNormal;
+			if (Properties->TryGetBoolField("bNormalizeCustomWorldNormal", bNormalizeCustomWorldNormal)) ReflectionVectorWS->bNormalizeCustomWorldNormal = bNormalizeCustomWorldNormal;
+
+			Expression = ReflectionVectorWS;
+		} else if (Type->Type == "MaterialExpressionGetMaterialAttributes") {
+			UMaterialExpressionGetMaterialAttributes* GetMaterialAttributes = Cast<UMaterialExpressionGetMaterialAttributes>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("MaterialAttributes", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput ExpressionInput = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					FMaterialAttributesInput* A = reinterpret_cast<FMaterialAttributesInput*>(&ExpressionInput);
+					GetMaterialAttributes->MaterialAttributes = *A;
+				}
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* AttributeGetTypesPtr;
+			if (Type->Json->TryGetArrayField("AttributeGetTypes", AttributeGetTypesPtr)) {
+				int i = 0;
+				for (const TSharedPtr<FJsonValue> AttributeGetTypeValue : *AttributeGetTypesPtr) {
+					FString AttributeGetType = AttributeGetTypeValue->AsString();
+					GetMaterialAttributes->AttributeGetTypes.Add(FGuid(AttributeGetType));
+					i++;
+				}
+			}
+
+			Expression = GetMaterialAttributes;
+		} else if (Type->Type == "MaterialExpressionBlendMaterialAttributes") {
+			UMaterialExpressionBlendMaterialAttributes* BlendMaterialAttributes = Cast<UMaterialExpressionBlendMaterialAttributes>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput ExpressionInput = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					FMaterialAttributesInput* A = reinterpret_cast<FMaterialAttributesInput*>(&ExpressionInput);
+					BlendMaterialAttributes->A = *A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput ExpressionInput = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					FMaterialAttributesInput* B = reinterpret_cast<FMaterialAttributesInput*>(&ExpressionInput);
+					BlendMaterialAttributes->B = *B;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* CPtr = nullptr;
+			if (Properties->TryGetObjectField("Alpha", CPtr) && CPtr != nullptr) {
+				FJsonObject* CObject = CPtr->Get();
+				FName CExpressionName = GetExpressionName(CObject);
+				if (CreatedExpressionMap.Contains(CExpressionName)) {
+					FExpressionInput C = PopulateExpressionInput(CObject, *CreatedExpressionMap.Find(CExpressionName));
+					BlendMaterialAttributes->Alpha = C;
+				}
+			}
+
+			FString PixelAttributeBlendTypeString;
+			if (Properties->TryGetStringField("PixelAttributeBlendType", PixelAttributeBlendTypeString)) {
+				EMaterialAttributeBlend::Type PixelAttributeBlendType = EMaterialAttributeBlend::Type::Blend;
+
+				if (PixelAttributeBlendTypeString.EndsWith("Blend")) PixelAttributeBlendType = EMaterialAttributeBlend::Type::Blend;
+				else if (PixelAttributeBlendTypeString.EndsWith("UseA")) PixelAttributeBlendType = EMaterialAttributeBlend::Type::UseA;
+				else if (PixelAttributeBlendTypeString.EndsWith("UseB")) PixelAttributeBlendType = EMaterialAttributeBlend::Type::UseB;
+
+				BlendMaterialAttributes->PixelAttributeBlendType = PixelAttributeBlendType;
+			}
+
+			FString VertexAttributeBlendTypeString;
+			if (Properties->TryGetStringField("VertexAttributeBlendType", VertexAttributeBlendTypeString)) {
+				EMaterialAttributeBlend::Type VertexAttributeBlendType = EMaterialAttributeBlend::Type::Blend;
+
+				if (VertexAttributeBlendTypeString.EndsWith("Blend")) VertexAttributeBlendType = EMaterialAttributeBlend::Type::Blend;
+				else if (VertexAttributeBlendTypeString.EndsWith("UseA")) VertexAttributeBlendType = EMaterialAttributeBlend::Type::UseA;
+				else if (VertexAttributeBlendTypeString.EndsWith("UseB")) VertexAttributeBlendType = EMaterialAttributeBlend::Type::UseB;
+
+				BlendMaterialAttributes->VertexAttributeBlendType = VertexAttributeBlendType;
+			}
+
+			Expression = BlendMaterialAttributes;
+		} else if (Type->Type == "MaterialExpressionChannelMaskParameter") {
+			UMaterialExpressionChannelMaskParameter* ChannelMaskParameter = Cast<UMaterialExpressionChannelMaskParameter>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Input", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					ChannelMaskParameter->Input = A;
+				}
+			}
+
+			FString MaskChannelTypeString;
+			if (Properties->TryGetStringField("MaskChannel", MaskChannelTypeString)) {
+				EChannelMaskParameterColor::Type MaskChannelType = EChannelMaskParameterColor::Type::Red;
+
+				if (MaskChannelTypeString.EndsWith("Red")) MaskChannelType = EChannelMaskParameterColor::Type::Red;
+				else if (MaskChannelTypeString.EndsWith("Green")) MaskChannelType = EChannelMaskParameterColor::Type::Green;
+				else if (MaskChannelTypeString.EndsWith("Blue")) MaskChannelType = EChannelMaskParameterColor::Type::Blue;
+				else if (MaskChannelTypeString.EndsWith("Alpha")) MaskChannelType = EChannelMaskParameterColor::Type::Alpha;
+
+				ChannelMaskParameter->MaskChannel = MaskChannelType;
+			}
+
+			Expression = ChannelMaskParameter;
+		} else if (Type->Type == "MaterialExpressionStaticComponentMaskParameter") {
+			UMaterialExpressionStaticComponentMaskParameter* StaticComponentMaskParameter = Cast<UMaterialExpressionStaticComponentMaskParameter>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Input", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					StaticComponentMaskParameter->Input = A;
+				}
+			}
+
+			// Reset to defaults
+			StaticComponentMaskParameter->DefaultR = false;
+			StaticComponentMaskParameter->DefaultG = false;
+			StaticComponentMaskParameter->DefaultB = false;
+			StaticComponentMaskParameter->DefaultA = false;
+
+			bool DefaultR;
+			if (Properties->TryGetBoolField("DefaultR", DefaultR)) StaticComponentMaskParameter->DefaultR = DefaultR;
+			bool DefaultG;
+			if (Properties->TryGetBoolField("DefaultG", DefaultG)) StaticComponentMaskParameter->DefaultG = DefaultG;
+			bool DefaultB;
+			if (Properties->TryGetBoolField("DefaultB", DefaultB)) StaticComponentMaskParameter->DefaultB = DefaultB;
+			bool DefaultA;
+			if (Properties->TryGetBoolField("DefaultA", DefaultA)) StaticComponentMaskParameter->DefaultA = DefaultA;
+
+			Expression = StaticComponentMaskParameter;
+		} else if (Type->Type == "MaterialExpressionShadingModel") {
+			UMaterialExpressionShadingModel* ShadingModel = Cast<UMaterialExpressionShadingModel>(Expression);
+
+			FString ShadingModelTypeString;
+			if (Properties->TryGetStringField("ShadingModel", ShadingModelTypeString)) {
+				EMaterialShadingModel ShadingModelType = MSM_DefaultLit;
+
+				if (ShadingModelTypeString.EndsWith("MSM_Unlit")) ShadingModelType = MSM_Unlit;
+				else if (ShadingModelTypeString.EndsWith("MSM_DefaultLit")) ShadingModelType = MSM_DefaultLit;
+				else if (ShadingModelTypeString.EndsWith("MSM_Subsurface")) ShadingModelType = MSM_Subsurface;
+				else if (ShadingModelTypeString.EndsWith("MSM_PreintegratedSkin")) ShadingModelType = MSM_PreintegratedSkin;
+				else if (ShadingModelTypeString.EndsWith("MSM_ClearCoat")) ShadingModelType = MSM_ClearCoat;
+				else if (ShadingModelTypeString.EndsWith("MSM_SubsurfaceProfile")) ShadingModelType = MSM_SubsurfaceProfile;
+				else if (ShadingModelTypeString.EndsWith("MSM_TwoSidedFoliage")) ShadingModelType = MSM_TwoSidedFoliage;
+				else if (ShadingModelTypeString.EndsWith("MSM_Hair")) ShadingModelType = MSM_Hair;
+				else if (ShadingModelTypeString.EndsWith("MSM_Cloth")) ShadingModelType = MSM_Cloth;
+				else if (ShadingModelTypeString.EndsWith("MSM_Eye")) ShadingModelType = MSM_Eye;
+				else if (ShadingModelTypeString.EndsWith("MSM_SingleLayerWater")) ShadingModelType = MSM_SingleLayerWater;
+				else if (ShadingModelTypeString.EndsWith("MSM_ThinTranslucent")) ShadingModelType = MSM_ThinTranslucent;
+				else if (ShadingModelTypeString.EndsWith("MSM_NUM")) ShadingModelType = MSM_NUM;
+				else if (ShadingModelTypeString.EndsWith("MSM_FromMaterialExpression")) ShadingModelType = MSM_FromMaterialExpression;
+				else if (ShadingModelTypeString.EndsWith("MSM_MAX")) ShadingModelType = MSM_MAX;
+
+				ShadingModel->ShadingModel = ShadingModelType;
+			}
+
+			Expression = ShadingModel;
+		} else if (Type->Type == "MaterialExpressionViewProperty") {
+			UMaterialExpressionViewProperty* ViewProperty = Cast<UMaterialExpressionViewProperty>(Expression);
+
+			FString PropertyString;
+			if (Properties->TryGetStringField("Property", PropertyString)) {
+				EMaterialExposedViewProperty Property = MEVP_ViewSize;
+
+				if (PropertyString.EndsWith("MEVP_BufferSize")) Property = MEVP_BufferSize;
+				else if (PropertyString.EndsWith("MEVP_FieldOfView")) Property = MEVP_FieldOfView;
+				else if (PropertyString.EndsWith("MEVP_TanHalfFieldOfView")) Property = MEVP_TanHalfFieldOfView;
+				else if (PropertyString.EndsWith("MEVP_ViewSize")) Property = MEVP_ViewSize;
+				else if (PropertyString.EndsWith("MEVP_WorldSpaceViewPosition")) Property = MEVP_WorldSpaceViewPosition;
+				else if (PropertyString.EndsWith("MEVP_WorldSpaceCameraPosition")) Property = MEVP_WorldSpaceCameraPosition;
+				else if (PropertyString.EndsWith("MEVP_ViewportOffset")) Property = MEVP_ViewportOffset;
+				else if (PropertyString.EndsWith("MEVP_TemporalSampleCount")) Property = MEVP_TemporalSampleCount;
+				else if (PropertyString.EndsWith("MEVP_TemporalSampleIndex")) Property = MEVP_TemporalSampleIndex;
+				else if (PropertyString.EndsWith("MEVP_TemporalSampleOffset")) Property = MEVP_TemporalSampleOffset;
+				else if (PropertyString.EndsWith("MEVP_RuntimeVirtualTextureOutputLevel")) Property = MEVP_RuntimeVirtualTextureOutputLevel;
+				else if (PropertyString.EndsWith("MEVP_RuntimeVirtualTextureOutputDerivative")) Property = MEVP_RuntimeVirtualTextureOutputDerivative;
+				else if (PropertyString.EndsWith("MEVP_PreExposure")) Property = MEVP_PreExposure;
+				else if (PropertyString.EndsWith("MEVP_MAX")) Property = MEVP_MAX;
+
+				ViewProperty->Property = Property;
+			}
+
+			Expression = ViewProperty;
 		} else if (Type->Type == "MaterialExpressionSetMaterialAttributes") {
 			UMaterialExpressionSetMaterialAttributes* SetMaterialAttributes = Cast<UMaterialExpressionSetMaterialAttributes>(Expression);
 
@@ -1390,7 +1656,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 					if (CreatedExpressionMap.Contains(InputExpressionName)) {
 						FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
 						Input.InputName = FName(*InputObject->GetStringField("InputName"));
-						SetMaterialAttributes->Inputs[i] = Input;
+						SetMaterialAttributes->Inputs.Add(Input);
 					}
 					i++;
 				}
