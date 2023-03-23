@@ -1,4 +1,4 @@
-﻿// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -103,6 +103,13 @@ protected:
 		"MaterialExpressionSkyAtmosphereLightIlluminance",
 		"MaterialExpressionSkyAtmosphereDistantLightScatteredLuminance",
 		"MaterialExpressionSkyAtmosphereLightDiskLuminance",
+		"MaterialExpressionBumpOffset",
+		"MaterialExpressionFresnel",
+		"MaterialExpressionMaterialProxyReplace",
+		"MaterialExpressionSetMaterialAttributes",
+		"MaterialExpressionSquareRoot",
+		"MaterialExpressionTwoSidedSign",
+		"MaterialExpressionVertexColor",
 		"MaterialExpressionTruncate"
 	};
 
