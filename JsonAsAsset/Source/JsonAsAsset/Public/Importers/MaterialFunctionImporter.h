@@ -102,12 +102,14 @@ protected:
 		"MaterialExpressionSkyAtmosphereLightDirection",
 		"MaterialExpressionSkyAtmosphereLightIlluminance",
 		"MaterialExpressionSkyAtmosphereDistantLightScatteredLuminance",
-		"MaterialExpressionSkyAtmosphereLightDiskLuminance"
+		"MaterialExpressionSkyAtmosphereLightDiskLuminance",
+		"MaterialExpressionTruncate"
 	};
 
 	inline static TArray<FString> IgnoredTypes = {
 		"MaterialExpressionComposite",
-		"MaterialExpressionPinBase"
+		"MaterialExpressionPinBase",
+		"MaterialExpressionComment"
 	};
 
 	struct FImportData {

@@ -21,7 +21,6 @@
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionSkyAtmosphereLightDirection.h"
 #include "Materials/MaterialExpressionSkyAtmosphereLightIlluminance.h"
-#include "Materials/MaterialExpressionSkyAtmosphereViewLuminance.h"
 #include "Materials/MaterialExpressionDesaturation.h"
 #include "Materials/MaterialExpressionDistance.h"
 #include "Materials/MaterialExpressionDivide.h"
@@ -34,9 +33,7 @@
 #include "Materials/MaterialExpressionRotateAboutAxis.h"
 #include "Materials/MaterialExpressionShadingPathSwitch.h"
 #include "Materials/MaterialExpressionTransform.h"
-#include "Materials/MaterialExpressionCameraVectorWS.h"
 #include "Materials/MaterialExpressionVertexInterpolator.h"
-#include "Materials/MaterialExpressionVertexNormalWS.h"
 #include "Materials/MaterialExpressionDotProduct.h"
 #include "Materials/MaterialExpressionFloor.h"
 #include "Materials/MaterialExpressionFmod.h"
@@ -78,6 +75,7 @@
 #include "Materials/MaterialExpressionDynamicParameter.h"
 #include "Materials/MaterialExpressionFeatureLevelSwitch.h"
 #include "Materials/MaterialExpressionNormalize.h"
+#include "Materials/MaterialExpressionTruncate.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
 
 bool UMaterialFunctionImporter::ImportData() {
@@ -927,8 +925,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetStringField("DeclarationGuid", DeclarationGuid)) NamedRerouteUsage->DeclarationGuid = FGuid(DeclarationGuid);
 
 			Expression = NamedRerouteUsage;
-		}
-		else if (Type->Type == "MaterialExpressionCollectionParameter") {
+		} else if (Type->Type == "MaterialExpressionCollectionParameter") {
 			UMaterialExpressionCollectionParameter* CollectionParameter = Cast<UMaterialExpressionCollectionParameter>(Expression);
 
 			const TSharedPtr<FJsonObject>* Collection = nullptr;
@@ -1053,8 +1050,6 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetNumberField("ConstB", ConstB)) Divide->ConstB = ConstB;
 
 			Expression = Divide;
-		} else if (Type->Type == "MaterialExpressionCameraVectorWS") {
-
 		} else if (Type->Type == "MaterialExpressionDistance") {
 			UMaterialExpressionDistance* Distance = Cast<UMaterialExpressionDistance>(Expression);
 
@@ -2239,6 +2234,20 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = LightIlluminance;
+		} else if (Type->Type == "MaterialExpressionTruncate") {
+			UMaterialExpressionTruncate* Truncate = Cast<UMaterialExpressionTruncate>(Expression);
+
+			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
+				FJsonObject* InputObject = InputPtr->Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					Truncate->Input = Input;
+				}
+			}
+
+			Expression = Truncate;
 		}
 
 		AddGenerics(Parent, Expression, Properties);

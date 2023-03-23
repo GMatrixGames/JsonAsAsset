@@ -74,10 +74,8 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			FTextureParameterValue Parameter;
 			Parameter.ExpressionGUID = FGuid(Texture->GetStringField("ExpressionGUID"));
 
-			FSoftObjectPath TextureRef;
-
 			const TSharedPtr<FJsonObject>* TexturePtr = nullptr;
-			if (Properties->TryGetObjectField("ParameterValue", TexturePtr) && TexturePtr != nullptr) {
+			if (Texture->TryGetObjectField("ParameterValue", TexturePtr) && TexturePtr != nullptr) {
 				Parameter.ParameterValue = LoadObject<UTexture>(TexturePtr);
 			}
 
