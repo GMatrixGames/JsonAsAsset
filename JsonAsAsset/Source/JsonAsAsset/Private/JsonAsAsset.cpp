@@ -64,8 +64,6 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 
 	// None selected
 	if (OutFileNames.Num() == 0) {
-		const FText DialogText = FText::FromString("A file is required to use this plugin, please select one next time.");
-		FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 		return;
 	}
 

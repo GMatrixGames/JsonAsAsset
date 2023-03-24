@@ -22,6 +22,7 @@
 #include "Materials/MaterialExpressionBumpOffset.h"
 #include "Materials/MaterialExpressionFresnel.h"
 #include "Materials/MaterialExpressionMaterialProxyReplace.h"
+#include "Materials/MaterialExpressionAbsorptionMediumMaterialOutput.h"
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
 #include "Materials/MaterialExpressionSquareRoot.h"
 #include "Materials/MaterialExpressionSkyAtmosphereLightDirection.h"
@@ -55,8 +56,10 @@
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
 #include "Materials/MaterialExpressionIf.h"
+#include "Materials/MaterialExpressionIfThenElse.h"
 #include "Materials/MaterialExpressionBlendMaterialAttributes.h"
 #include "Materials/MaterialExpressionLinearInterpolate.h"
+#include "Materials/MaterialExpressionInverseLinearInterpolate.h"
 #include "Materials/MaterialExpressionGetMaterialAttributes.h"
 #include "Materials/MaterialExpressionMax.h"
 #include "Materials/MaterialExpressionMin.h"
@@ -93,6 +96,7 @@
 #include "Materials/MaterialExpressionNormalize.h"
 #include "Materials/MaterialExpressionTruncate.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
+#include "Materials/MaterialExpressionNoise.h"
 
 bool UMaterialFunctionImporter::ImportData() {
 	try {
@@ -415,6 +419,20 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetNumberField("ConstAlpha", ConstAlpha)) LinearInterpolate->ConstAlpha = ConstAlpha;
 
 			Expression = LinearInterpolate;
+		} else if (Type->Type == "MaterialExpressionAbsorptionMediumMaterialOutput") {
+			UMaterialExpressionAbsorptionMediumMaterialOutput* AbsorptionMediumMaterialOutput = Cast<UMaterialExpressionAbsorptionMediumMaterialOutput>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("TransmittanceColor", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					AbsorptionMediumMaterialOutput->TransmittanceColor = A;
+				}
+			}
+
+			Expression = AbsorptionMediumMaterialOutput;
 		} else if (Type->Type == "MaterialExpressionComponentMask") {
 			UMaterialExpressionComponentMask* ComponentMask = Cast<UMaterialExpressionComponentMask>(Expression);
 
@@ -1278,6 +1296,64 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = RotateAboutAxis;
+		} else if (Type->Type == "MaterialExpressionNoise") {
+			UMaterialExpressionNoise* Noise = Cast<UMaterialExpressionNoise>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Position", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					Noise->Position = A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("FilterWidth", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					Noise->FilterWidth = B;
+				}
+			}
+
+			float Scale;
+			if (Properties->TryGetNumberField("Scale", Scale)) Noise->Scale = Scale;
+			int Quality;
+			if (Properties->TryGetNumberField("Quality", Quality)) Noise->Quality = Quality;
+
+			FString NoiseFunctionString;
+			if (Properties->TryGetStringField("NoiseFunction", NoiseFunctionString)) {
+				ENoiseFunction NoiseFunction = NOISEFUNCTION_SimplexTex;
+
+				if (NoiseFunctionString.EndsWith("NOISEFUNCTION_SimplexTex")) NoiseFunction = NOISEFUNCTION_SimplexTex;
+				else if (NoiseFunctionString.EndsWith("NOISEFUNCTION_GradientTex")) NoiseFunction = NOISEFUNCTION_GradientTex;
+				else if (NoiseFunctionString.EndsWith("NOISEFUNCTION_GradientTex3D")) NoiseFunction = NOISEFUNCTION_GradientTex3D;
+				else if (NoiseFunctionString.EndsWith("NOISEFUNCTION_GradientALU")) NoiseFunction = NOISEFUNCTION_GradientALU;
+				else if (NoiseFunctionString.EndsWith("NOISEFUNCTION_ValueALU")) NoiseFunction = NOISEFUNCTION_ValueALU;
+				else if (NoiseFunctionString.EndsWith("NOISEFUNCTION_VoronoiALU")) NoiseFunction = NOISEFUNCTION_VoronoiALU;
+
+				Noise->NoiseFunction = NoiseFunction;
+			}
+
+			bool bTurbulence;
+			if (Properties->TryGetBoolField("bTurbulence", bTurbulence)) Noise->bTurbulence = bTurbulence;
+			int Levels;
+			if (Properties->TryGetNumberField("Levels", Levels)) Noise->Levels = Levels;
+			float OutputMin;
+			if (Properties->TryGetNumberField("OutputMin", OutputMin)) Noise->OutputMin = OutputMin;
+			float OutputMax;
+			if (Properties->TryGetNumberField("OutputMax", OutputMax)) Noise->OutputMax = OutputMax;
+			float LevelScale;
+			if (Properties->TryGetNumberField("LevelScale", LevelScale)) Noise->LevelScale = LevelScale;
+			bool bTiling;
+			if (Properties->TryGetBoolField("bTiling", bTiling)) Noise->bTiling = bTiling;
+			bool RepeatSize;
+			if (Properties->TryGetBoolField("RepeatSize", RepeatSize)) Noise->RepeatSize = RepeatSize;
+
+			Expression = Noise;
 		} else if (Type->Type == "MaterialExpressionBumpOffset") {
 			UMaterialExpressionBumpOffset* BumpOffset = Cast<UMaterialExpressionBumpOffset>(Expression);
 
@@ -1477,7 +1553,6 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 					i++;
 				}
 			}
-
 
 			const TArray<TSharedPtr<FJsonValue>>* OutputsPtr;
 			if (Properties->TryGetArrayField("Outputs", OutputsPtr)) {
