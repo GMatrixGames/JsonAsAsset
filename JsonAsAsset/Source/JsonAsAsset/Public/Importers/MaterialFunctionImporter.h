@@ -107,6 +107,9 @@ protected:
 		"MaterialExpressionFresnel",
 		"MaterialExpressionMaterialProxyReplace",
 		"MaterialExpressionSetMaterialAttributes",
+		"MaterialExpressionGetMaterialAttributes",
+		"MaterialExpressionMakeMaterialAttributes",
+		"MaterialExpressionBlendMaterialAttributes",
 		"MaterialExpressionSquareRoot",
 		"MaterialExpressionTwoSidedSign",
 		"MaterialExpressionVertexColor",
@@ -121,10 +124,11 @@ protected:
 		"MaterialExpressionChannelMaskParameter",
 		"MaterialExpressionRayTracingQualitySwitch",
 		"MaterialExpressionDistanceCullFade",
-		"MaterialExpressionBlendMaterialAttributes",
 		"MaterialExpressionStaticComponentMaskParameter",
 		"MaterialExpressionPixelNormalWS",
-		"MaterialExpressionShaderStageSwitch"
+		"MaterialExpressionShaderStageSwitch",
+		"MaterialExpressionStaticBoolParameter",
+		"MaterialExpressionPreSkinnedNormal"
 	};
 
 	inline static TArray<FString> IgnoredTypes = {
