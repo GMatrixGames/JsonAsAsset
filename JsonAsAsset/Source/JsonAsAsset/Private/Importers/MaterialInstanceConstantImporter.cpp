@@ -2,6 +2,7 @@
 
 #include "Importers/MaterialInstanceConstantImporter.h"
 
+#include "RemoteAssetDownloader.h"
 #include "Dom/JsonObject.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Utilities/MathUtilities.h"
@@ -12,6 +13,16 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 		UMaterialInstanceConstant* MaterialInstanceConstant = NewObject<UMaterialInstanceConstant>(Package, UMaterialInstanceConstant::StaticClass(), *FileName, RF_Public | RF_Standalone);
 		HandleAssetCreation(MaterialInstanceConstant);
+
+		TArray<TSharedPtr<FJsonObject>> EditorOnlyData;
+
+		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
+			TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
+
+			if (Object->GetStringField("Type") == "MaterialInstanceEditorOnlyData") {
+				EditorOnlyData.Add(Object);
+			}
+		}
 
 		const TSharedPtr<FJsonObject>* ParentPtr = nullptr;
 		if (Properties->TryGetObjectField("Parent", ParentPtr) && ParentPtr != nullptr) {
@@ -76,7 +87,21 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 			const TSharedPtr<FJsonObject>* TexturePtr = nullptr;
 			if (Texture->TryGetObjectField("ParameterValue", TexturePtr) && TexturePtr != nullptr) {
-				Parameter.ParameterValue = LoadObject<UTexture>(TexturePtr);
+				FString Type;
+				FString Name;
+				TexturePtr->Get()->GetStringField("ObjectName").Split("'", &Type, &Name);
+				FString Path;
+				TexturePtr->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
+				Name = Name.Replace(TEXT("'"), TEXT(""));
+
+				UTexture2D* Tex = LoadObject<UTexture2D>(TexturePtr);
+				if (Tex == nullptr) {
+					if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Tex)) {
+						UE_LOG(LogJson, Log, TEXT("Something went wrong here!!"))
+					}
+				}
+
+				Parameter.ParameterValue = Tex;
 			}
 
 			TSharedPtr<FJsonObject> ParameterInfoJson = Texture->GetObjectField("ParameterInfo");
@@ -93,8 +118,14 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 		MaterialInstanceConstant->TextureParameterValues = TextureParameterValues;
 
 		TArray<TSharedPtr<FJsonValue>> Static;
+		const TSharedPtr<FJsonObject>* StaticParams;
 
-		if (const TSharedPtr<FJsonObject>* StaticParams; Properties->TryGetObjectField("StaticParameters", StaticParams)) {
+		if (EditorOnlyData.Num() > 0) {
+			for (TSharedPtr<FJsonObject> Ed : EditorOnlyData) {
+				if (Ed->GetObjectField("Properties")->TryGetObjectField("StaticParameters", StaticParams))
+					Static = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
+			}
+		} else if (Properties->TryGetObjectField("StaticParameters", StaticParams)) {
 			Static = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
 		} else if (Properties->TryGetObjectField("StaticParametersRuntime", StaticParams)) {
 			Static = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
@@ -121,7 +152,7 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			StaticSwitchParameters.Add(Parameter);
 		}
 
-		//MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
+		MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;

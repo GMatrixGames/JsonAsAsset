@@ -29,6 +29,7 @@
 #include "Importers/MaterialFunctionImporter.h"
 #include "Importers/MaterialImporter.h"
 #include "Importers/MaterialInstanceConstantImporter.h"
+#include "Utilities/AssetUtilities.h"
 
 // ------------------------------------------------------ |
 
@@ -104,7 +105,7 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 
 			if (IImporter::CanImport(Type)) {
 				UPackage* OutermostPkg;
-				UPackage* Package = CreateAssetPackage(Name, OutFileNames, OutermostPkg);
+				UPackage* Package = FAssetUtilities::CreateAssetPackage(Name, OutFileNames[0], OutermostPkg);
 				IImporter* Importer;
 
 				// TODO: Make this much cleaner
@@ -120,7 +121,7 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 
 				else if (Type == "Material") Importer = new UMaterialImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
 				else if (Type == "MaterialFunction") Importer = new UMaterialFunctionImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
-				else if (Type == "MaterialInstanceConstant") Importer = new UMaterialInstanceConstantImporter(Name, DataObject, Package, OutermostPkg);
+				else if (Type == "MaterialInstanceConstant") Importer = new UMaterialInstanceConstantImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
 
 				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, DataObject, Package, OutermostPkg);
@@ -182,29 +183,6 @@ TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) 
 	}
 
 	return ReturnValue;
-}
-
-UPackage* FJsonAsAssetModule::CreateAssetPackage(const FString& Name, const TArray<FString>& Files) const {
-	UPackage* Ignore = nullptr;
-	return CreateAssetPackage(Name, Files, Ignore);
-}
-
-UPackage* FJsonAsAssetModule::CreateAssetPackage(const FString& Name, const TArray<FString>& Files, UPackage*& OutOutermostPkg) const {
-	// TODO: Support virtual paths (plugins)
-	const FString OutputPath = Files[0];
-	FString Path;
-
-	OutputPath.Split("FortniteGame/Content", nullptr, &Path);
-	Path.Split("/", &Path, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-
-	const FString PathWithGame = "/Game" + Path + "/" + Name;
-	UPackage* Package = CreatePackage(*PathWithGame);
-	OutOutermostPkg = Package->GetOutermost();
-	Package->FullyLoad();
-
-	GLog->Log(Path);
-
-	return Package;
 }
 
 #undef LOCTEXT_NAMESPACE

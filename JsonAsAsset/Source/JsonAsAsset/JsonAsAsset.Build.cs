@@ -14,7 +14,8 @@ public class JsonAsAsset : ModuleRules
 				"Core",
 				"Json",
 				"JsonUtilities",
-				"UMG"
+				"UMG",
+				"HTTP"
 			}
 		);
 

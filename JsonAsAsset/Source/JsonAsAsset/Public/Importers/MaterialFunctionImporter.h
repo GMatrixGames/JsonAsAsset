@@ -160,7 +160,8 @@ protected:
 	inline static TArray<FString> IgnoredTypes = {
 		"MaterialExpressionComposite",
 		"MaterialExpressionPinBase",
-		"MaterialExpressionComment"
+		"MaterialExpressionComment",
+		"MaterialFunction"
 	};
 
 	struct FImportData {

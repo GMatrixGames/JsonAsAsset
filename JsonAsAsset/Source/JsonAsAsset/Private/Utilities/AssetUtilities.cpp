@@ -6,6 +6,38 @@
 #include "IContentBrowserSingleton.h"
 #include "Dom/JsonObject.h"
 
+UPackage* FAssetUtilities::CreateAssetPackage(const FString& FullPath) {
+	UPackage* Package = CreatePackage(*FullPath);
+	UPackage* _ = Package->GetOutermost();
+	Package->FullyLoad();
+
+	GLog->Log(FullPath);
+
+	return Package;
+}
+
+UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString& OutputPath) {
+	UPackage* Ignore = nullptr;
+	return CreateAssetPackage(Name, OutputPath, Ignore);
+}
+
+UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString& OutputPath, UPackage*& OutOutermostPkg) {
+	// TODO: Support virtual paths (plugins)
+	FString Path;
+
+	OutputPath.Split("FortniteGame/Content", nullptr, &Path);
+	Path.Split("/", &Path, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+	const FString PathWithGame = "/Game" + Path + "/" + Name;
+	UPackage* Package = CreatePackage(*PathWithGame);
+	OutOutermostPkg = Package->GetOutermost();
+	Package->FullyLoad();
+
+	GLog->Log(Path);
+
+	return Package;
+}
+
 UObject* FAssetUtilities::GetSelectedAsset() {
 	const FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	TArray<FAssetData> SelectedAssets;
@@ -35,4 +67,8 @@ FRichCurveKey FAssetUtilities::ObjectToRichCurveKey(const TSharedPtr<FJsonObject
 	else InterpMode = RCIM_None;
 
 	return FRichCurveKey(Object->GetNumberField("Time"), Object->GetNumberField("Value"), Object->GetNumberField("ArriveTangent"), Object->GetNumberField("LeaveTangent"), InterpMode);
+}
+
+UEnum* FAssetUtilities::GetEnumOfType(const FString& ScriptPath) {
+	return FindObject<UEnum>(nullptr, *ScriptPath);
 }

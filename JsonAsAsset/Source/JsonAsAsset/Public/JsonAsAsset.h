@@ -30,7 +30,4 @@ private:
 	
 	// Creates a dialog for a file
 	TArray<FString> OpenFileDialog(FString Title, FString Type);
-
-	UPackage* CreateAssetPackage(const FString& Name, const TArray<FString>& Files) const;
-	UPackage* CreateAssetPackage(const FString& Name, const TArray<FString>& Files, UPackage*& OutOutermostPkg) const;
 };

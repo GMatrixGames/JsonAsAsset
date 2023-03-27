@@ -33,7 +33,6 @@
 #include "Materials/MaterialExpressionViewProperty.h"
 #include "Materials/MaterialExpressionChannelMaskParameter.h"
 #include "Materials/MaterialExpressionShadingModel.h"
-#include "Materials/MaterialExpressionSkyAtmosphereViewLuminance.h"
 #include "Materials/MaterialExpressionDesaturation.h"
 #include "Materials/MaterialExpressionDistance.h"
 #include "Materials/MaterialExpressionDivide.h"

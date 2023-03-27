@@ -6,8 +6,8 @@
 
 class UMaterialInstanceConstantImporter : public IImporter {
 public:
-	UMaterialInstanceConstantImporter(const FString& FileName, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg):
-		IImporter(FileName, JsonObject, Package, OutermostPkg) {
+	UMaterialInstanceConstantImporter(const FString& FileName, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg, const TArray<TSharedPtr<FJsonValue>>& AllJsonObjects):
+		IImporter(FileName, JsonObject, Package, OutermostPkg, AllJsonObjects) {
 	}
 
 	virtual bool ImportData() override;

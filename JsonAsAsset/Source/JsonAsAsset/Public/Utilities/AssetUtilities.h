@@ -5,6 +5,10 @@
 class FAssetUtilities
 {
 public:
+	static UPackage* CreateAssetPackage(const FString& FullPath);
+	static UPackage* CreateAssetPackage(const FString& Name, const FString& OutputPath);
+	static UPackage* CreateAssetPackage(const FString& Name, const FString& OutputPath, UPackage*& OutOutermostPkg);
+	
 	/**
 	 * Get the asset currently selected in the Content Browser.
 	 * 
@@ -13,4 +17,6 @@ public:
 	static UObject* GetSelectedAsset();
 
 	static FRichCurveKey ObjectToRichCurveKey(const TSharedPtr<FJsonObject>& Object);
+
+	static UEnum* GetEnumOfType(const FString& ScriptPath);
 };
