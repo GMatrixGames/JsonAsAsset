@@ -84,7 +84,7 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTe
 					Package->SetDirtyFlag(true);
 					OutTexture->PostEditChange();
 					OutTexture->AddToRoot();
-					SavePackageHelper(Package, *Package->GetName());
+					// SavePackageHelper(OutTexture->GetPackage(), *OutTexture->GetName());
 				}
 			}
 		}

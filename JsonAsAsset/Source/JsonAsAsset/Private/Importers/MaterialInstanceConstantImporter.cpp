@@ -155,7 +155,7 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 		MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
 
-		SavePackageHelper(Package, *Package->GetName());
+		// SavePackageHelper(Package, *Package->GetName());
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
