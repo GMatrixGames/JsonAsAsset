@@ -2,6 +2,7 @@
 
 #include "Importers/MaterialInstanceConstantImporter.h"
 
+#include "PackageHelperFunctions.h"
 #include "RemoteAssetDownloader.h"
 #include "Dom/JsonObject.h"
 #include "Materials/MaterialInstanceConstant.h"
@@ -153,6 +154,8 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 		}
 
 		MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
+
+		SavePackageHelper(Package, *Package->GetName());
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
