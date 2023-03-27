@@ -79,9 +79,11 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTe
 					FString PixelFormat;
 					if (TextureJson->TryGetStringField("PixelFormat", PixelFormat)) PlatformData->PixelFormat = static_cast<EPixelFormat>(OutTexture->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
 
-					OutTexture->RemoveFromRoot();
-					if (!Package->MarkPackageDirty()) return false;
 					FAssetRegistryModule::AssetCreated(OutTexture);
+					if (!OutTexture->MarkPackageDirty()) return false;
+					Package->SetDirtyFlag(true);
+					OutTexture->PostEditChange();
+					OutTexture->AddToRoot();
 					SavePackageHelper(Package, *Package->GetName());
 				}
 			}
