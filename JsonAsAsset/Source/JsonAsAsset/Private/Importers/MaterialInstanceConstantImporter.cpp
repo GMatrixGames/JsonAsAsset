@@ -2,7 +2,6 @@
 
 #include "Importers/MaterialInstanceConstantImporter.h"
 
-#include "PackageHelperFunctions.h"
 #include "RemoteAssetDownloader.h"
 #include "Dom/JsonObject.h"
 #include "Materials/MaterialInstanceConstant.h"
@@ -123,8 +122,11 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 		if (EditorOnlyData.Num() > 0) {
 			for (TSharedPtr<FJsonObject> Ed : EditorOnlyData) {
-				if (Ed->GetObjectField("Properties")->TryGetObjectField("StaticParameters", StaticParams))
-					Static = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
+				if (Ed->GetObjectField("Properties")->TryGetObjectField("StaticParameters", StaticParams)) {
+					for (TSharedPtr<FJsonValue> Parameter : StaticParams->Get()->GetArrayField("StaticSwitchParameters")) {
+						Static.Add(TSharedPtr(Parameter));
+					}
+				}
 			}
 		} else if (Properties->TryGetObjectField("StaticParameters", StaticParams)) {
 			Static = StaticParams->Get()->GetArrayField("StaticSwitchParameters");

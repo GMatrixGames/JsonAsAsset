@@ -3,7 +3,6 @@
 #include "RemoteAssetDownloader.h"
 
 #include "HttpModule.h"
-#include "PackageHelperFunctions.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Factories/TextureFactory.h"
 #include "Interfaces/IHttpResponse.h"
@@ -63,10 +62,26 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTe
 					FString LightingGuid;
 					if (TextureJson->GetObjectField("Properties")->TryGetStringField("LightingGuid", LightingGuid)) OutTexture->SetLightingGuid(FGuid(LightingGuid));
 
+					FString CompressionSettings;
+					if (TextureJson->GetObjectField("Properties")->TryGetStringField("CompressionSettings", CompressionSettings)) {
+						OutTexture->CompressionSettings = static_cast<TextureCompressionSettings>(FAssetUtilities::GetEnumOfType("/Script/Engine.TextureCompressionSettings")->GetValueByNameString(CompressionSettings));
+					}
+
+					FString Filter;
+					if (TextureJson->GetObjectField("Properties")->TryGetStringField("Filter", Filter)) {
+						OutTexture->Filter = static_cast<TextureFilter>(FAssetUtilities::GetEnumOfType("/Script/Engine.TextureFilter")->GetValueByNameString(Filter));
+					}
+
 					FString LODGroup;
 					if (TextureJson->GetObjectField("Properties")->TryGetStringField("LODGroup", LODGroup)) {
 						OutTexture->LODGroup = static_cast<TextureGroup>(FAssetUtilities::GetEnumOfType("/Script/Engine.TextureGroup")->GetValueByNameString(LODGroup));
 					}
+
+					bool SRGB;
+					if (TextureJson->GetObjectField("Properties")->TryGetBoolField("SRGB", SRGB)) OutTexture->SRGB = SRGB;
+
+					bool NeverStream;
+					if (TextureJson->GetObjectField("Properties")->TryGetBoolField("NeverStream", NeverStream)) OutTexture->NeverStream = NeverStream;
 
 					FTexturePlatformData* PlatformData = OutTexture->GetPlatformData();
 
