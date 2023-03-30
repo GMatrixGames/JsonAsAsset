@@ -62,13 +62,10 @@ void FJsonAsAssetModule::ShutdownModule() {
 void FJsonAsAssetModule::PluginButtonClicked() {
 	// Dialog for a JSON File
 	TArray<FString> OutFileNames = OpenFileDialog("Open a JSON file!", "JSON Files|*.json");
-
-	// None selected
 	if (OutFileNames.Num() == 0) {
 		return;
 	}
 
-	// File name
 	FString File = OutFileNames[0];
 
 	/*----------------------  Parse JSON into UE JSON Reader---------------------- */
@@ -108,7 +105,6 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 				UPackage* Package = FAssetUtilities::CreateAssetPackage(Name, OutFileNames[0], OutermostPkg);
 				IImporter* Importer;
 
-				// TODO: Make this much cleaner
 				if (Type == "CurveFloat") Importer = new UCurveFloatImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "CurveLinearColor") Importer = new UCurveLinearColorImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "AnimSequence") Importer = new UAnimationBaseImporter(Name, DataObject, Package, OutermostPkg);

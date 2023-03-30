@@ -23,6 +23,7 @@ protected:
 		"MaterialExpressionConstant",
 		"MaterialExpressionConstant2Vector",
 		"MaterialExpressionConstant3Vector",
+		"MaterialExpressionConstant4Vector",
 		"MaterialExpressionConstantBiasScale",
 		"MaterialExpressionFrac",
 		"MaterialExpressionLinearInterpolate",
@@ -82,6 +83,8 @@ protected:
 		"MaterialExpressionTextureProperty",
 		"MaterialExpressionWorldPosition",
 		"MaterialExpressionNormalize",
+		"MaterialExpressionArcsine",
+		"MaterialExpressionArcsineFast",
 		"MaterialExpressionViewSize",
 		"MaterialExpressionDynamicParameter",
 		"MaterialExpressionEyeAdaptation",
@@ -109,6 +112,7 @@ protected:
 		"MaterialExpressionSkyAtmosphereLightDiskLuminance",
 		"MaterialExpressionBumpOffset",
 		"MaterialExpressionFresnel",
+		"MaterialExpressionNaniteReplace",
 		"MaterialExpressionParticleSubUVProperties",
 		"MaterialExpressionParticleSpeed",
 		"MaterialExpressionParticleSize",
@@ -125,6 +129,7 @@ protected:
 		"MaterialExpressionGetMaterialAttributes",
 		"MaterialExpressionMakeMaterialAttributes",
 		"MaterialExpressionBlendMaterialAttributes",
+		"MaterialExpressionBreakMaterialAttributes",
 		"MaterialExpressionSquareRoot",
 		"MaterialExpressionTwoSidedSign",
 		"MaterialExpressionVertexColor",
@@ -132,6 +137,7 @@ protected:
 		"MaterialExpressionActorPositionWS",
 		"MaterialExpressionPixelNormalWS",
 		"MaterialExpressionPixelDepth",
+		"MaterialExpressionSceneDepth",
 		"MaterialExpressionPreSkinnedPosition",
 		"MaterialExpressionReflectionVectorWS",
 		"MaterialExpressionPrecomputedAOMask",
@@ -154,14 +160,22 @@ protected:
 		"MaterialExpressionLightmapUVs",
 		"MaterialExpressionCloudLayer",
 		"MaterialExpressionDeltaTime",
-		"MaterialExpressionIsOrthographic"
+		"MaterialExpressionIsOrthographic",
+		"MaterialExpressionDDX",
+		"MaterialExpressionDDY",
+		"MaterialExpressionMaterialLayerOutput",
+		"MaterialExpressionArctangent2Fast",
+		"MaterialExpressionArctangentFast",
+		"MaterialExpressionArctangent2",
+		"MaterialExpressionArctangent"
 	};
 
 	inline static TArray<FString> IgnoredTypes = {
 		"MaterialExpressionComposite",
 		"MaterialExpressionPinBase",
 		"MaterialExpressionComment",
-		"MaterialFunction"
+		"MaterialFunction",
+		"Material"
 	};
 
 	struct FImportData {

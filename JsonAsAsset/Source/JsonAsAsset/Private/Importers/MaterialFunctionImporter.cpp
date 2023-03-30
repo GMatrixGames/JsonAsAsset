@@ -1,24 +1,33 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Importers/MaterialFunctionImporter.h"
+#include "Factories/MaterialFunctionFactoryNew.h"
 
 #include "Curves/CurveLinearColorAtlas.h"
 #include "Dom/JsonObject.h"
-#include "Factories/MaterialFunctionFactoryNew.h"
+#include "Utilities/MathUtilities.h"
+#include "Materials/MaterialParameterCollection.h"
+
+// Expressions
 #include "Materials/MaterialExpressionAbs.h"
 #include "Materials/MaterialExpressionAdd.h"
 #include "Materials/MaterialExpressionAppendVector.h"
 #include "Materials/MaterialExpressionCeil.h"
+#include "Materials/MaterialExpressionSceneDepth.h"
 #include "Materials/MaterialExpressionClamp.h"
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionComponentMask.h"
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionConstant2Vector.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
+#include "Materials/MaterialExpressionConstant4Vector.h"
 #include "Materials/MaterialExpressionConstantBiasScale.h"
+#include "Materials/MaterialExpressionNaniteReplace.h"
 #include "Materials/MaterialExpressionCosine.h"
 #include "Materials/MaterialExpressionCurveAtlasRowParameter.h"
 #include "Materials/MaterialExpressionCustom.h"
+#include "Materials/MaterialExpressionArcsine.h"
+#include "Materials/MaterialExpressionArcsineFast.h"
 #include "Materials/MaterialExpressionBumpOffset.h"
 #include "Materials/MaterialExpressionFresnel.h"
 #include "Materials/MaterialExpressionMaterialProxyReplace.h"
@@ -36,13 +45,18 @@
 #include "Materials/MaterialExpressionDesaturation.h"
 #include "Materials/MaterialExpressionDistance.h"
 #include "Materials/MaterialExpressionDivide.h"
+#include "Materials/MaterialExpressionDDX.h"
+#include "Materials/MaterialExpressionDDY.h"
 #include "Materials/MaterialExpressionCrossProduct.h"
 #include "Materials/MaterialExpressionDepthFade.h"
-#include "Materials/MaterialParameterCollection.h"
 #include "Materials/MaterialExpressionRayTracingQualitySwitch.h"
 #include "Materials/MaterialExpressionDeriveNormalZ.h"
 #include "Materials/MaterialExpressionQualitySwitch.h"
 #include "Materials/MaterialExpressionReflectionCapturePassSwitch.h"
+#include "Materials/MaterialExpressionArctangent2Fast.h"
+#include "Materials/MaterialExpressionArctangentFast.h"
+#include "Materials/MaterialExpressionArctangent2.h"
+#include "Materials/MaterialExpressionArctangent.h"
 #include "Materials/MaterialExpressionRotateAboutAxis.h"
 #include "Materials/MaterialExpressionMakeMaterialAttributes.h"
 #include "Materials/MaterialExpressionShadingPathSwitch.h"
@@ -60,6 +74,7 @@
 #include "Materials/MaterialExpressionLinearInterpolate.h"
 #include "Materials/MaterialExpressionInverseLinearInterpolate.h"
 #include "Materials/MaterialExpressionGetMaterialAttributes.h"
+#include "Materials/MaterialExpressionBreakMaterialAttributes.h"
 #include "Materials/MaterialExpressionMax.h"
 #include "Materials/MaterialExpressionMin.h"
 #include "Materials/MaterialExpressionMultiply.h"
@@ -89,7 +104,6 @@
 #include "Materials/MaterialExpressionTime.h"
 #include "Materials/MaterialExpressionTransformPosition.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
-#include "Utilities/MathUtilities.h"
 #include "Materials/MaterialExpressionDynamicParameter.h"
 #include "Materials/MaterialExpressionFeatureLevelSwitch.h"
 #include "Materials/MaterialExpressionNormalize.h"
@@ -200,9 +214,6 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 		}
 
-		// UE_LOG(LogJson, Warning, TEXT("Export Name: %s"), *Name.ToString())
-
-		// Cheeky things here
 		if (Type->Type == "MaterialExpressionFunctionOutput") {
 			UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(Expression);
 
@@ -339,6 +350,36 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = Frac;
+		} else if (Type->Type == "MaterialExpressionArcsine") {
+			UMaterialExpressionArcsine* Arcsine = Cast<UMaterialExpressionArcsine>(Expression);
+
+			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
+				FJsonObject* InputObject = InputPtr->Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					Arcsine->Input = Input;
+				}
+			}
+
+			Expression = Arcsine;
+		} else if (Type->Type == "MaterialExpressionArcsineFast") {
+			UMaterialExpressionArcsineFast* ArcsineFast = static_cast<UMaterialExpressionArcsineFast*>(Expression);
+
+			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
+				FJsonObject* InputObject = InputPtr->Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					ArcsineFast->Input = Input;
+				}
+			}
+
+			Expression = ArcsineFast;
 		} else if (Type->Type == "MaterialExpressionConstant") {
 			UMaterialExpressionConstant* Constant = Cast<UMaterialExpressionConstant>(Expression);
 
@@ -472,6 +513,13 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetObjectField("Constant", Constant)) Vector3->Constant = FMathUtilities::ObjectToLinearColor(Constant->Get());
 
 			Expression = Vector3;
+		} else if (Type->Type == "MaterialExpressionConstant4Vector") {
+			UMaterialExpressionConstant4Vector* Vector4 = Cast<UMaterialExpressionConstant4Vector>(Expression);
+
+			const TSharedPtr<FJsonObject>* Constant;
+			if (Properties->TryGetObjectField("Constant", Constant)) Vector4->Constant = FMathUtilities::ObjectToLinearColor(Constant->Get());
+
+			Expression = Vector4;
 		} else if (Type->Type == "MaterialExpressionConstantBiasScale") {
 			UMaterialExpressionConstantBiasScale* ConstantBiasScale = Cast<UMaterialExpressionConstantBiasScale>(Expression);
 
@@ -840,6 +888,34 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = Reroute;
+		} else if (Type->Type == "MaterialExpressionDDX") {
+			UMaterialExpressionDDX* ExpressionDDX = Cast<UMaterialExpressionDDX>(Expression);
+
+			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+			if (Properties->TryGetObjectField("Value", InputPtr) && InputPtr != nullptr) {
+				FJsonObject* InputObject = InputPtr->Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					ExpressionDDX->Value = Input;
+				}
+			}
+
+			Expression = ExpressionDDX;
+		} else if (Type->Type == "MaterialExpressionDDY") {
+			UMaterialExpressionDDY* ExpressionDDY = Cast<UMaterialExpressionDDY>(Expression);
+
+			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+			if (Properties->TryGetObjectField("Value", InputPtr) && InputPtr != nullptr) {
+				FJsonObject* InputObject = InputPtr->Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					ExpressionDDY->Value = Input;
+				}
+			}
+
+			Expression = ExpressionDDY;
 		} else if (Type->Type == "MaterialExpressionSubtract") {
 			UMaterialExpressionSubtract* Subtract = Cast<UMaterialExpressionSubtract>(Expression);
 
@@ -946,6 +1022,30 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetNumberField("ConstB", ConstB)) Min->ConstB = ConstB;
 
 			Expression = Min;
+		} else if (Type->Type == "MaterialExpressionNaniteReplace") {
+			UMaterialExpressionNaniteReplace* NaniteReplace = static_cast<UMaterialExpressionNaniteReplace*>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Default", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					NaniteReplace->Default = A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("Nanite", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					NaniteReplace->Nanite = B;
+				}
+			}
+
+			Expression = NaniteReplace;
 		} else if (Type->Type == "MaterialExpressionNamedRerouteUsage") {
 			UMaterialExpressionNamedRerouteUsage* NamedRerouteUsage = Cast<UMaterialExpressionNamedRerouteUsage>(Expression);
 
@@ -1184,6 +1284,33 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = DepthFade;
+		} else if (Type->Type == "MaterialExpressionSceneDepth") {
+			UMaterialExpressionSceneDepth* SceneDepth = static_cast<UMaterialExpressionSceneDepth*>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Input", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					SceneDepth->Input = A;
+				}
+			}
+
+			FString InputModeString;
+			if (Properties->TryGetStringField("InputMode", InputModeString)) {
+				EMaterialSceneAttributeInputMode::Type InputMode = EMaterialSceneAttributeInputMode::Type::Coordinates;
+
+				if (InputModeString.EndsWith("Coordinates")) InputMode = EMaterialSceneAttributeInputMode::Type::Coordinates;
+				else if (InputModeString.EndsWith("OffsetFraction")) InputMode = EMaterialSceneAttributeInputMode::Type::OffsetFraction;
+
+				SceneDepth->InputMode = InputMode;
+			}
+
+			const TSharedPtr<FJsonObject>* ConstInput;
+			if (Properties->TryGetObjectField("ConstInput", ConstInput)) SceneDepth->ConstInput = FVector2D(ConstInput->Get()->GetNumberField("X"), ConstInput->Get()->GetNumberField("Y"));
+
+			Expression = SceneDepth;
 		} else if (Type->Type == "MaterialExpressionDeriveNormalZ") {
 			UMaterialExpressionDeriveNormalZ* DeriveNormalZ = static_cast<UMaterialExpressionDeriveNormalZ*>(Expression);
 
@@ -1564,6 +1691,21 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = GetMaterialAttributes;
+		} else if (Type->Type == "MaterialExpressionBreakMaterialAttributes") {
+			UMaterialExpressionBreakMaterialAttributes* BreakMaterialAttributes = Cast<UMaterialExpressionBreakMaterialAttributes>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("MaterialAttributes", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput ExpressionInput = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					FMaterialAttributesInput* A = reinterpret_cast<FMaterialAttributesInput*>(&ExpressionInput);
+					BreakMaterialAttributes->MaterialAttributes = *A;
+				}
+			}
+
+			Expression = BreakMaterialAttributes;
 		} else if (Type->Type == "MaterialExpressionBlendMaterialAttributes") {
 			UMaterialExpressionBlendMaterialAttributes* BlendMaterialAttributes = Cast<UMaterialExpressionBlendMaterialAttributes>(Expression);
 
@@ -2006,6 +2148,82 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = DotProduct;
+		} else if (Type->Type == "MaterialExpressionArctangent2Fast") {
+			UMaterialExpressionArctangent2Fast* Arctangent2Fast = static_cast<UMaterialExpressionArctangent2Fast*>(Expression);
+
+			const TSharedPtr<FJsonObject>* YPtr = nullptr;
+			if (Properties->TryGetObjectField("Y", YPtr) && YPtr != nullptr) {
+				FJsonObject* YObject = YPtr->Get();
+				FName YExpressionName = GetExpressionName(YObject);
+				if (CreatedExpressionMap.Contains(YExpressionName)) {
+					FExpressionInput Y = PopulateExpressionInput(YObject, *CreatedExpressionMap.Find(YExpressionName));
+					Arctangent2Fast->Y = Y;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* XPtr = nullptr;
+			if (Properties->TryGetObjectField("X", XPtr) && XPtr != nullptr) {
+				FJsonObject* XObject = XPtr->Get();
+				FName XExpressionName = GetExpressionName(XObject);
+				if (CreatedExpressionMap.Contains(XExpressionName)) {
+					FExpressionInput X = PopulateExpressionInput(XObject, *CreatedExpressionMap.Find(XExpressionName));
+					Arctangent2Fast->X = X;
+				}
+			}
+
+			Expression = Arctangent2Fast;
+		} else if (Type->Type == "MaterialExpressionArctangent2") {
+			UMaterialExpressionArctangent2* Arctangent2 = Cast<UMaterialExpressionArctangent2>(Expression);
+
+			const TSharedPtr<FJsonObject>* YPtr = nullptr;
+			if (Properties->TryGetObjectField("Y", YPtr) && YPtr != nullptr) {
+				FJsonObject* YObject = YPtr->Get();
+				FName YExpressionName = GetExpressionName(YObject);
+				if (CreatedExpressionMap.Contains(YExpressionName)) {
+					FExpressionInput Y = PopulateExpressionInput(YObject, *CreatedExpressionMap.Find(YExpressionName));
+					Arctangent2->Y = Y;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* XPtr = nullptr;
+			if (Properties->TryGetObjectField("X", XPtr) && XPtr != nullptr) {
+				FJsonObject* XObject = XPtr->Get();
+				FName XExpressionName = GetExpressionName(XObject);
+				if (CreatedExpressionMap.Contains(XExpressionName)) {
+					FExpressionInput X = PopulateExpressionInput(XObject, *CreatedExpressionMap.Find(XExpressionName));
+					Arctangent2->X = X;
+				}
+			}
+
+			Expression = Arctangent2;
+		} else if (Type->Type == "MaterialExpressionArctangentFast") {
+			UMaterialExpressionArctangentFast* ArctangentFast = static_cast<UMaterialExpressionArctangentFast*>(Expression);
+
+			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
+				FJsonObject* InputObject = InputPtr->Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					ArctangentFast->Input = Input;
+				}
+			}
+
+			Expression = ArctangentFast;
+		} else if (Type->Type == "MaterialExpressionArctangent") {
+			UMaterialExpressionArctangent* Arctangent = Cast<UMaterialExpressionArctangent>(Expression);
+
+			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
+				FJsonObject* InputObject = InputPtr->Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					Arctangent->Input = Input;
+				}
+			}
+
+			Expression = Arctangent;
 		} else if (Type->Type == "MaterialExpressionStaticSwitch") {
 			UMaterialExpressionStaticSwitch* StaticSwitch = Cast<UMaterialExpressionStaticSwitch>(Expression);
 
@@ -3044,13 +3262,18 @@ void UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 
 UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* Parent, const FName Name, const FName Type) const {
 	if (IgnoredTypes.Contains(Type.ToString())) return nullptr;
-	if (AcceptedTypes.Contains(Type.ToString())) {
-		const FString Class = "/Script/Engine." + Type.ToString();
-		return NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, *Class), Name, RF_Transactional);
+	
+	const FString Class = "/Script/Engine." + Type.ToString();
+
+	if (!AcceptedTypes.Contains(Type.ToString())) {
+		UE_LOG(LogJson, Warning, TEXT("Missing support for expression type: \"%s\""), *Type.ToString());
+		if (Type.ToString() != FString("")) {
+			const FText DialogText = FText::FromString("Missing support for expression type:" + Type.ToString() + ", please modify source to allow properties to be set.");
+			FMessageDialog::Open(EAppMsgType::Ok, DialogText);
+		}
 	}
 
-	UE_LOG(LogJson, Warning, TEXT("Missing support for expression type: \"%s\""), *Type.ToString())
-	return nullptr;
+	return NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, *Class), Name, RF_Transactional);
 }
 
 FExpressionInput UMaterialFunctionImporter::PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression, const FString& Type) {
