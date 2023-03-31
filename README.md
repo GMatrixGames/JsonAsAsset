@@ -1,6 +1,9 @@
 # JsonAsAsset
 <img align="right" width="168" height="90" src="https://user-images.githubusercontent.com/73559984/224509260-48a78275-f5dd-4a20-b0f4-399fb6913d98.png">
 
+   **Editor Only Data**:
+ <br> In Unreal Engine 5.2 and above, editor only data has been introduced to Unreal Engine. Allowing us to import materials and material functions into our own project from the pak files of a game.
+
 Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/json-en.html) to Unreal Engine. Supporting Unreal Engine 5. 
 
 > A editor plugin to allow JSON files from [FModel](https://fmodel.app) to a asset in the Content Browser
@@ -25,18 +28,16 @@ However the version of your FModel application may affect the plugin's processin
    **Using JsonAsAsset**:
  <br> After importing the plugin, click on the window tab (top left) and press JsonAsAsset (at the bottom) to select a JSON file. Then, it should import the asset and you can use it.
 
+_Physic assets aren't supported due to the lack of information we have on porting them into Unreal Engine, if you have knowledge on how to support Physic assets let me know or contribute to this project._
+
 ## What's supported?
 - CurveFloat
 - CurveLinearColor
 - SkeletalMeshLODSettings
-- Skeleton (sockets, virtual bones, slot groups, blend profiles)
 - SubsurfaceProfile
-- ~~PhysicsAsset~~
 - Animation (curves, sync markers)
 - ReverbEffect
 - SoundAttenuation
-
-_Physic assets aren't supported due to the lack of information we have on porting them into Unreal Engine, if you have knowledge on how to support Physic assets let me know or contribute to this project._
 
 ## Contributors
 - [Tector](https://github.com/Tectors)
