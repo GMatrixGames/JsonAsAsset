@@ -1,7 +1,8 @@
 ﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Importers/Importer.h"
-
+#include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 
 template <typename T>
@@ -22,6 +23,11 @@ bool IImporter::HandleAssetCreation(UObject* Asset)
 	Package->SetDirtyFlag(true);
 	Asset->PostEditChange();
 	Asset->AddToRoot();
+
+	// Browse to newly added Asset
+	const TArray<FAssetData>& Assets = { Asset };
+	const FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	ContentBrowserModule.Get().SyncBrowserToAssets(Assets);
 
 	return true;
 }
