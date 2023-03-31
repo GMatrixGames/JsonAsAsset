@@ -120,6 +120,8 @@ bool UMaterialFunctionImporter::ImportData() {
 		if (JsonObject->GetObjectField("Properties")->TryGetStringField("Description", Description)) MaterialFunction->Description = Description;
 		bool bExposeToLibrary;
 		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bExposeToLibrary", bExposeToLibrary)) MaterialFunction->bExposeToLibrary = bExposeToLibrary;
+		bool bPrefixParameterNames;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bPrefixParameterNames", bPrefixParameterNames)) MaterialFunction->bPrefixParameterNames = bPrefixParameterNames;
 
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(MaterialFunction)) return false;

@@ -61,7 +61,7 @@ void FJsonAsAssetModule::ShutdownModule() {
 
 void FJsonAsAssetModule::PluginButtonClicked() {
 	// Dialog for a JSON File
-	TArray<FString> OutFileNames = OpenFileDialog("Open a JSON file!", "JSON Files|*.json");
+	TArray<FString> OutFileNames = OpenFileDialog("FModel JSON File", "JSON Files|*.json");
 	if (OutFileNames.Num() == 0) {
 		return;
 	}

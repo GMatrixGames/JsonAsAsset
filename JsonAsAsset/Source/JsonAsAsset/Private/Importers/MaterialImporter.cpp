@@ -9,6 +9,7 @@
 #endif
 #include "Dom/JsonObject.h"
 #include "Factories/MaterialFactoryNew.h"
+#include "Utilities/MathUtilities.h"
 #include "MaterialEditor/Private/MaterialEditor.h"
 #include "MaterialGraph/MaterialGraph.h"
 #include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphNode_Composite.h>
@@ -60,7 +61,6 @@ void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin
 		Pin->Outputs = Outputs;
 	}
 
-	//Pin->MarkPackageDirty();
 	Pin->Modify();
 }
 
@@ -69,10 +69,8 @@ bool UMaterialImporter::ImportData() {
 		// Create Material Factory (factory automatically creates the M)
 		UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
 		UMaterial* Material = Cast<UMaterial>(MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
-
 		Material->StateId = FGuid(JsonObject->GetObjectField("Properties")->GetStringField("StateId"));
-		bool bCanMaskedBeAssumedOpaque;
-		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bCanMaskedBeAssumedOpaque", bCanMaskedBeAssumedOpaque)) Material->bCanMaskedBeAssumedOpaque = bCanMaskedBeAssumedOpaque;
+
 		FString MaterialDomainString;
 		if (JsonObject->GetObjectField("Properties")->TryGetStringField("MaterialDomain", MaterialDomainString)) {
 			EMaterialDomain MaterialDomain = MD_Surface;
@@ -126,14 +124,161 @@ bool UMaterialImporter::ImportData() {
 			}
 		}
 
-		bool bEnableResponsiveAA;
-		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bEnableResponsiveAA", bEnableResponsiveAA)) Material->bEnableResponsiveAA = bEnableResponsiveAA;
-		bool bUsedWithSkeletalMesh;
-		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithSkeletalMesh", bUsedWithSkeletalMesh)) Material->bUsedWithSkeletalMesh = bUsedWithSkeletalMesh;
+		bool AllowTranslucentCustomDepthWrites;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("AllowTranslucentCustomDepthWrites", AllowTranslucentCustomDepthWrites)) Material->AllowTranslucentCustomDepthWrites = AllowTranslucentCustomDepthWrites;
+		bool bAllowDevelopmentShaderCompile;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bAllowDevelopmentShaderCompile", bAllowDevelopmentShaderCompile)) Material->bAllowDevelopmentShaderCompile = bAllowDevelopmentShaderCompile;
+		bool bAllowNegativeEmissiveColor;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bAllowNegativeEmissiveColor", bAllowNegativeEmissiveColor)) Material->bAllowNegativeEmissiveColor = bAllowNegativeEmissiveColor;
+		bool bApplyCloudFogging;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bApplyCloudFogging", bApplyCloudFogging)) Material->bApplyCloudFogging = bApplyCloudFogging;
+		bool bAutomaticallySetUsageInEditor;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bAutomaticallySetUsageInEditor", bAutomaticallySetUsageInEditor)) Material->bAutomaticallySetUsageInEditor = bAutomaticallySetUsageInEditor;
+		bool bCanMaskedBeAssumedOpaque;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bCanMaskedBeAssumedOpaque", bCanMaskedBeAssumedOpaque)) Material->bCanMaskedBeAssumedOpaque = bCanMaskedBeAssumedOpaque;
+		bool bCastDynamicShadowAsMasked;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bCastDynamicShadowAsMasked", bCastDynamicShadowAsMasked)) Material->bCastDynamicShadowAsMasked = bCastDynamicShadowAsMasked;
+		bool bCastRayTracedShadows;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bCastRayTracedShadows", bCastRayTracedShadows)) Material->bCastRayTracedShadows = bCastRayTracedShadows;
+		bool bComputeFogPerPixel;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bComputeFogPerPixel", bComputeFogPerPixel)) Material->bComputeFogPerPixel = bComputeFogPerPixel;
+		bool bContactShadows;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bContactShadows", bContactShadows)) Material->bContactShadows = bContactShadows;
+		bool bDisableDepthTest;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bDisableDepthTest", bDisableDepthTest)) Material->bDisableDepthTest = bDisableDepthTest;
+		bool bEnableMobileSeparateTranslucency;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bEnableMobileSeparateTranslucency", bEnableMobileSeparateTranslucency)) Material->bEnableMobileSeparateTranslucency = bEnableMobileSeparateTranslucency;
+		bool bEnableStencilTest;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bEnableStencilTest", bEnableStencilTest)) Material->bEnableStencilTest = bEnableStencilTest;
+		bool bForwardBlendsSkyLightCubemaps;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bForwardBlendsSkyLightCubemaps", bForwardBlendsSkyLightCubemaps)) Material->bForwardBlendsSkyLightCubemaps = bForwardBlendsSkyLightCubemaps;
+		bool bForwardRenderUsePreintegratedGFForSimpleIBL;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bForwardRenderUsePreintegratedGFForSimpleIBL", bForwardRenderUsePreintegratedGFForSimpleIBL)) Material->bForwardRenderUsePreintegratedGFForSimpleIBL = bForwardRenderUsePreintegratedGFForSimpleIBL;
+		bool bFullyRough;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bFullyRough", bFullyRough)) Material->bFullyRough = bFullyRough;
+		bool bGenerateSphericalParticleNormals;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bGenerateSphericalParticleNormals", bGenerateSphericalParticleNormals)) Material->bGenerateSphericalParticleNormals = bGenerateSphericalParticleNormals;
+		bool bIsBlendable;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bIsBlendable", bIsBlendable)) Material->bIsBlendable = bIsBlendable;
+		bool bIsFunctionPreviewMaterial;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bIsFunctionPreviewMaterial", bIsFunctionPreviewMaterial)) Material->bIsFunctionPreviewMaterial = bIsFunctionPreviewMaterial;
+		bool bIsMaterialEditorStatsMaterial;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bIsMaterialEditorStatsMaterial", bIsMaterialEditorStatsMaterial)) Material->bIsMaterialEditorStatsMaterial = bIsMaterialEditorStatsMaterial;
+		bool bIsPreviewMaterial;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bIsPreviewMaterial", bIsPreviewMaterial)) Material->bIsPreviewMaterial = bIsPreviewMaterial;
+		bool bIsSky;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bIsSky", bIsSky)) Material->bIsSky = bIsSky;
+		bool BlendableOutputAlpha;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("BlendableOutputAlpha", BlendableOutputAlpha)) Material->BlendableOutputAlpha = BlendableOutputAlpha;
+		bool bNormalCurvatureToRoughness;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bNormalCurvatureToRoughness", bNormalCurvatureToRoughness)) Material->bNormalCurvatureToRoughness = bNormalCurvatureToRoughness;
+		bool bOutputTranslucentVelocity;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bOutputTranslucentVelocity", bOutputTranslucentVelocity)) Material->bOutputTranslucentVelocity = bOutputTranslucentVelocity;
+		bool bScreenSpaceReflections;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bScreenSpaceReflections", bScreenSpaceReflections)) Material->bScreenSpaceReflections = bScreenSpaceReflections;
+		bool bTangentSpaceNormal;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bTangentSpaceNormal", bTangentSpaceNormal)) Material->bTangentSpaceNormal = bTangentSpaceNormal;
+		bool bUseAlphaToCoverage;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUseAlphaToCoverage", bUseAlphaToCoverage)) Material->bUseAlphaToCoverage = bUseAlphaToCoverage;
+		bool bUsedAsSpecialEngineMaterial;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedAsSpecialEngineMaterial", bUsedAsSpecialEngineMaterial)) Material->bUsedAsSpecialEngineMaterial = bUsedAsSpecialEngineMaterial;
+		bool bUsedWithBeamTrails;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithBeamTrails", bUsedWithBeamTrails)) Material->bUsedWithBeamTrails = bUsedWithBeamTrails;
+		bool bUsedWithClothing;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithClothing", bUsedWithClothing)) Material->bUsedWithClothing = bUsedWithClothing;
+		bool bUsedWithEditorCompositing;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithEditorCompositing", bUsedWithEditorCompositing)) Material->bUsedWithEditorCompositing = bUsedWithEditorCompositing;
+		bool bUsedWithGeometryCache;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithGeometryCache", bUsedWithGeometryCache)) Material->bUsedWithGeometryCache = bUsedWithGeometryCache;
+		bool bUsedWithGeometryCollections;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithGeometryCollections", bUsedWithGeometryCollections)) Material->bUsedWithGeometryCollections = bUsedWithGeometryCollections;
+		bool bUsedWithHairStrands;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithHairStrands", bUsedWithHairStrands)) Material->bUsedWithHairStrands = bUsedWithHairStrands;
+		bool bUsedWithInstancedStaticMeshes;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithInstancedStaticMeshes", bUsedWithInstancedStaticMeshes)) Material->bUsedWithInstancedStaticMeshes = bUsedWithInstancedStaticMeshes;
+		bool bUsedWithLidarPointCloud;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithLidarPointCloud", bUsedWithLidarPointCloud)) Material->bUsedWithLidarPointCloud = bUsedWithLidarPointCloud;
+		bool bUsedWithMeshParticles;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithMeshParticles", bUsedWithMeshParticles)) Material->bUsedWithMeshParticles = bUsedWithMeshParticles;
+		bool bUsedWithMorphTargets;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithMorphTargets", bUsedWithMorphTargets)) Material->bUsedWithMorphTargets = bUsedWithMorphTargets;
+		bool bUsedWithNiagaraMeshParticles;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithNiagaraMeshParticles", bUsedWithNiagaraMeshParticles)) Material->bUsedWithNiagaraMeshParticles = bUsedWithNiagaraMeshParticles;
+		bool bUsedWithNiagaraRibbons;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithNiagaraRibbons", bUsedWithNiagaraRibbons)) Material->bUsedWithNiagaraRibbons = bUsedWithNiagaraRibbons;
+		bool bUsedWithNiagaraSprites;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithNiagaraSprites", bUsedWithNiagaraSprites)) Material->bUsedWithNiagaraSprites = bUsedWithNiagaraSprites;
 		bool bUsedWithParticleSprites;
 		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithParticleSprites", bUsedWithParticleSprites)) Material->bUsedWithParticleSprites = bUsedWithParticleSprites;
+		bool bUsedWithSkeletalMesh;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithSkeletalMesh", bUsedWithSkeletalMesh)) Material->bUsedWithSkeletalMesh = bUsedWithSkeletalMesh;
+		bool bUsedWithSplineMeshes;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithSplineMeshes", bUsedWithSplineMeshes)) Material->bUsedWithSplineMeshes = bUsedWithSplineMeshes;
+		bool bUsedWithStaticLighting;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithStaticLighting", bUsedWithStaticLighting)) Material->bUsedWithStaticLighting = bUsedWithStaticLighting;
+		bool bUsedWithVirtualHeightfieldMesh;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithVirtualHeightfieldMesh", bUsedWithVirtualHeightfieldMesh)) Material->bUsedWithVirtualHeightfieldMesh = bUsedWithVirtualHeightfieldMesh;
+		bool bUsedWithWater;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsedWithWater", bUsedWithWater)) Material->bUsedWithWater = bUsedWithWater;
+		bool bUseEmissiveForDynamicAreaLighting;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUseEmissiveForDynamicAreaLighting", bUseEmissiveForDynamicAreaLighting)) Material->bUseEmissiveForDynamicAreaLighting = bUseEmissiveForDynamicAreaLighting;
+		bool bUseHQForwardReflections;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUseHQForwardReflections", bUseHQForwardReflections)) Material->bUseHQForwardReflections = bUseHQForwardReflections;
+		bool bUseLightmapDirectionality;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUseLightmapDirectionality", bUseLightmapDirectionality)) Material->bUseLightmapDirectionality = bUseLightmapDirectionality;
 		bool bUseMaterialAttributes;
 		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUseMaterialAttributes", bUseMaterialAttributes)) Material->bUseMaterialAttributes = bUseMaterialAttributes;
+		bool bUsePlanarForwardReflections;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsePlanarForwardReflections", bUsePlanarForwardReflections)) Material->bUsePlanarForwardReflections = bUsePlanarForwardReflections;
+		bool bUsesDistortion;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUsesDistortion", bUsesDistortion)) Material->bUsesDistortion = bUsesDistortion;
+		bool bUseTranslucencyVertexFog;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bUseTranslucencyVertexFog", bUseTranslucencyVertexFog)) Material->bUseTranslucencyVertexFog = bUseTranslucencyVertexFog;
+		bool bWriteOnlyAlpha;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bWriteOnlyAlpha", bWriteOnlyAlpha)) Material->bWriteOnlyAlpha = bWriteOnlyAlpha;
+		bool DitheredLODTransition;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("DitheredLODTransition", DitheredLODTransition)) Material->DitheredLODTransition = DitheredLODTransition;
+		bool DitherOpacityMask;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("DitherOpacityMask", DitherOpacityMask)) Material->DitherOpacityMask = DitherOpacityMask;
+		bool TwoSided;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("TwoSided", TwoSided)) Material->TwoSided = TwoSided;
+		bool Wireframe;
+		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("Wireframe", Wireframe)) Material->Wireframe = Wireframe;
+
+		int32 BlendablePriority;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("BlendablePriority", BlendablePriority)) Material->BlendablePriority = BlendablePriority;
+		int32 EditorPitch;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("EditorPitch", EditorPitch)) Material->EditorPitch = EditorPitch;
+		int32 EditorX;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("EditorX", EditorX)) Material->EditorX = EditorX;
+		int32 EditorY;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("EditorY", EditorY)) Material->EditorY = EditorY;
+		int32 EditorYaw;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("EditorYaw", EditorYaw)) Material->EditorYaw = EditorYaw;
+		int32 NumCustomizedUVs;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("NumCustomizedUVs", NumCustomizedUVs)) Material->NumCustomizedUVs = NumCustomizedUVs;
+
+		float OpacityMaskClipValue;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("OpacityMaskClipValue", OpacityMaskClipValue)) Material->OpacityMaskClipValue = OpacityMaskClipValue;
+		float RefractionDepthBias;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("RefractionDepthBias", RefractionDepthBias)) Material->RefractionDepthBias = RefractionDepthBias;
+		float TranslucencyDirectionalLightingIntensity;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("TranslucencyDirectionalLightingIntensity", TranslucencyDirectionalLightingIntensity)) Material->TranslucencyDirectionalLightingIntensity = TranslucencyDirectionalLightingIntensity;
+		float TranslucentBackscatteringExponent;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("TranslucentBackscatteringExponent", TranslucentBackscatteringExponent)) Material->TranslucentBackscatteringExponent = TranslucentBackscatteringExponent;
+		float TranslucentSelfShadowDensityScale;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("TranslucentSelfShadowDensityScale", TranslucentSelfShadowDensityScale)) Material->TranslucentSelfShadowDensityScale = TranslucentSelfShadowDensityScale;
+		float TranslucentSelfShadowSecondDensityScale;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("TranslucentSelfShadowSecondDensityScale", TranslucentSelfShadowSecondDensityScale)) Material->TranslucentSelfShadowSecondDensityScale = TranslucentSelfShadowSecondDensityScale;
+		float TranslucentSelfShadowSecondOpacity;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("TranslucentSelfShadowSecondOpacity", TranslucentSelfShadowSecondOpacity)) Material->TranslucentSelfShadowSecondOpacity = TranslucentSelfShadowSecondOpacity;
+		float TranslucentShadowDensityScale;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("TranslucentShadowDensityScale", TranslucentShadowDensityScale)) Material->TranslucentShadowDensityScale = TranslucentShadowDensityScale;
+		float TranslucentShadowStartOffset;
+		if (JsonObject->GetObjectField("Properties")->TryGetNumberField("TranslucentShadowStartOffset", TranslucentShadowStartOffset)) Material->TranslucentShadowStartOffset = TranslucentShadowStartOffset;
+
+		const TSharedPtr<FJsonObject>* TranslucentMultipleScatteringExtinction;
+		if (JsonObject->TryGetObjectField("TranslucentMultipleScatteringExtinction", TranslucentMultipleScatteringExtinction)) Material->TranslucentMultipleScatteringExtinction = FMathUtilities::ObjectToLinearColor(TranslucentMultipleScatteringExtinction->Get());
 
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(Material)) return false;
@@ -145,22 +290,13 @@ bool UMaterialImporter::ImportData() {
 		TMap<FName, FImportData> Exports;
 		TArray<FName> ExpressionNames;
 		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Material->GetName(), Exports, ExpressionNames, false)->GetObjectField("Properties");
-
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
-
-		// const TArray<TSharedPtr<FJsonValue>>* StringExpressions;
-		// if (StringExpressionCollection->TryGetArrayField("Expressions", StringExpressions)) {
-		// 	for (const TSharedPtr<FJsonValue> Expression : *StringExpressions) {
-		// 		if (Expression->IsNull()) continue;
-		// 		ExpressionNames.Add(GetExportNameOfSubobject(Expression->AsObject()->GetStringField("ObjectName")));
-		// 	}
-		// }
 
 		// Map out each expression for easier access
 		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(Material, Material->GetName(), ExpressionNames, Exports);
 
 		const TSharedPtr<FJsonObject>* BaseColorPtr;
-		if (EdProps->TryGetObjectField("EmissiveColor", BaseColorPtr) && BaseColorPtr != nullptr) {
+		if (EdProps->TryGetObjectField("BaseColor", BaseColorPtr) && BaseColorPtr != nullptr) {
 			FJsonObject* BaseColorObject = BaseColorPtr->Get();
 			FName BaseColorExpressionName = GetExpressionName(BaseColorObject);
 
@@ -354,6 +490,7 @@ bool UMaterialImporter::ImportData() {
 		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
 		FMaterialEditor* AssetEditorInstance = reinterpret_cast<FMaterialEditor*>(AssetEditorSubsystem->OpenEditorForAsset(Material) ? AssetEditorSubsystem->FindEditorForAsset(Material, true) : nullptr);
 
+		// Handle Material Graphs
 		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
 			TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
 
@@ -380,7 +517,7 @@ bool UMaterialImporter::ImportData() {
 				// Find Material Graph
 				UMaterialGraph* MaterialGraph = AssetEditorInstance->Material->MaterialGraph;
 				if (MaterialGraph == nullptr) {
-					UE_LOG(LogJson, Log, TEXT("The mat graph not valid!"))
+					UE_LOG(LogJson, Log, TEXT("The material graph is not valid!"));
 				}
 
 				MaterialGraph->Modify();
