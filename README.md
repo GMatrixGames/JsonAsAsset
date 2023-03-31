@@ -1,7 +1,7 @@
 # JsonAsAsset
 <img align="right" width="168" height="90" src="https://user-images.githubusercontent.com/73559984/224509260-48a78275-f5dd-4a20-b0f4-399fb6913d98.png">
 
-Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/json-en.html) to Unreal Engine. Supports Unreal Engine 4 and Unreal Engine 5. 
+Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/json-en.html) to Unreal Engine. Supporting Unreal Engine 5. 
 
 > A editor plugin to allow JSON files from [FModel](https://fmodel.app) to a asset in the Content Browser
 
@@ -35,8 +35,6 @@ However the version of your FModel application may affect the plugin's processin
 - Animation (curves, sync markers)
 - ReverbEffect
 - SoundAttenuation
-
-## At the moment, Unreal Engine 5 is primarily being used to test. Unreal Engine 4 will supported later 
 
 _Physic assets aren't supported due to the lack of information we have on porting them into Unreal Engine, if you have knowledge on how to support Physic assets let me know or contribute to this project._
 
