@@ -41,5 +41,5 @@ _Physic assets aren't supported due to the lack of information we have on portin
 
 ## Contributors
 - [Tector](https://github.com/Tectors)
-- [Tajgames](https://github.com/)
+- [TajGames](https://github.com/)
 - [GMatrix](https://github.com/GMatrixGames)
