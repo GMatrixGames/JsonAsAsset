@@ -295,6 +295,17 @@ bool UMaterialImporter::ImportData() {
 		// Map out each expression for easier access
 		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(Material, Material->GetName(), ExpressionNames, Exports);
 
+		const TSharedPtr<FJsonObject>* APtr = nullptr;
+		if (EdProps->TryGetObjectField("MaterialAttributes", APtr) && APtr != nullptr) {
+			FJsonObject* AObject = APtr->Get();
+			FName AExpressionName = GetExpressionName(AObject);
+			if (CreatedExpressionMap.Contains(AExpressionName)) {
+				FExpressionInput ExpressionInput = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+				FMaterialAttributesInput* A = reinterpret_cast<FMaterialAttributesInput*>(&ExpressionInput);
+				Material->GetEditorOnlyData()->MaterialAttributes = *A;
+			}
+		}
+
 		const TSharedPtr<FJsonObject>* BaseColorPtr;
 		if (EdProps->TryGetObjectField("BaseColor", BaseColorPtr) && BaseColorPtr != nullptr) {
 			FJsonObject* BaseColorObject = BaseColorPtr->Get();
