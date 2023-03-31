@@ -167,7 +167,8 @@ protected:
 		"MaterialExpressionArctangent2Fast",
 		"MaterialExpressionArctangentFast",
 		"MaterialExpressionArctangent2",
-		"MaterialExpressionArctangent"
+		"MaterialExpressionArctangent",
+		"MaterialExpressionSceneTexture"
 	};
 
 	inline static TArray<FString> IgnoredTypes = {

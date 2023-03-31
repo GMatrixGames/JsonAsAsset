@@ -31,6 +31,7 @@
 #include "Materials/MaterialExpressionBumpOffset.h"
 #include "Materials/MaterialExpressionFresnel.h"
 #include "Materials/MaterialExpressionMaterialProxyReplace.h"
+#include "Materials/MaterialExpressionSceneTexture.h"
 #include "Materials/MaterialExpressionAbsorptionMediumMaterialOutput.h"
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
 #include "Materials/MaterialExpressionSquareRoot.h"
@@ -709,6 +710,11 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			const TSharedPtr<FJsonObject>* MaterialFunctionPtr = nullptr;
 			if (Properties->TryGetObjectField("MaterialFunction", MaterialFunctionPtr) && MaterialFunctionPtr != nullptr) {
 				MaterialFunctionCall->MaterialFunction = LoadObject<UMaterialFunction>(MaterialFunctionPtr);
+
+				if (MaterialFunctionCall->MaterialFunction == nullptr) {
+					const FText DialogText = FText::FromString("Material Function Missing: " + MaterialFunctionPtr->Get()->GetStringField("ObjectPath"));
+					FMessageDialog::Open(EAppMsgType::Ok, DialogText);
+				}
 			}
 
 			const TArray<TSharedPtr<FJsonValue>>* FunctionInputsPtr;
@@ -874,6 +880,62 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetStringField("VariableGuid", VariableGuid)) NamedRerouteDeclaration->VariableGuid = FGuid(VariableGuid);
 
 			Expression = NamedRerouteDeclaration;
+		} else if (Type->Type == "MaterialExpressionSceneTexture") {
+			UMaterialExpressionSceneTexture* SceneTexture = static_cast<UMaterialExpressionSceneTexture*>(Expression);
+
+			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+			if (Properties->TryGetObjectField("Coordinates", InputPtr) && InputPtr != nullptr) {
+				FJsonObject* InputObject = InputPtr->Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					SceneTexture->Coordinates = Input;
+				}
+			}
+
+			bool bFiltered;
+			if (Properties->TryGetBoolField("bFiltered", bFiltered)) SceneTexture->bFiltered = bFiltered;
+
+			FString SceneTextureIdString;
+			if (Properties->TryGetStringField("SceneTextureId", SceneTextureIdString)) {
+				ESceneTextureId SceneTextureId;
+
+				if (SceneTextureIdString.EndsWith("PPI_SceneColor")) SceneTextureId = PPI_SceneColor;
+				else if (SceneTextureIdString.EndsWith("PPI_SceneDepth")) SceneTextureId = PPI_SceneDepth;
+				else if (SceneTextureIdString.EndsWith("PPI_DiffuseColor")) SceneTextureId = PPI_DiffuseColor;
+				else if (SceneTextureIdString.EndsWith("PPI_SpecularColor")) SceneTextureId = PPI_SpecularColor;
+				else if (SceneTextureIdString.EndsWith("PPI_SubsurfaceColor")) SceneTextureId = PPI_SubsurfaceColor;
+				else if (SceneTextureIdString.EndsWith("PPI_BaseColor")) SceneTextureId = PPI_BaseColor;
+				else if (SceneTextureIdString.EndsWith("PPI_Specular")) SceneTextureId = PPI_Specular;
+				else if (SceneTextureIdString.EndsWith("PPI_Metallic")) SceneTextureId = PPI_Metallic;
+				else if (SceneTextureIdString.EndsWith("PPI_WorldNormal")) SceneTextureId = PPI_WorldNormal;
+				else if (SceneTextureIdString.EndsWith("PPI_SeparateTranslucency")) SceneTextureId = PPI_SeparateTranslucency;
+				else if (SceneTextureIdString.EndsWith("PPI_Opacity")) SceneTextureId = PPI_Opacity;
+				else if (SceneTextureIdString.EndsWith("PPI_Roughness")) SceneTextureId = PPI_Roughness;
+				else if (SceneTextureIdString.EndsWith("PPI_MaterialAO")) SceneTextureId = PPI_MaterialAO;
+				else if (SceneTextureIdString.EndsWith("PPI_CustomDepth")) SceneTextureId = PPI_CustomDepth;
+				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput0")) SceneTextureId = PPI_PostProcessInput0;
+				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput1")) SceneTextureId = PPI_PostProcessInput1;
+				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput2")) SceneTextureId = PPI_PostProcessInput2;
+				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput3")) SceneTextureId = PPI_PostProcessInput3;
+				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput4")) SceneTextureId = PPI_PostProcessInput4;
+				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput5")) SceneTextureId = PPI_PostProcessInput5;
+				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput6")) SceneTextureId = PPI_PostProcessInput6;
+				else if (SceneTextureIdString.EndsWith("PPI_DecalMask")) SceneTextureId = PPI_DecalMask;
+				else if (SceneTextureIdString.EndsWith("PPI_ShadingModelColor")) SceneTextureId = PPI_ShadingModelColor;
+				else if (SceneTextureIdString.EndsWith("PPI_ShadingModelID")) SceneTextureId = PPI_ShadingModelID;
+				else if (SceneTextureIdString.EndsWith("PPI_AmbientOcclusion")) SceneTextureId = PPI_AmbientOcclusion;
+				else if (SceneTextureIdString.EndsWith("PPI_CustomStencil")) SceneTextureId = PPI_CustomStencil;
+				else if (SceneTextureIdString.EndsWith("PPI_StoredBaseColor")) SceneTextureId = PPI_StoredBaseColor;
+				else if (SceneTextureIdString.EndsWith("PPI_StoredSpecular")) SceneTextureId = PPI_StoredSpecular;
+				else if (SceneTextureIdString.EndsWith("PPI_Velocity")) SceneTextureId = PPI_Velocity;
+				else if (SceneTextureIdString.EndsWith("PPI_WorldTangent")) SceneTextureId = PPI_WorldTangent;
+				else if (SceneTextureIdString.EndsWith("PPI_Anisotropy")) SceneTextureId = PPI_Anisotropy;
+
+				SceneTexture->SceneTextureId = SceneTextureId;
+			}
+
+			Expression = SceneTexture;
 		} else if (Type->Type == "MaterialExpressionReroute") {
 			UMaterialExpressionReroute* Reroute = Cast<UMaterialExpressionReroute>(Expression);
 
@@ -3268,7 +3330,7 @@ UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* P
 	if (!AcceptedTypes.Contains(Type.ToString())) {
 		UE_LOG(LogJson, Warning, TEXT("Missing support for expression type: \"%s\""), *Type.ToString());
 		if (Type.ToString() != FString("")) {
-			const FText DialogText = FText::FromString("Missing support for expression type:" + Type.ToString() + ", please modify source to allow properties to be set.");
+			const FText DialogText = FText::FromString("Missing support for expression type: " + Type.ToString() + ", please modify source to allow properties to be set.");
 			FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 		}
 	}
