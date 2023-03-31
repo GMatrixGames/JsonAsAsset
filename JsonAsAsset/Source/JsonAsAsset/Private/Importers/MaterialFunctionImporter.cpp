@@ -69,10 +69,8 @@
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
 #include "Materials/MaterialExpressionIf.h"
-#include "Materials/MaterialExpressionIfThenElse.h"
 #include "Materials/MaterialExpressionBlendMaterialAttributes.h"
 #include "Materials/MaterialExpressionLinearInterpolate.h"
-#include "Materials/MaterialExpressionInverseLinearInterpolate.h"
 #include "Materials/MaterialExpressionGetMaterialAttributes.h"
 #include "Materials/MaterialExpressionBreakMaterialAttributes.h"
 #include "Materials/MaterialExpressionMax.h"
@@ -2064,14 +2062,13 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			const TArray<TSharedPtr<FJsonValue>>* InputsPtr;
 			if (Properties->TryGetArrayField("Inputs", InputsPtr)) {
 				int i = 0;
-				SetMaterialAttributes->Inputs.Empty();
+				SetMaterialAttributes->Inputs.SetNumZeroed(InputsPtr->Num());
 				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
 					FJsonObject* InputObject = InputValue->AsObject().Get();
 					FName InputExpressionName = GetExpressionName(InputObject);
 					if (CreatedExpressionMap.Contains(InputExpressionName)) {
 						FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-						Input.InputName = FName(*InputObject->GetStringField("InputName"));
-						SetMaterialAttributes->Inputs.Add(Input);
+						SetMaterialAttributes->Inputs[i] = Input;
 					}
 					i++;
 				}
@@ -2080,9 +2077,10 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			const TArray<TSharedPtr<FJsonValue>>* AttributeSetTypesPtr;
 			if (Properties->TryGetArrayField("AttributeSetTypes", AttributeSetTypesPtr)) {
 				int i = 0;
+				SetMaterialAttributes->AttributeSetTypes.SetNumZeroed(AttributeSetTypesPtr->Num());
 				for (const TSharedPtr<FJsonValue> AttributeSetTypeValue : *AttributeSetTypesPtr) {
 					FString AttributeSetType = AttributeSetTypeValue->AsString();
-					SetMaterialAttributes->AttributeSetTypes.Add(FGuid(AttributeSetType));
+					SetMaterialAttributes->AttributeSetTypes[i] = FGuid(AttributeSetType);
 					i++;
 				}
 			}
