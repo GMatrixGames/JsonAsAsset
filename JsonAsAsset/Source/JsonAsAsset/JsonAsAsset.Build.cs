@@ -15,6 +15,7 @@ public class JsonAsAsset : ModuleRules
 				"Json",
 				"JsonUtilities",
 				"UMG",
+				"RenderCore",
 				"HTTP"
 			}
 		);
@@ -31,7 +32,9 @@ public class JsonAsAsset : ModuleRules
 				"Slate",
 				"SlateCore",
 				"AnimationDataController",
-				"MaterialEditor"
+				"MaterialEditor",
+				"ImageWriteQueue",
+				"Landscape"
 			}
 		);
 

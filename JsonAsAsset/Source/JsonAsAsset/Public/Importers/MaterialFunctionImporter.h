@@ -168,7 +168,13 @@ protected:
 		"MaterialExpressionArctangentFast",
 		"MaterialExpressionArctangent2",
 		"MaterialExpressionArctangent",
-		"MaterialExpressionSceneTexture"
+		"MaterialExpressionSceneTexture",
+		"MaterialExpressionLandscapeGrassOutput",
+		"MaterialExpressionLandscapeLayerSample",
+		"MaterialExpressionLandscapeLayerCoords",
+		"MaterialExpressionLandscapeLayerSwitch",
+		"MaterialExpressionLandscapeLayerBlend",
+		"MaterialExpressionLandscapeLayerWeight"
 	};
 
 	inline static TArray<FString> IgnoredTypes = {

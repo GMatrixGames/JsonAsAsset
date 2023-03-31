@@ -7,6 +7,7 @@
 #include "Dom/JsonObject.h"
 #include "Utilities/MathUtilities.h"
 #include "Materials/MaterialParameterCollection.h"
+#include "LandscapeGrassType.h"
 
 // Expressions
 #include "Materials/MaterialExpressionAbs.h"
@@ -26,6 +27,12 @@
 #include "Materials/MaterialExpressionCosine.h"
 #include "Materials/MaterialExpressionCurveAtlasRowParameter.h"
 #include "Materials/MaterialExpressionCustom.h"
+#include "Materials/MaterialExpressionLandscapeGrassOutput.h"
+#include "Materials/MaterialExpressionLandscapeLayerSample.h"
+#include "Materials/MaterialExpressionLandscapeLayerCoords.h"
+#include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
+#include "Materials/MaterialExpressionLandscapeLayerBlend.h"
+#include "Materials/MaterialExpressionLandscapeLayerWeight.h"
 #include "Materials/MaterialExpressionArcsine.h"
 #include "Materials/MaterialExpressionArcsineFast.h"
 #include "Materials/MaterialExpressionBumpOffset.h"
@@ -3212,6 +3219,203 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = Truncate;
+		} else if (Type->Type == "MaterialExpressionLandscapeGrassOutput") {
+			UMaterialExpressionLandscapeGrassOutput* LandscapeGrassOutput = static_cast<UMaterialExpressionLandscapeGrassOutput*>(Expression);
+
+			const TArray<TSharedPtr<FJsonValue>>* GrassTypes;
+			if (Properties->TryGetArrayField("GrassTypes", GrassTypes)) {
+				for (const TSharedPtr<FJsonValue> _GrassType : *GrassTypes) {
+					if (_GrassType->IsNull()) continue;
+					TSharedPtr<FJsonObject> GrassType = _GrassType.Get()->AsObject();
+					FGrassInput GrassInput = FGrassInput(FName(GrassType->GetStringField("Name")));
+
+					// Grass Type Property
+					const TSharedPtr<FJsonObject>* GrassAsset = nullptr;
+					if (GrassType->TryGetObjectField("GrassAsset", GrassAsset) && GrassAsset != nullptr) {
+						GrassInput.GrassType = LoadObject<ULandscapeGrassType>(GrassAsset);
+					}
+
+					const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+					if (GrassType->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
+						FJsonObject* InputObject = InputPtr->Get();
+						FName InputExpressionName = GetExpressionName(InputObject);
+
+						if (CreatedExpressionMap.Contains(InputExpressionName)) {
+							FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+							GrassInput.Input = Input;
+						}
+					}
+
+					LandscapeGrassOutput->GrassTypes.Add(GrassInput);
+				}
+			}
+
+			Expression = LandscapeGrassOutput;
+		} else if (Type->Type == "MaterialExpressionLandscapeLayerSample") {
+			UMaterialExpressionLandscapeLayerSample* LandscapeLayerSample = static_cast<UMaterialExpressionLandscapeLayerSample*>(Expression);
+
+			FString ParameterName;
+			if (Properties->TryGetStringField("ParameterName", ParameterName)) LandscapeLayerSample->ParameterName = FName(ParameterName);
+			float PreviewWeight;
+			if (Properties->TryGetNumberField("PreviewWeight", PreviewWeight)) LandscapeLayerSample->PreviewWeight = PreviewWeight;
+
+			Expression = LandscapeLayerSample;
+		} else if (Type->Type == "MaterialExpressionLandscapeLayerCoords") {
+			UMaterialExpressionLandscapeLayerCoords* LandscapeLayerCoords = static_cast<UMaterialExpressionLandscapeLayerCoords*>(Expression);
+
+			FString MappingTypeString;
+			if (Properties->TryGetStringField("MappingType", MappingTypeString)) {
+				ETerrainCoordMappingType MappingType = LandscapeLayerCoords->MappingType;
+
+				if (MappingTypeString.EndsWith("TCMT_Auto")) MappingType = TCMT_Auto;
+				else if (MappingTypeString.EndsWith("TCMT_XY")) MappingType = TCMT_XY;
+				else if (MappingTypeString.EndsWith("TCMT_XZ")) MappingType = TCMT_XZ;
+				else if (MappingTypeString.EndsWith("TCMT_YZ")) MappingType = TCMT_YZ;
+				else if (MappingTypeString.EndsWith("TCMT_MAX")) MappingType = TCMT_MAX;
+
+				LandscapeLayerCoords->MappingType = MappingType;
+			}
+
+			FString CustomUVTypeString;
+			if (Properties->TryGetStringField("CustomUVType", CustomUVTypeString)) {
+				ELandscapeCustomizedCoordType CustomUVType = LandscapeLayerCoords->CustomUVType;
+
+				if (CustomUVTypeString.EndsWith("LCCT_None")) CustomUVType = LCCT_None;
+				else if (CustomUVTypeString.EndsWith("LCCT_CustomUV0")) CustomUVType = LCCT_CustomUV0;
+				else if (CustomUVTypeString.EndsWith("LCCT_CustomUV1")) CustomUVType = LCCT_CustomUV1;
+				else if (CustomUVTypeString.EndsWith("LCCT_CustomUV2")) CustomUVType = LCCT_CustomUV2;
+				else if (CustomUVTypeString.EndsWith("LCCT_WeightMapUV")) CustomUVType = LCCT_WeightMapUV;
+				else if (CustomUVTypeString.EndsWith("LCCT_MAX")) CustomUVType = LCCT_MAX;
+
+				LandscapeLayerCoords->CustomUVType = CustomUVType;
+			}
+
+			float MappingScale;
+			if (Properties->TryGetNumberField("MappingScale", MappingScale)) LandscapeLayerCoords->MappingScale = MappingScale;
+			float MappingRotation;
+			if (Properties->TryGetNumberField("MappingRotation", MappingRotation)) LandscapeLayerCoords->MappingRotation = MappingRotation;
+			float MappingPanU;
+			if (Properties->TryGetNumberField("MappingPanU", MappingPanU)) LandscapeLayerCoords->MappingPanU = MappingPanU;
+			float MappingPanV;
+			if (Properties->TryGetNumberField("MappingPanV", MappingPanV)) LandscapeLayerCoords->MappingPanV = MappingPanV;
+
+			Expression = LandscapeLayerCoords;
+		} else if (Type->Type == "MaterialExpressionLandscapeLayerSwitch") {
+			UMaterialExpressionLandscapeLayerSwitch* LandscapeLayerSwitch = static_cast<UMaterialExpressionLandscapeLayerSwitch*>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("LayerUsed", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					LandscapeLayerSwitch->LayerUsed = A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("LayerNotUsed", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					LandscapeLayerSwitch->LayerNotUsed = B;
+				}
+			}
+
+			FString ParameterName;
+			if (Properties->TryGetStringField("ParameterName", ParameterName)) LandscapeLayerSwitch->ParameterName = FName(ParameterName);
+			bool PreviewUsed;
+			if (Properties->TryGetBoolField("PreviewUsed", PreviewUsed)) LandscapeLayerSwitch->PreviewUsed = PreviewUsed;
+
+			Expression = LandscapeLayerSwitch;
+		} else if (Type->Type == "MaterialExpressionLandscapeLayerWeight") {
+			UMaterialExpressionLandscapeLayerWeight* LandscapeLayerWeight = static_cast<UMaterialExpressionLandscapeLayerWeight*>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Base", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					LandscapeLayerWeight->Base = A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("Layer", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					LandscapeLayerWeight->Layer = B;
+				}
+			}
+
+			FString ParameterName;
+			if (Properties->TryGetStringField("ParameterName", ParameterName)) LandscapeLayerWeight->ParameterName = FName(ParameterName);
+			float PreviewWeight;
+			if (Properties->TryGetNumberField("PreviewWeight", PreviewWeight)) LandscapeLayerWeight->PreviewWeight = PreviewWeight;
+			const TSharedPtr<FJsonObject>* ConstBase;
+			if (Properties->TryGetObjectField("ConstBase", ConstBase)) LandscapeLayerWeight->ConstBase = FMathUtilities::ObjectToVector(ConstBase->Get());
+
+			Expression = LandscapeLayerWeight;
+		} else if (Type->Type == "MaterialExpressionLandscapeLayerBlend") {
+			UMaterialExpressionLandscapeLayerBlend* LandscapeLayerBlend = static_cast<UMaterialExpressionLandscapeLayerBlend*>(Expression);
+
+			const TArray<TSharedPtr<FJsonValue>>* LayersObject;
+			if (Properties->TryGetArrayField("Layers", LayersObject)) {
+				for (const TSharedPtr<FJsonValue> _Layers : *LayersObject) {
+					if (_Layers->IsNull()) continue;
+					TSharedPtr<FJsonObject> Layers = _Layers.Get()->AsObject();
+					FLayerBlendInput LayerBlendInput = FLayerBlendInput();
+
+					FString LayerName;
+					if (Layers->TryGetStringField("LayerName", LayerName)) LayerBlendInput.LayerName = FName(LayerName);
+
+					FString BlendTypeString;
+					if (Layers->TryGetStringField("BlendType", BlendTypeString)) {
+						ELandscapeLayerBlendType BlendType = LayerBlendInput.BlendType;
+
+						if (BlendTypeString.EndsWith("LB_WeightBlend")) BlendType = LB_WeightBlend;
+						else if (BlendTypeString.EndsWith("LB_AlphaBlend")) BlendType = LB_AlphaBlend;
+						else if (BlendTypeString.EndsWith("LB_HeightBlend")) BlendType = LB_HeightBlend;
+
+						LayerBlendInput.BlendType = BlendType;
+					}
+
+					const TSharedPtr<FJsonObject>* BPtr = nullptr;
+					if (Layers->TryGetObjectField("LayerInput", BPtr) && BPtr != nullptr) {
+						FJsonObject* BObject = BPtr->Get();
+						FName BExpressionName = GetExpressionName(BObject);
+						if (CreatedExpressionMap.Contains(BExpressionName)) {
+							FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+							LayerBlendInput.LayerInput = B;
+						}
+					}
+
+					const TSharedPtr<FJsonObject>* APtr = nullptr;
+					if (Layers->TryGetObjectField("HeightInput", APtr) && APtr != nullptr) {
+						FJsonObject* AObject = APtr->Get();
+						FName AExpressionName = GetExpressionName(AObject);
+						if (CreatedExpressionMap.Contains(AExpressionName)) {
+							FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+							LayerBlendInput.HeightInput = A;
+						}
+					}
+
+					float PreviewWeight;
+					if (Layers->TryGetNumberField("PreviewWeight", PreviewWeight)) LayerBlendInput.PreviewWeight = PreviewWeight;
+					const TSharedPtr<FJsonObject>* ConstLayerInput;
+					if (Layers->TryGetObjectField("ConstLayerInput", ConstLayerInput)) LayerBlendInput.ConstLayerInput = FMathUtilities::ObjectToVector(ConstLayerInput->Get());
+					float ConstHeightInput;
+					if (Layers->TryGetNumberField("ConstHeightInput", ConstHeightInput)) LayerBlendInput.ConstHeightInput = ConstHeightInput;
+
+					LandscapeLayerBlend->Layers.Add(LayerBlendInput);
+				}
+			}
+
+			Expression = LandscapeLayerBlend;
 		}
 
 		AddGenerics(Parent, Expression, Properties);
