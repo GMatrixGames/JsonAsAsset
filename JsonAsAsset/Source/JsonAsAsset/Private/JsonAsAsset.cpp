@@ -28,6 +28,7 @@
 #include "Importers/AnimationBaseImporter.h"
 #include "Importers/MaterialFunctionImporter.h"
 #include "Importers/MaterialImporter.h"
+#include "Importers/MaterialParameterCollectionImporter.h"
 #include "Importers/MaterialInstanceConstantImporter.h"
 #include "Utilities/AssetUtilities.h"
 
@@ -118,6 +119,7 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 				else if (Type == "Material") Importer = new UMaterialImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
 				else if (Type == "MaterialFunction") Importer = new UMaterialFunctionImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
 				else if (Type == "MaterialInstanceConstant") Importer = new UMaterialInstanceConstantImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
+				else if (Type == "MaterialParameterCollection") Importer = new UMaterialParameterCollectionImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
 
 				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, DataObject, Package, OutermostPkg);
 				else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, DataObject, Package, OutermostPkg);

@@ -35,9 +35,10 @@ private:
 		"AnimSequence",
 		"AnimMontage",
 
+		"Material",
 		"MaterialFunction",
 		"MaterialInstanceConstant",
-		"Material",
+		"MaterialParameterCollection",
 
 		"DataTable",
 		"ReverbEffect",
