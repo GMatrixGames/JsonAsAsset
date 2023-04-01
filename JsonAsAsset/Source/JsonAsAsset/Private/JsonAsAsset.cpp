@@ -62,75 +62,75 @@ void FJsonAsAssetModule::ShutdownModule() {
 
 void FJsonAsAssetModule::PluginButtonClicked() {
 	// Dialog for a JSON File
-	TArray<FString> OutFileNames = OpenFileDialog("FModel JSON File", "JSON Files|*.json");
+	TArray<FString> OutFileNames = OpenFileDialog("Open JSON files", "JSON Files|*.json");
 	if (OutFileNames.Num() == 0) {
 		return;
 	}
 
-	FString File = OutFileNames[0];
+	for (FString& File : OutFileNames) {
+		/*----------------------  Parse JSON into UE JSON Reader---------------------- */
+		FString ContentBefore;
+		FFileHelper::LoadFileToString(ContentBefore, *File);
 
-	/*----------------------  Parse JSON into UE JSON Reader---------------------- */
-	FString ContentBefore;
-	FFileHelper::LoadFileToString(ContentBefore, *File);
+		FString Content = FString(TEXT("{\"data\": "));
+		Content.Append(ContentBefore);
+		Content.Append(FString("}"));
 
-	FString Content = FString(TEXT("{\"data\": "));
-	Content.Append(ContentBefore);
-	Content.Append(FString("}"));
+		TSharedPtr<FJsonObject> JsonParsed;
+		TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Content);
+		/* ---------------------- ---------------------- ------------------------- */
 
-	TSharedPtr<FJsonObject> JsonParsed;
-	TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Content);
-	/* ---------------------- ---------------------- ------------------------- */
+		if (FJsonSerializer::Deserialize(JsonReader, JsonParsed)) {
+			GLog->Log("JsonAsAsset: Deserialized file, reading the contents.");
+			TArray<TSharedPtr<FJsonValue>> DataObjects = JsonParsed->GetArrayField("data");
 
-	if (FJsonSerializer::Deserialize(JsonReader, JsonParsed)) {
-		GLog->Log("JsonAsAsset: Deserialized file, reading the contents.");
-		TArray<TSharedPtr<FJsonValue>> DataObjects = JsonParsed->GetArrayField("data");
+			// Validation
+			TArray<FString> Types;
+			for (TSharedPtr<FJsonValue>& Obj : DataObjects) Types.Add(Obj->AsObject()->GetStringField("Type"));
 
-		// Validation
-		TArray<FString> Types;
-		for (TSharedPtr<FJsonValue>& Obj : DataObjects) Types.Add(Obj->AsObject()->GetStringField("Type"));
+			// If type is not supported, decline
+			if (!IImporter::CanImportAny(Types)) {
+				const FText DialogText = FText::FromString("No exports from \"" + OutFileNames[0] + "\" can be imported!");
+				FMessageDialog::Open(EAppMsgType::Ok, DialogText);
+			}
 
-		// If type is not supported, decline
-		if (!IImporter::CanImportAny(Types)) {
-			const FText DialogText = FText::FromString("No exports from \"" + OutFileNames[0] + "\" can be imported!");
-			FMessageDialog::Open(EAppMsgType::Ok, DialogText);
-		}
+			for (const TSharedPtr<FJsonValue>& Obj : DataObjects) {
+				TSharedPtr<FJsonObject> DataObject = Obj->AsObject();
 
-		for (const TSharedPtr<FJsonValue>& Obj : DataObjects) {
-			TSharedPtr<FJsonObject> DataObject = Obj->AsObject();
+				FString Type = DataObject->GetStringField("Type");
+				FString Name = DataObject->GetStringField("Name");
 
-			FString Type = DataObject->GetStringField("Type");
-			FString Name = DataObject->GetStringField("Name");
+				if (IImporter::CanImport(Type)) {
+					UPackage* OutermostPkg;
+					UPackage* Package = FAssetUtilities::CreateAssetPackage(Name, File, OutermostPkg);
+					IImporter* Importer;
 
-			if (IImporter::CanImport(Type)) {
-				UPackage* OutermostPkg;
-				UPackage* Package = FAssetUtilities::CreateAssetPackage(Name, OutFileNames[0], OutermostPkg);
-				IImporter* Importer;
+					if (Type == "CurveFloat") Importer = new UCurveFloatImporter(Name, DataObject, Package, OutermostPkg);
+					else if (Type == "CurveLinearColor") Importer = new UCurveLinearColorImporter(Name, DataObject, Package, OutermostPkg);
+					else if (Type == "AnimSequence") Importer = new UAnimationBaseImporter(Name, DataObject, Package, OutermostPkg);
 
-				if (Type == "CurveFloat") Importer = new UCurveFloatImporter(Name, DataObject, Package, OutermostPkg);
-				else if (Type == "CurveLinearColor") Importer = new UCurveLinearColorImporter(Name, DataObject, Package, OutermostPkg);
-				else if (Type == "AnimSequence") Importer = new UAnimationBaseImporter(Name, DataObject, Package, OutermostPkg);
+					else if (Type == "Skeleton") Importer = new USkeletonImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
+					else if (Type == "SkeletalMeshLODSettings") Importer = new USkeletalMeshLODSettingsImporter(Name, DataObject, Package, OutermostPkg);
 
-				else if (Type == "Skeleton") Importer = new USkeletonImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
-				else if (Type == "SkeletalMeshLODSettings") Importer = new USkeletalMeshLODSettingsImporter(Name, DataObject, Package, OutermostPkg);
+					else if (Type == "ReverbEffect") Importer = new UReverbEffectImporter(Name, DataObject, Package, OutermostPkg);
+					else if (Type == "SoundAttenuation") Importer = new USoundAttenuationImporter(Name, DataObject, Package, OutermostPkg);
 
-				else if (Type == "ReverbEffect") Importer = new UReverbEffectImporter(Name, DataObject, Package, OutermostPkg);
-				else if (Type == "SoundAttenuation") Importer = new USoundAttenuationImporter(Name, DataObject, Package, OutermostPkg);
+					else if (Type == "Material") Importer = new UMaterialImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
+					else if (Type == "MaterialFunction") Importer = new UMaterialFunctionImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
+					else if (Type == "MaterialInstanceConstant") Importer = new UMaterialInstanceConstantImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
+					else if (Type == "MaterialParameterCollection") Importer = new UMaterialParameterCollectionImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
 
-				else if (Type == "Material") Importer = new UMaterialImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
-				else if (Type == "MaterialFunction") Importer = new UMaterialFunctionImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
-				else if (Type == "MaterialInstanceConstant") Importer = new UMaterialInstanceConstantImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
-				else if (Type == "MaterialParameterCollection") Importer = new UMaterialParameterCollectionImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
+					else if (Type == "DataTable") Importer = new UDataTableImporter(Name, DataObject, Package, OutermostPkg);
+					else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, DataObject, Package, OutermostPkg);
+					else if (Type == "ParticleModuleTypeDataBeam2") Importer = new UParticleModuleTypeDataBeam2Importer(Name, DataObject, Package, OutermostPkg);
+					else Importer = nullptr;
 
-				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, DataObject, Package, OutermostPkg);
-				else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, DataObject, Package, OutermostPkg);
-				else if (Type == "ParticleModuleTypeDataBeam2") Importer = new UParticleModuleTypeDataBeam2Importer(Name, DataObject, Package, OutermostPkg);
-				else Importer = nullptr;
-
-				if (Importer != nullptr && Importer->ImportData()) {
-					UE_LOG(LogJson, Log, TEXT("Successfully imported \"%s\" as \"%s\""), *Name, *Type)
-				} else {
-					FText DialogText = FText::FromString("The \"" + Type + "\" cannot be imported!");
-					FMessageDialog::Open(EAppMsgType::Ok, DialogText);
+					if (Importer != nullptr && Importer->ImportData()) {
+						UE_LOG(LogJson, Log, TEXT("Successfully imported \"%s\" as \"%s\""), *Name, *Type)
+					} else {
+						FText DialogText = FText::FromString("The \"" + Type + "\" cannot be imported!");
+						FMessageDialog::Open(EAppMsgType::Ok, DialogText);
+					}
 				}
 			}
 		}
@@ -174,7 +174,7 @@ TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) 
 
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (DesktopPlatform) {
-		uint32 SelectionFlag = 0;
+		uint32 SelectionFlag = 1;
 		// JSON Files|*.json
 		DesktopPlatform->OpenFileDialog(ParentWindowHandle, Title, TEXT(""), FString(""), Type, SelectionFlag,
 		                                ReturnValue);
