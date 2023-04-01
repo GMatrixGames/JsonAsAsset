@@ -38,6 +38,7 @@ _Physic assets aren't supported due to the lack of information we have on portin
 - Animation (curves, sync markers)
 - ReverbEffect
 - SoundAttenuation
+- MaterialParameterCollection
 
 ## Contributors
 - [Tector](https://github.com/Tectors)
