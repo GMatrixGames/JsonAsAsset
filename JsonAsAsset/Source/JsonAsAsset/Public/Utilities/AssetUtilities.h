@@ -17,6 +17,4 @@ public:
 	static UObject* GetSelectedAsset();
 
 	static FRichCurveKey ObjectToRichCurveKey(const TSharedPtr<FJsonObject>& Object);
-
-	static UEnum* GetEnumOfType(const FString& ScriptPath);
 };

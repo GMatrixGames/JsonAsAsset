@@ -68,7 +68,3 @@ FRichCurveKey FAssetUtilities::ObjectToRichCurveKey(const TSharedPtr<FJsonObject
 
 	return FRichCurveKey(Object->GetNumberField("Time"), Object->GetNumberField("Value"), Object->GetNumberField("ArriveTangent"), Object->GetNumberField("LeaveTangent"), InterpMode);
 }
-
-UEnum* FAssetUtilities::GetEnumOfType(const FString& ScriptPath) {
-	return FindObject<UEnum>(nullptr, *ScriptPath);
-}

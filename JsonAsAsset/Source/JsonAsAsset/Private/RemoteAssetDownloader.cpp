@@ -51,12 +51,12 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTe
 
 					FString AddressX;
 					if (TextureJson->GetObjectField("Properties")->TryGetStringField("AddressX", AddressX)) {
-						OutTexture->AddressX = static_cast<TextureAddress>(FAssetUtilities::GetEnumOfType("/Script/Engine.TextureAddress")->GetValueByNameString(AddressX));
+						OutTexture->AddressX = static_cast<TextureAddress>(StaticEnum<TextureAddress>()->GetValueByNameString(AddressX));
 					}
 
 					FString AddressY;
 					if (TextureJson->GetObjectField("Properties")->TryGetStringField("AddressY", AddressY)) {
-						OutTexture->AddressY = static_cast<TextureAddress>(FAssetUtilities::GetEnumOfType("/Script/Engine.TextureAddress")->GetValueByNameString(AddressY));
+						OutTexture->AddressY = static_cast<TextureAddress>(StaticEnum<TextureAddress>()->GetValueByNameString(AddressY));
 					}
 
 					FString LightingGuid;
@@ -64,17 +64,17 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTe
 
 					FString CompressionSettings;
 					if (TextureJson->GetObjectField("Properties")->TryGetStringField("CompressionSettings", CompressionSettings)) {
-						OutTexture->CompressionSettings = static_cast<TextureCompressionSettings>(FAssetUtilities::GetEnumOfType("/Script/Engine.TextureCompressionSettings")->GetValueByNameString(CompressionSettings));
+						OutTexture->CompressionSettings = static_cast<TextureCompressionSettings>(StaticEnum<TextureCompressionSettings>()->GetValueByNameString(CompressionSettings));
 					}
 
 					FString Filter;
 					if (TextureJson->GetObjectField("Properties")->TryGetStringField("Filter", Filter)) {
-						OutTexture->Filter = static_cast<TextureFilter>(FAssetUtilities::GetEnumOfType("/Script/Engine.TextureFilter")->GetValueByNameString(Filter));
+						OutTexture->Filter = static_cast<TextureFilter>(StaticEnum<TextureFilter>()->GetValueByNameString(Filter));
 					}
 
 					FString LODGroup;
 					if (TextureJson->GetObjectField("Properties")->TryGetStringField("LODGroup", LODGroup)) {
-						OutTexture->LODGroup = static_cast<TextureGroup>(FAssetUtilities::GetEnumOfType("/Script/Engine.TextureGroup")->GetValueByNameString(LODGroup));
+						OutTexture->LODGroup = static_cast<TextureGroup>(StaticEnum<TextureGroup>()->GetValueByNameString(LODGroup));
 					}
 
 					bool SRGB;

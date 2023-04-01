@@ -297,27 +297,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetStringField("Description", FuncDescription)) FunctionInput->Description = FuncDescription;
 			FunctionInput->Id = FGuid(Properties->GetStringField("ID"));
 
-			FString InputTypeString;
-			if (Properties->TryGetStringField("InputType", InputTypeString)) {
-				EFunctionInputType InputType = FunctionInput->InputType;
-
-				if (InputTypeString.EndsWith("FunctionInput_Scalar")) InputType = FunctionInput_Scalar;
-				else if (InputTypeString.EndsWith("FunctionInput_Vector2")) InputType = FunctionInput_Vector2;
-				else if (InputTypeString.EndsWith("FunctionInput_Vector3")) InputType = FunctionInput_Vector3;
-				else if (InputTypeString.EndsWith("FunctionInput_Vector4")) InputType = FunctionInput_Vector4;
-				else if (InputTypeString.EndsWith("FunctionInput_Texture2D")) InputType = FunctionInput_Texture2D;
-				else if (InputTypeString.EndsWith("FunctionInput_TextureCube")) InputType = FunctionInput_TextureCube;
-				else if (InputTypeString.EndsWith("FunctionInput_Texture2DArray")) InputType = FunctionInput_Texture2DArray;
-				else if (InputTypeString.EndsWith("FunctionInput_VolumeTexture")) InputType = FunctionInput_VolumeTexture;
-				else if (InputTypeString.EndsWith("FunctionInput_StaticBool")) InputType = FunctionInput_StaticBool;
-				else if (InputTypeString.EndsWith("FunctionInput_MaterialAttributes")) InputType = FunctionInput_MaterialAttributes;
-				else if (InputTypeString.EndsWith("FunctionInput_TextureExternal")) InputType = FunctionInput_TextureExternal;
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-				else if (InputTypeString.EndsWith("FunctionInput_Bool")) InputType = FunctionInput_Bool;
-				else if (InputTypeString.EndsWith("FunctionInput_Substrate")) InputType = FunctionInput_Substrate;
-#endif
-
-				FunctionInput->InputType = InputType;
+			FString InputType;
+			if (Properties->TryGetStringField("InputType", InputType)) {
+				FunctionInput->InputType = static_cast<EFunctionInputType>(StaticEnum<EFunctionInputType>()->GetValueByNameString(InputType));
 			}
 
 			const TSharedPtr<FJsonObject>* PreviewValue;
@@ -592,7 +574,8 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetNumberField("ConstB", ConstB)) Multiply->ConstB = ConstB;
 
 			Expression = Multiply;
-		} if (Type->Type == "MaterialExpressionVectorParameter" || Type->Type == "MaterialExpressionChannelMaskParameter") {
+		}
+		if (Type->Type == "MaterialExpressionVectorParameter" || Type->Type == "MaterialExpressionChannelMaskParameter") {
 			UMaterialExpressionVectorParameter* VectorParameter = Cast<UMaterialExpressionVectorParameter>(Expression);
 
 			const TSharedPtr<FJsonObject>* DefaultValue;
@@ -686,25 +669,14 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				}
 			}
 
-			FString MipValueModeString;
-			if (Properties->TryGetStringField("MipValueMode", MipValueModeString)) {
-				ETextureMipValueMode MipValueMode = TextureSample->MipValueMode;
-
-				if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipLevel;
-				else if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipBias;
-				else if (MipValueModeString.EndsWith("TMVM_Derivative")) MipValueMode = TMVM_Derivative;
-
-				TextureSample->MipValueMode = MipValueMode;
+			FString MipValueMode;
+			if (Properties->TryGetStringField("MipValueMode", MipValueMode)) {
+				TextureSample->MipValueMode = static_cast<ETextureMipValueMode>(StaticEnum<ETextureMipValueMode>()->GetValueByNameString(MipValueMode));
 			}
 
-			FString SampleSourceString;
-			if (Properties->TryGetStringField("SamplerSource", SampleSourceString)) {
-				ESamplerSourceMode SamplerSource = TextureSample->SamplerSource;
-
-				if (SampleSourceString.EndsWith("SSM_Wrap_WorldGroupSettings")) SamplerSource = SSM_Wrap_WorldGroupSettings;
-				else if (SampleSourceString.EndsWith("SSM_Clamp_WorldGroupSettings")) SamplerSource = SSM_Clamp_WorldGroupSettings;
-
-				TextureSample->SamplerSource = SamplerSource;
+			FString SamplerSource;
+			if (Properties->TryGetStringField("SamplerSource", SamplerSource)) {
+				TextureSample->SamplerSource = static_cast<ESamplerSourceMode>(StaticEnum<ESamplerSourceMode>()->GetValueByNameString(SamplerSource));
 			}
 
 			bool AutomaticViewMipBias;
@@ -903,43 +875,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			bool bFiltered;
 			if (Properties->TryGetBoolField("bFiltered", bFiltered)) SceneTexture->bFiltered = bFiltered;
 
-			FString SceneTextureIdString;
-			if (Properties->TryGetStringField("SceneTextureId", SceneTextureIdString)) {
-				ESceneTextureId SceneTextureId;
-
-				if (SceneTextureIdString.EndsWith("PPI_SceneColor")) SceneTextureId = PPI_SceneColor;
-				else if (SceneTextureIdString.EndsWith("PPI_SceneDepth")) SceneTextureId = PPI_SceneDepth;
-				else if (SceneTextureIdString.EndsWith("PPI_DiffuseColor")) SceneTextureId = PPI_DiffuseColor;
-				else if (SceneTextureIdString.EndsWith("PPI_SpecularColor")) SceneTextureId = PPI_SpecularColor;
-				else if (SceneTextureIdString.EndsWith("PPI_SubsurfaceColor")) SceneTextureId = PPI_SubsurfaceColor;
-				else if (SceneTextureIdString.EndsWith("PPI_BaseColor")) SceneTextureId = PPI_BaseColor;
-				else if (SceneTextureIdString.EndsWith("PPI_Specular")) SceneTextureId = PPI_Specular;
-				else if (SceneTextureIdString.EndsWith("PPI_Metallic")) SceneTextureId = PPI_Metallic;
-				else if (SceneTextureIdString.EndsWith("PPI_WorldNormal")) SceneTextureId = PPI_WorldNormal;
-				else if (SceneTextureIdString.EndsWith("PPI_SeparateTranslucency")) SceneTextureId = PPI_SeparateTranslucency;
-				else if (SceneTextureIdString.EndsWith("PPI_Opacity")) SceneTextureId = PPI_Opacity;
-				else if (SceneTextureIdString.EndsWith("PPI_Roughness")) SceneTextureId = PPI_Roughness;
-				else if (SceneTextureIdString.EndsWith("PPI_MaterialAO")) SceneTextureId = PPI_MaterialAO;
-				else if (SceneTextureIdString.EndsWith("PPI_CustomDepth")) SceneTextureId = PPI_CustomDepth;
-				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput0")) SceneTextureId = PPI_PostProcessInput0;
-				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput1")) SceneTextureId = PPI_PostProcessInput1;
-				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput2")) SceneTextureId = PPI_PostProcessInput2;
-				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput3")) SceneTextureId = PPI_PostProcessInput3;
-				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput4")) SceneTextureId = PPI_PostProcessInput4;
-				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput5")) SceneTextureId = PPI_PostProcessInput5;
-				else if (SceneTextureIdString.EndsWith("PPI_PostProcessInput6")) SceneTextureId = PPI_PostProcessInput6;
-				else if (SceneTextureIdString.EndsWith("PPI_DecalMask")) SceneTextureId = PPI_DecalMask;
-				else if (SceneTextureIdString.EndsWith("PPI_ShadingModelColor")) SceneTextureId = PPI_ShadingModelColor;
-				else if (SceneTextureIdString.EndsWith("PPI_ShadingModelID")) SceneTextureId = PPI_ShadingModelID;
-				else if (SceneTextureIdString.EndsWith("PPI_AmbientOcclusion")) SceneTextureId = PPI_AmbientOcclusion;
-				else if (SceneTextureIdString.EndsWith("PPI_CustomStencil")) SceneTextureId = PPI_CustomStencil;
-				else if (SceneTextureIdString.EndsWith("PPI_StoredBaseColor")) SceneTextureId = PPI_StoredBaseColor;
-				else if (SceneTextureIdString.EndsWith("PPI_StoredSpecular")) SceneTextureId = PPI_StoredSpecular;
-				else if (SceneTextureIdString.EndsWith("PPI_Velocity")) SceneTextureId = PPI_Velocity;
-				else if (SceneTextureIdString.EndsWith("PPI_WorldTangent")) SceneTextureId = PPI_WorldTangent;
-				else if (SceneTextureIdString.EndsWith("PPI_Anisotropy")) SceneTextureId = PPI_Anisotropy;
-
-				SceneTexture->SceneTextureId = SceneTextureId;
+			FString SceneTextureId;
+			if (Properties->TryGetStringField("SceneTextureId", SceneTextureId)) {
+				SceneTexture->SceneTextureId = static_cast<ESceneTextureId>(StaticEnum<ESceneTextureId>()->GetValueByNameString(SceneTextureId));
 			}
 
 			Expression = SceneTexture;
@@ -1366,14 +1304,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				}
 			}
 
-			FString InputModeString;
-			if (Properties->TryGetStringField("InputMode", InputModeString)) {
-				EMaterialSceneAttributeInputMode::Type InputMode = EMaterialSceneAttributeInputMode::Type::Coordinates;
-
-				if (InputModeString.EndsWith("Coordinates")) InputMode = EMaterialSceneAttributeInputMode::Type::Coordinates;
-				else if (InputModeString.EndsWith("OffsetFraction")) InputMode = EMaterialSceneAttributeInputMode::Type::OffsetFraction;
-
-				SceneDepth->InputMode = InputMode;
+			FString InputMode;
+			if (Properties->TryGetStringField("InputMode", InputMode)) {
+				SceneDepth->InputMode = static_cast<EMaterialSceneAttributeInputMode::Type>(StaticEnum<EMaterialSceneAttributeInputMode::Type>()->GetValueByNameString(InputMode));
 			}
 
 			const TSharedPtr<FJsonObject>* ConstInput;
@@ -1519,18 +1452,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			int Quality;
 			if (Properties->TryGetNumberField("Quality", Quality)) Noise->Quality = Quality;
 
-			FString NoiseFunctionString;
-			if (Properties->TryGetStringField("NoiseFunction", NoiseFunctionString)) {
-				ENoiseFunction NoiseFunction = NOISEFUNCTION_SimplexTex;
-
-				if (NoiseFunctionString.EndsWith("NOISEFUNCTION_SimplexTex")) NoiseFunction = NOISEFUNCTION_SimplexTex;
-				else if (NoiseFunctionString.EndsWith("NOISEFUNCTION_GradientTex")) NoiseFunction = NOISEFUNCTION_GradientTex;
-				else if (NoiseFunctionString.EndsWith("NOISEFUNCTION_GradientTex3D")) NoiseFunction = NOISEFUNCTION_GradientTex3D;
-				else if (NoiseFunctionString.EndsWith("NOISEFUNCTION_GradientALU")) NoiseFunction = NOISEFUNCTION_GradientALU;
-				else if (NoiseFunctionString.EndsWith("NOISEFUNCTION_ValueALU")) NoiseFunction = NOISEFUNCTION_ValueALU;
-				else if (NoiseFunctionString.EndsWith("NOISEFUNCTION_VoronoiALU")) NoiseFunction = NOISEFUNCTION_VoronoiALU;
-
-				Noise->NoiseFunction = NoiseFunction;
+			FString NoiseFunction;
+			if (Properties->TryGetStringField("NoiseFunction", NoiseFunction)) {
+				Noise->NoiseFunction = static_cast<ENoiseFunction>(StaticEnum<ENoiseFunction>()->GetValueByNameString(NoiseFunction));
 			}
 
 			bool bTurbulence;
@@ -1810,26 +1734,14 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				}
 			}
 
-			FString PixelAttributeBlendTypeString;
-			if (Properties->TryGetStringField("PixelAttributeBlendType", PixelAttributeBlendTypeString)) {
-				EMaterialAttributeBlend::Type PixelAttributeBlendType = EMaterialAttributeBlend::Type::Blend;
-
-				if (PixelAttributeBlendTypeString.EndsWith("Blend")) PixelAttributeBlendType = EMaterialAttributeBlend::Type::Blend;
-				else if (PixelAttributeBlendTypeString.EndsWith("UseA")) PixelAttributeBlendType = EMaterialAttributeBlend::Type::UseA;
-				else if (PixelAttributeBlendTypeString.EndsWith("UseB")) PixelAttributeBlendType = EMaterialAttributeBlend::Type::UseB;
-
-				BlendMaterialAttributes->PixelAttributeBlendType = PixelAttributeBlendType;
+			FString PixelAttributeBlendType;
+			if (Properties->TryGetStringField("PixelAttributeBlendType", PixelAttributeBlendType)) {
+				BlendMaterialAttributes->PixelAttributeBlendType = static_cast<EMaterialAttributeBlend::Type>(StaticEnum<EMaterialAttributeBlend::Type>()->GetValueByNameString(PixelAttributeBlendType));
 			}
 
-			FString VertexAttributeBlendTypeString;
-			if (Properties->TryGetStringField("VertexAttributeBlendType", VertexAttributeBlendTypeString)) {
-				EMaterialAttributeBlend::Type VertexAttributeBlendType = EMaterialAttributeBlend::Type::Blend;
-
-				if (VertexAttributeBlendTypeString.EndsWith("Blend")) VertexAttributeBlendType = EMaterialAttributeBlend::Type::Blend;
-				else if (VertexAttributeBlendTypeString.EndsWith("UseA")) VertexAttributeBlendType = EMaterialAttributeBlend::Type::UseA;
-				else if (VertexAttributeBlendTypeString.EndsWith("UseB")) VertexAttributeBlendType = EMaterialAttributeBlend::Type::UseB;
-
-				BlendMaterialAttributes->VertexAttributeBlendType = VertexAttributeBlendType;
+			FString VertexAttributeBlendType;
+			if (Properties->TryGetStringField("VertexAttributeBlendType", VertexAttributeBlendType)) {
+				BlendMaterialAttributes->VertexAttributeBlendType = static_cast<EMaterialAttributeBlend::Type>(StaticEnum<EMaterialAttributeBlend::Type>()->GetValueByNameString(VertexAttributeBlendType));
 			}
 
 			Expression = BlendMaterialAttributes;
@@ -2019,7 +1931,8 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = MakeMaterialAttributes;
-		} if (Type->Type == "MaterialExpressionChannelMaskParameter") {
+		}
+		if (Type->Type == "MaterialExpressionChannelMaskParameter") {
 			UMaterialExpressionChannelMaskParameter* ChannelMaskParameter = Cast<UMaterialExpressionChannelMaskParameter>(Expression);
 
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
@@ -2032,16 +1945,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				}
 			}
 
-			FString MaskChannelTypeString;
-			if (Properties->TryGetStringField("MaskChannel", MaskChannelTypeString)) {
-				EChannelMaskParameterColor::Type MaskChannelType = EChannelMaskParameterColor::Type::Red;
-
-				if (MaskChannelTypeString.EndsWith("Red")) MaskChannelType = EChannelMaskParameterColor::Type::Red;
-				else if (MaskChannelTypeString.EndsWith("Green")) MaskChannelType = EChannelMaskParameterColor::Type::Green;
-				else if (MaskChannelTypeString.EndsWith("Blue")) MaskChannelType = EChannelMaskParameterColor::Type::Blue;
-				else if (MaskChannelTypeString.EndsWith("Alpha")) MaskChannelType = EChannelMaskParameterColor::Type::Alpha;
-
-				ChannelMaskParameter->MaskChannel = MaskChannelType;
+			FString MaskChannel;
+			if (Properties->TryGetStringField("MaskChannel", MaskChannel)) {
+				ChannelMaskParameter->MaskChannel = static_cast<EChannelMaskParameterColor::Type>(StaticEnum<EChannelMaskParameterColor::Type>()->GetValueByNameString(MaskChannel));
 			}
 
 			Expression = ChannelMaskParameter;
@@ -2075,55 +1981,20 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			Expression = StaticComponentMaskParameter;
 		} else if (Type->Type == "MaterialExpressionShadingModel") {
-			UMaterialExpressionShadingModel* ShadingModel = Cast<UMaterialExpressionShadingModel>(Expression);
+			UMaterialExpressionShadingModel* ShadingModelObj = Cast<UMaterialExpressionShadingModel>(Expression);
 
-			FString ShadingModelTypeString;
-			if (Properties->TryGetStringField("ShadingModel", ShadingModelTypeString)) {
-				EMaterialShadingModel ShadingModelType = MSM_DefaultLit;
-
-				if (ShadingModelTypeString.EndsWith("MSM_Unlit")) ShadingModelType = MSM_Unlit;
-				else if (ShadingModelTypeString.EndsWith("MSM_DefaultLit")) ShadingModelType = MSM_DefaultLit;
-				else if (ShadingModelTypeString.EndsWith("MSM_Subsurface")) ShadingModelType = MSM_Subsurface;
-				else if (ShadingModelTypeString.EndsWith("MSM_PreintegratedSkin")) ShadingModelType = MSM_PreintegratedSkin;
-				else if (ShadingModelTypeString.EndsWith("MSM_ClearCoat")) ShadingModelType = MSM_ClearCoat;
-				else if (ShadingModelTypeString.EndsWith("MSM_SubsurfaceProfile")) ShadingModelType = MSM_SubsurfaceProfile;
-				else if (ShadingModelTypeString.EndsWith("MSM_TwoSidedFoliage")) ShadingModelType = MSM_TwoSidedFoliage;
-				else if (ShadingModelTypeString.EndsWith("MSM_Hair")) ShadingModelType = MSM_Hair;
-				else if (ShadingModelTypeString.EndsWith("MSM_Cloth")) ShadingModelType = MSM_Cloth;
-				else if (ShadingModelTypeString.EndsWith("MSM_Eye")) ShadingModelType = MSM_Eye;
-				else if (ShadingModelTypeString.EndsWith("MSM_SingleLayerWater")) ShadingModelType = MSM_SingleLayerWater;
-				else if (ShadingModelTypeString.EndsWith("MSM_ThinTranslucent")) ShadingModelType = MSM_ThinTranslucent;
-				else if (ShadingModelTypeString.EndsWith("MSM_NUM")) ShadingModelType = MSM_NUM;
-				else if (ShadingModelTypeString.EndsWith("MSM_FromMaterialExpression")) ShadingModelType = MSM_FromMaterialExpression;
-				else if (ShadingModelTypeString.EndsWith("MSM_MAX")) ShadingModelType = MSM_MAX;
-
-				ShadingModel->ShadingModel = ShadingModelType;
+			FString ShadingModel;
+			if (Properties->TryGetStringField("ShadingModel", ShadingModel)) {
+				ShadingModelObj->ShadingModel = static_cast<EMaterialShadingModel>(StaticEnum<EMaterialShadingModel>()->GetValueByNameString(ShadingModel));
 			}
 
-			Expression = ShadingModel;
+			Expression = ShadingModelObj;
 		} else if (Type->Type == "MaterialExpressionViewProperty") {
 			UMaterialExpressionViewProperty* ViewProperty = Cast<UMaterialExpressionViewProperty>(Expression);
 
-			FString PropertyString;
-			if (Properties->TryGetStringField("Property", PropertyString)) {
-				EMaterialExposedViewProperty Property = MEVP_ViewSize;
-
-				if (PropertyString.EndsWith("MEVP_BufferSize")) Property = MEVP_BufferSize;
-				else if (PropertyString.EndsWith("MEVP_FieldOfView")) Property = MEVP_FieldOfView;
-				else if (PropertyString.EndsWith("MEVP_TanHalfFieldOfView")) Property = MEVP_TanHalfFieldOfView;
-				else if (PropertyString.EndsWith("MEVP_ViewSize")) Property = MEVP_ViewSize;
-				else if (PropertyString.EndsWith("MEVP_WorldSpaceViewPosition")) Property = MEVP_WorldSpaceViewPosition;
-				else if (PropertyString.EndsWith("MEVP_WorldSpaceCameraPosition")) Property = MEVP_WorldSpaceCameraPosition;
-				else if (PropertyString.EndsWith("MEVP_ViewportOffset")) Property = MEVP_ViewportOffset;
-				else if (PropertyString.EndsWith("MEVP_TemporalSampleCount")) Property = MEVP_TemporalSampleCount;
-				else if (PropertyString.EndsWith("MEVP_TemporalSampleIndex")) Property = MEVP_TemporalSampleIndex;
-				else if (PropertyString.EndsWith("MEVP_TemporalSampleOffset")) Property = MEVP_TemporalSampleOffset;
-				else if (PropertyString.EndsWith("MEVP_RuntimeVirtualTextureOutputLevel")) Property = MEVP_RuntimeVirtualTextureOutputLevel;
-				else if (PropertyString.EndsWith("MEVP_RuntimeVirtualTextureOutputDerivative")) Property = MEVP_RuntimeVirtualTextureOutputDerivative;
-				else if (PropertyString.EndsWith("MEVP_PreExposure")) Property = MEVP_PreExposure;
-				else if (PropertyString.EndsWith("MEVP_MAX")) Property = MEVP_MAX;
-
-				ViewProperty->Property = Property;
+			FString Property;
+			if (Properties->TryGetStringField("Property", Property)) {
+				ViewProperty->Property = static_cast<EMaterialExposedViewProperty>(StaticEnum<EMaterialExposedViewProperty>()->GetValueByNameString(Property));
 			}
 
 			Expression = ViewProperty;
@@ -2463,25 +2334,14 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				}
 			}
 
-			FString MipValueModeString;
-			if (Properties->TryGetStringField("MipValueMode", MipValueModeString)) {
-				ETextureMipValueMode MipValueMode = TextureSampleParameter2D->MipValueMode;
-
-				if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipLevel;
-				else if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipBias;
-				else if (MipValueModeString.EndsWith("TMVM_Derivative")) MipValueMode = TMVM_Derivative;
-
-				TextureSampleParameter2D->MipValueMode = MipValueMode;
+			FString MipValueMode;
+			if (Properties->TryGetStringField("MipValueMode", MipValueMode)) {
+				TextureSampleParameter2D->MipValueMode = static_cast<ETextureMipValueMode>(StaticEnum<ETextureMipValueMode>()->GetValueByNameString(MipValueMode));
 			}
 
-			FString SampleSourceString;
-			if (Properties->TryGetStringField("SamplerSource", SampleSourceString)) {
-				ESamplerSourceMode SamplerSource = TextureSampleParameter2D->SamplerSource;
-
-				if (SampleSourceString.EndsWith("SSM_Wrap_WorldGroupSettings")) SamplerSource = SSM_Wrap_WorldGroupSettings;
-				else if (SampleSourceString.EndsWith("SSM_Clamp_WorldGroupSettings")) SamplerSource = SSM_Clamp_WorldGroupSettings;
-
-				TextureSampleParameter2D->SamplerSource = SamplerSource;
+			FString SamplerSource;
+			if (Properties->TryGetStringField("SamplerSource", SamplerSource)) {
+				TextureSampleParameter2D->SamplerSource = static_cast<ESamplerSourceMode>(StaticEnum<ESamplerSourceMode>()->GetValueByNameString(SamplerSource));
 			}
 
 			bool AutomaticViewMipBias;
@@ -2508,17 +2368,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			FString Code;
 			if (Properties->TryGetStringField("Code", Code)) Custom->Code = Code;
 
-			FString OutputTypeString;
-			if (Properties->TryGetStringField("OutputType", OutputTypeString)) {
-				ECustomMaterialOutputType OutputType = Custom->OutputType;
-
-				if (OutputTypeString.EndsWith("CMOT_Float1")) OutputType = CMOT_Float1;
-				else if (OutputTypeString.EndsWith("CMOT_Float2")) OutputType = CMOT_Float2;
-				else if (OutputTypeString.EndsWith("CMOT_Float3")) OutputType = CMOT_Float3;
-				else if (OutputTypeString.EndsWith("CMOT_Float4")) OutputType = CMOT_Float4;
-				else if (OutputTypeString.EndsWith("CMOT_MaterialAttributes")) OutputType = CMOT_MaterialAttributes;
-
-				Custom->OutputType = OutputType;
+			FString OutputType;
+			if (Properties->TryGetStringField("OutputType", OutputType)) {
+				Custom->OutputType = static_cast<ECustomMaterialOutputType>(StaticEnum<ECustomMaterialOutputType>()->GetValueByNameString(OutputType));
 			}
 
 			FString FuncDescription;
@@ -2561,16 +2413,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 					FCustomOutput Output;
 
-					FString OutputTypeString1;
-					if (StringOutput->AsObject()->TryGetStringField("OutputType", OutputTypeString1)) {
-						ECustomMaterialOutputType OutputType = CMOT_Float1;
-
-						if (OutputTypeString1.EndsWith("CMOT_Float2")) OutputType = CMOT_Float2;
-						else if (OutputTypeString1.EndsWith("CMOT_Float3")) OutputType = CMOT_Float3;
-						else if (OutputTypeString1.EndsWith("CMOT_Float4")) OutputType = CMOT_Float4;
-						else if (OutputTypeString1.EndsWith("CMOT_MaterialAttributes")) OutputType = CMOT_MaterialAttributes;
-
-						Output.OutputType = OutputType;
+					FString OutputType1;
+					if (StringOutput->AsObject()->TryGetStringField("OutputType", OutputType1)) {
+						Output.OutputType = static_cast<ECustomMaterialOutputType>(StaticEnum<ECustomMaterialOutputType>()->GetValueByNameString(OutputType1));
 					}
 
 					FString OutputName;
@@ -2792,30 +2637,14 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				}
 			}
 
-			FString TransformSourceTypeString;
-			if (Properties->TryGetStringField("TransformSourceType", TransformSourceTypeString)) {
-				EMaterialPositionTransformSource TransformSourceType = TransformPosition->TransformSourceType;
-
-				if (TransformSourceTypeString.EndsWith("TRANSFORMPOSSOURCE_Local")) TransformSourceType = TRANSFORMPOSSOURCE_Local;
-				else if (TransformSourceTypeString.EndsWith("TRANSFORMPOSSOURCE_World")) TransformSourceType = TRANSFORMPOSSOURCE_World;
-				else if (TransformSourceTypeString.EndsWith("TRANSFORMPOSSOURCE_TranslatedWorld")) TransformSourceType = TRANSFORMPOSSOURCE_TranslatedWorld;
-				else if (TransformSourceTypeString.EndsWith("TRANSFORMPOSSOURCE_View")) TransformSourceType = TRANSFORMPOSSOURCE_View;
-				else if (TransformSourceTypeString.EndsWith("TRANSFORMPOSSOURCE_Instance")) TransformSourceType = TRANSFORMPOSSOURCE_Instance;
-
-				TransformPosition->TransformSourceType = TransformSourceType;
+			FString TransformSourceType;
+			if (Properties->TryGetStringField("TransformSourceType", TransformSourceType)) {
+				TransformPosition->TransformSourceType = static_cast<EMaterialPositionTransformSource>(StaticEnum<EMaterialPositionTransformSource>()->GetValueByNameString(TransformSourceType));
 			}
 
-			FString TransformTypeString;
-			if (Properties->TryGetStringField("TransformType", TransformTypeString)) {
-				EMaterialPositionTransformSource TransformType = TransformPosition->TransformSourceType;
-
-				if (TransformTypeString.EndsWith("TRANSFORMPOSSOURCE_Local")) TransformType = TRANSFORMPOSSOURCE_Local;
-				else if (TransformTypeString.EndsWith("TRANSFORMPOSSOURCE_World")) TransformType = TRANSFORMPOSSOURCE_World;
-				else if (TransformTypeString.EndsWith("TRANSFORMPOSSOURCE_TranslatedWorld")) TransformType = TRANSFORMPOSSOURCE_TranslatedWorld;
-				else if (TransformTypeString.EndsWith("TRANSFORMPOSSOURCE_View")) TransformType = TRANSFORMPOSSOURCE_View;
-				else if (TransformTypeString.EndsWith("TRANSFORMPOSSOURCE_Instance")) TransformType = TRANSFORMPOSSOURCE_Instance;
-
-				TransformPosition->TransformType = TransformType;
+			FString TransformType;
+			if (Properties->TryGetStringField("TransformType", TransformType)) {
+				TransformPosition->TransformType = static_cast<EMaterialPositionTransformSource>(StaticEnum<EMaterialPositionTransformSource>()->GetValueByNameString(TransformType));
 			}
 
 			Expression = TransformPosition;
@@ -2984,26 +2813,14 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				}
 			}
 
-			FString MipValueModeString;
-			if (Properties->TryGetStringField("MipValueMode", MipValueModeString)) {
-				ETextureMipValueMode MipValueMode = TextureObjectParameter->MipValueMode;
-
-				if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipLevel;
-				else if (MipValueModeString.EndsWith("TMVM_MipLevel")) MipValueMode = TMVM_MipBias;
-				else if (MipValueModeString.EndsWith("TMVM_Derivative")) MipValueMode = TMVM_Derivative;
-
-				TextureObjectParameter->MipValueMode = MipValueMode;
+			FString MipValueMode;
+			if (Properties->TryGetStringField("MipValueMode", MipValueMode)) {
+				TextureObjectParameter->MipValueMode = static_cast<ETextureMipValueMode>(StaticEnum<ETextureMipValueMode>()->GetValueByNameString(MipValueMode));
 			}
 
-			FString SampleSourceString;
-			if (Properties->TryGetStringField("SamplerSource", SampleSourceString)) {
-				ESamplerSourceMode SamplerSource = TextureObjectParameter->SamplerSource;
-
-				if (SampleSourceString.EndsWith("SSM_FromTextureAsset")) SamplerSource = SSM_FromTextureAsset;
-				else if (SampleSourceString.EndsWith("SSM_Wrap_WorldGroupSettings")) SamplerSource = SSM_Wrap_WorldGroupSettings;
-				else if (SampleSourceString.EndsWith("SSM_Clamp_WorldGroupSettings")) SamplerSource = SSM_Clamp_WorldGroupSettings;
-
-				TextureObjectParameter->SamplerSource = SamplerSource;
+			FString SampleSource;
+			if (Properties->TryGetStringField("SamplerSource", SampleSource)) {
+				TextureObjectParameter->SamplerSource = static_cast<ESamplerSourceMode>(StaticEnum<ESamplerSourceMode>()->GetValueByNameString(SampleSource));
 			}
 
 			bool AutomaticViewMipBias;
@@ -3061,16 +2878,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 		} else if (Type->Type == "MaterialExpressionWorldPosition") {
 			UMaterialExpressionWorldPosition* WorldPosition = Cast<UMaterialExpressionWorldPosition>(Expression);
 
-			FString WorldPositionShaderOffsetString;
-			if (Properties->TryGetStringField("WorldPositionShaderOffset", WorldPositionShaderOffsetString)) {
-				EWorldPositionIncludedOffsets WorldPositionShaderOffset = WorldPosition->WorldPositionShaderOffset;
-
-				if (WorldPositionShaderOffsetString.EndsWith("WPT_Default")) WorldPositionShaderOffset = WPT_Default;
-				else if (WorldPositionShaderOffsetString.EndsWith("WPT_ExcludeAllShaderOffsets")) WorldPositionShaderOffset = WPT_ExcludeAllShaderOffsets;
-				else if (WorldPositionShaderOffsetString.EndsWith("WPT_CameraRelative")) WorldPositionShaderOffset = WPT_CameraRelative;
-				else if (WorldPositionShaderOffsetString.EndsWith("WPT_CameraRelativeNoOffsets")) WorldPositionShaderOffset = WPT_CameraRelativeNoOffsets;
-
-				WorldPosition->WorldPositionShaderOffset = WorldPositionShaderOffset;
+			FString WorldPositionShaderOffset;
+			if (Properties->TryGetStringField("WorldPositionShaderOffset", WorldPositionShaderOffset)) {
+				WorldPosition->WorldPositionShaderOffset = static_cast<EWorldPositionIncludedOffsets>(StaticEnum<EWorldPositionIncludedOffsets>()->GetValueByNameString(WorldPositionShaderOffset));
 			}
 
 			Expression = WorldPosition;
@@ -3263,31 +3073,14 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 		} else if (Type->Type == "MaterialExpressionLandscapeLayerCoords") {
 			UMaterialExpressionLandscapeLayerCoords* LandscapeLayerCoords = static_cast<UMaterialExpressionLandscapeLayerCoords*>(Expression);
 
-			FString MappingTypeString;
-			if (Properties->TryGetStringField("MappingType", MappingTypeString)) {
-				ETerrainCoordMappingType MappingType = LandscapeLayerCoords->MappingType;
-
-				if (MappingTypeString.EndsWith("TCMT_Auto")) MappingType = TCMT_Auto;
-				else if (MappingTypeString.EndsWith("TCMT_XY")) MappingType = TCMT_XY;
-				else if (MappingTypeString.EndsWith("TCMT_XZ")) MappingType = TCMT_XZ;
-				else if (MappingTypeString.EndsWith("TCMT_YZ")) MappingType = TCMT_YZ;
-				else if (MappingTypeString.EndsWith("TCMT_MAX")) MappingType = TCMT_MAX;
-
-				LandscapeLayerCoords->MappingType = MappingType;
+			FString MappingType;
+			if (Properties->TryGetStringField("MappingType", MappingType)) {
+				LandscapeLayerCoords->MappingType = static_cast<ETerrainCoordMappingType>(StaticEnum<ETerrainCoordMappingType>()->GetValueByNameString(MappingType));
 			}
 
-			FString CustomUVTypeString;
-			if (Properties->TryGetStringField("CustomUVType", CustomUVTypeString)) {
-				ELandscapeCustomizedCoordType CustomUVType = LandscapeLayerCoords->CustomUVType;
-
-				if (CustomUVTypeString.EndsWith("LCCT_None")) CustomUVType = LCCT_None;
-				else if (CustomUVTypeString.EndsWith("LCCT_CustomUV0")) CustomUVType = LCCT_CustomUV0;
-				else if (CustomUVTypeString.EndsWith("LCCT_CustomUV1")) CustomUVType = LCCT_CustomUV1;
-				else if (CustomUVTypeString.EndsWith("LCCT_CustomUV2")) CustomUVType = LCCT_CustomUV2;
-				else if (CustomUVTypeString.EndsWith("LCCT_WeightMapUV")) CustomUVType = LCCT_WeightMapUV;
-				else if (CustomUVTypeString.EndsWith("LCCT_MAX")) CustomUVType = LCCT_MAX;
-
-				LandscapeLayerCoords->CustomUVType = CustomUVType;
+			FString CustomUVType;
+			if (Properties->TryGetStringField("CustomUVType", CustomUVType)) {
+				LandscapeLayerCoords->CustomUVType = static_cast<ELandscapeCustomizedCoordType>(StaticEnum<ELandscapeCustomizedCoordType>()->GetValueByNameString(CustomUVType));
 			}
 
 			float MappingScale;
@@ -3373,15 +3166,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 					FString LayerName;
 					if (Layers->TryGetStringField("LayerName", LayerName)) LayerBlendInput.LayerName = FName(LayerName);
 
-					FString BlendTypeString;
-					if (Layers->TryGetStringField("BlendType", BlendTypeString)) {
-						ELandscapeLayerBlendType BlendType = LayerBlendInput.BlendType;
-
-						if (BlendTypeString.EndsWith("LB_WeightBlend")) BlendType = LB_WeightBlend;
-						else if (BlendTypeString.EndsWith("LB_AlphaBlend")) BlendType = LB_AlphaBlend;
-						else if (BlendTypeString.EndsWith("LB_HeightBlend")) BlendType = LB_HeightBlend;
-
-						LayerBlendInput.BlendType = BlendType;
+					FString BlendType;
+					if (Layers->TryGetStringField("BlendType", BlendType)) {
+						LayerBlendInput.BlendType = static_cast<ELandscapeLayerBlendType>(StaticEnum<ELandscapeLayerBlendType>()->GetValueByNameString(BlendType));
 					}
 
 					const TSharedPtr<FJsonObject>* BPtr = nullptr;
@@ -3503,22 +3290,9 @@ void UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 			TextureBase->Texture = LoadObject<UTexture>(TexturePtr);
 		}
 
-		FString SamplerTypeString;
-		if (Json->TryGetStringField("SamplerType", SamplerTypeString)) {
-			EMaterialSamplerType SamplerType = TextureBase->SamplerType;
-
-			if (SamplerTypeString.EndsWith("SAMPLERTYPE_Color")) SamplerType = SAMPLERTYPE_Color;
-			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_Grayscale")) SamplerType = SAMPLERTYPE_Grayscale;
-			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_Alpha")) SamplerType = SAMPLERTYPE_Alpha;
-			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_Normal")) SamplerType = SAMPLERTYPE_Normal;
-			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_Masks")) SamplerType = SAMPLERTYPE_Masks;
-			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_DistanceFieldFont")) SamplerType = SAMPLERTYPE_DistanceFieldFont;
-			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_LinearColor")) SamplerType = SAMPLERTYPE_LinearColor;
-			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_LinearGrayscale")) SamplerType = SAMPLERTYPE_LinearGrayscale;
-			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_Data")) SamplerType = SAMPLERTYPE_Data;
-			else if (SamplerTypeString.EndsWith("SAMPLERTYPE_External")) SamplerType = SAMPLERTYPE_External;
-
-			TextureBase->SamplerType = SamplerType;
+		FString SamplerType;
+		if (Json->TryGetStringField("SamplerType", SamplerType)) {
+			TextureBase->SamplerType = static_cast<EMaterialSamplerType>(StaticEnum<EMaterialSamplerType>()->GetValueByNameString(SamplerType));
 		}
 
 		bool IsDefaultMeshpaintTexture;
@@ -3528,7 +3302,7 @@ void UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 
 UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* Parent, const FName Name, const FName Type) const {
 	if (IgnoredTypes.Contains(Type.ToString())) return nullptr;
-	
+
 	const FString Class = "/Script/Engine." + Type.ToString();
 
 	if (!AcceptedTypes.Contains(Type.ToString())) {
