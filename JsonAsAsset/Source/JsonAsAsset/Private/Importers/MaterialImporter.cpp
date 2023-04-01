@@ -71,57 +71,27 @@ bool UMaterialImporter::ImportData() {
 		UMaterial* Material = Cast<UMaterial>(MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
 		Material->StateId = FGuid(JsonObject->GetObjectField("Properties")->GetStringField("StateId"));
 
-		FString MaterialDomainString;
-		if (JsonObject->GetObjectField("Properties")->TryGetStringField("MaterialDomain", MaterialDomainString)) {
-			EMaterialDomain MaterialDomain = MD_Surface;
+		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
-			if (MaterialDomainString.EndsWith("MD_DeferredDecal")) MaterialDomain = MD_DeferredDecal;
-			else if (MaterialDomainString.EndsWith("MD_LightFunction")) MaterialDomain = MD_LightFunction;
-			else if (MaterialDomainString.EndsWith("MD_Volume")) MaterialDomain = MD_Volume;
-			else if (MaterialDomainString.EndsWith("MD_PostProcess")) MaterialDomain = MD_PostProcess;
-			else if (MaterialDomainString.EndsWith("MD_UI")) MaterialDomain = MD_UI;
-
-			Material->MaterialDomain = MaterialDomain;
+		FString MaterialDomain;
+		if (Properties->TryGetStringField("MaterialDomain", MaterialDomain)) {
+			Material->MaterialDomain = static_cast<EMaterialDomain>(StaticEnum<EMaterialDomain>()->GetValueByNameString(MaterialDomain));
 		}
 
-		FString BlendModeString;
-		if (JsonObject->GetObjectField("Properties")->TryGetStringField("BlendMode", BlendModeString)) {
-			EBlendMode BlendMode = BLEND_Translucent;
-
-			if (BlendModeString.EndsWith("BLEND_Masked")) BlendMode = BLEND_Masked;
-			else if (BlendModeString.EndsWith("BLEND_Translucent")) BlendMode = BLEND_Translucent;
-			else if (BlendModeString.EndsWith("BLEND_Additive")) BlendMode = BLEND_Additive;
-			else if (BlendModeString.EndsWith("BLEND_Modulate")) BlendMode = BLEND_Modulate;
-			else if (BlendModeString.EndsWith("BLEND_AlphaComposite")) BlendMode = BLEND_AlphaComposite;
-			else if (BlendModeString.EndsWith("BLEND_AlphaHoldout")) BlendMode = BLEND_AlphaHoldout;
-
-			Material->BlendMode = BlendMode;
+		FString BlendMode;
+		if (Properties->TryGetStringField("BlendMode", BlendMode)) {
+			Material->BlendMode = static_cast<EBlendMode>(StaticEnum<EBlendMode>()->GetValueByNameString(BlendMode));
 		}
 
-		FString ShadingModelString;
-		if (JsonObject->GetObjectField("Properties")->TryGetStringField("ShadingModel", ShadingModelString)) {
-			EMaterialShadingModel ShadingModel = MSM_DefaultLit;
+		FString ShadingModel;
+		if (Properties->TryGetStringField("ShadingModel", ShadingModel)) {
+			Material->SetShadingModel(static_cast<EMaterialShadingModel>(StaticEnum<EMaterialShadingModel>()->GetValueByNameString(ShadingModel)));
+		}
 
-			if (ShadingModelString.EndsWith("MSM_Unlit")) ShadingModel = MSM_Unlit;
-			else if (ShadingModelString.EndsWith("MSM_Subsurface")) ShadingModel = MSM_Subsurface;
-			else if (ShadingModelString.EndsWith("MSM_PreintegratedSkin")) ShadingModel = MSM_PreintegratedSkin;
-			else if (ShadingModelString.EndsWith("MSM_ClearCoat")) ShadingModel = MSM_ClearCoat;
-			else if (ShadingModelString.EndsWith("MSM_SubsurfaceProfile")) ShadingModel = MSM_SubsurfaceProfile;
-			else if (ShadingModelString.EndsWith("MSM_TwoSidedFoliage")) ShadingModel = MSM_TwoSidedFoliage;
-			else if (ShadingModelString.EndsWith("MSM_Hair")) ShadingModel = MSM_Hair;
-			else if (ShadingModelString.EndsWith("MSM_Cloth")) ShadingModel = MSM_Cloth;
-			else if (ShadingModelString.EndsWith("MSM_Eye")) ShadingModel = MSM_Eye;
-			else if (ShadingModelString.EndsWith("MSM_SingleLayerWater")) ShadingModel = MSM_SingleLayerWater;
-			else if (ShadingModelString.EndsWith("MSM_ThinTranslucent")) ShadingModel = MSM_ThinTranslucent;
-			else if (ShadingModelString.EndsWith("MSM_FromMaterialExpression")) ShadingModel = MSM_FromMaterialExpression;
-
-			Material->SetShadingModel(ShadingModel);
-
-			const TSharedPtr<FJsonObject>* ShadingModelsPtr;
-			if (JsonObject->GetObjectField("Properties")->TryGetObjectField("ShadingModels", ShadingModelsPtr)) {
-				int ShadingModelField;
-				if (ShadingModelsPtr->Get()->TryGetNumberField("ShadingModelField", ShadingModelField)) Material->GetShadingModels().SetShadingModelField(ShadingModelField);
-			}
+		const TSharedPtr<FJsonObject>* ShadingModelsPtr;
+		if (Properties->TryGetObjectField("ShadingModels", ShadingModelsPtr)) {
+			int ShadingModelField;
+			if (ShadingModelsPtr->Get()->TryGetNumberField("ShadingModelField", ShadingModelField)) Material->GetShadingModels().SetShadingModelField(ShadingModelField);
 		}
 
 		bool AllowTranslucentCustomDepthWrites;

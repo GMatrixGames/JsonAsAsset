@@ -31,18 +31,8 @@ bool USkeletonImporter::ImportData() {
 
 				for (int i = 0; i < Properties->GetArrayField("BoneTree").Num(); i++) {
 					const TSharedPtr<FJsonObject> BoneNode = Properties->GetArrayField("BoneTree")[i]->AsObject();
-
-					EBoneTranslationRetargetingMode::Type RetargetingMode;
-					FString StringTranslationRetargetingMode = BoneNode->GetStringField("TranslationRetargetingMode");
-
-					if (StringTranslationRetargetingMode.EndsWith("Animation")) RetargetingMode = EBoneTranslationRetargetingMode::Animation;
-					else if (StringTranslationRetargetingMode.EndsWith("OrientAndScale")) RetargetingMode = EBoneTranslationRetargetingMode::OrientAndScale;
-					else if (StringTranslationRetargetingMode.EndsWith("Skeleton")) RetargetingMode = EBoneTranslationRetargetingMode::Skeleton;
-					else if (StringTranslationRetargetingMode.EndsWith("AnimationRelative")) RetargetingMode = EBoneTranslationRetargetingMode::AnimationRelative;
-					else if (StringTranslationRetargetingMode.EndsWith("AnimationScaled")) RetargetingMode = EBoneTranslationRetargetingMode::AnimationScaled;
-					else RetargetingMode = EBoneTranslationRetargetingMode::Animation;
-
-					Skeleton->SetBoneTranslationRetargetingMode(i, RetargetingMode, false);
+					FString TranslationRetargetingMode = BoneNode->GetStringField("TranslationRetargetingMode");
+					Skeleton->SetBoneTranslationRetargetingMode(i, static_cast<EBoneTranslationRetargetingMode::Type>(StaticEnum<EBoneTranslationRetargetingMode::Type>()->GetValueByNameString(TranslationRetargetingMode)), false);
 				}
 			}
 

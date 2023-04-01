@@ -203,113 +203,37 @@ bool USoundAttenuationImporter::ImportData() {
 		}
 
 		FString AbsorptionMethod;
-		FString StringOcclusionTraceChannel;
-		FString StringPriorityAttenuationMethod;
-		FString StringReverbSendMethod;
-		FString StringSpatializationAlgorithm;
-		FString StringAttenuationShape;
-		FString StringDistanceAlgorithm;
-		FString StringFalloffMode;
+		FString OcclusionTraceChannel;
+		FString PriorityAttenuationMethod;
+		FString ReverbSendMethod;
+		FString SpatializationAlgorithm;
+		FString AttenuationShape;
+		FString DistanceAlgorithm;
+		FString FalloffMode;
 
 		if (Attenuation->TryGetStringField("AbsorptionMethod", AbsorptionMethod)) {
-			SoundAttenuation->Attenuation.AbsorptionMethod = AbsorptionMethod.EndsWith("CustomCurve") ? EAirAbsorptionMethod::CustomCurve : EAirAbsorptionMethod::Linear;
+			SoundAttenuation->Attenuation.AbsorptionMethod = static_cast<EAirAbsorptionMethod>(StaticEnum<EAirAbsorptionMethod>()->GetValueByNameString(AbsorptionMethod));
 		}
-		if (Attenuation->TryGetStringField("PriorityAttenuationMethod", StringPriorityAttenuationMethod)) {
-			EPriorityAttenuationMethod PriorityAttenuationMethod;
-
-			if (StringPriorityAttenuationMethod.EndsWith("CustomCurve")) PriorityAttenuationMethod = EPriorityAttenuationMethod::CustomCurve;
-			else if (StringPriorityAttenuationMethod.EndsWith("Manual")) PriorityAttenuationMethod = EPriorityAttenuationMethod::Manual;
-			else PriorityAttenuationMethod = EPriorityAttenuationMethod::Linear;
-
-			SoundAttenuation->Attenuation.PriorityAttenuationMethod = PriorityAttenuationMethod;
+		if (Attenuation->TryGetStringField("PriorityAttenuationMethod", PriorityAttenuationMethod)) {
+			SoundAttenuation->Attenuation.PriorityAttenuationMethod = static_cast<EPriorityAttenuationMethod>(StaticEnum<EPriorityAttenuationMethod>()->GetValueByNameString(PriorityAttenuationMethod));
 		}
-		if (Attenuation->TryGetStringField("ReverbSendMethod", StringReverbSendMethod)) {
-			EReverbSendMethod ReverbSendMethod;
-
-			if (StringReverbSendMethod.EndsWith("CustomCurve")) ReverbSendMethod = EReverbSendMethod::CustomCurve;
-			else if (StringReverbSendMethod.EndsWith("Manual")) ReverbSendMethod = EReverbSendMethod::Manual;
-			else ReverbSendMethod = EReverbSendMethod::Linear;
-
-			SoundAttenuation->Attenuation.ReverbSendMethod = ReverbSendMethod;
+		if (Attenuation->TryGetStringField("ReverbSendMethod", ReverbSendMethod)) {
+			SoundAttenuation->Attenuation.ReverbSendMethod = static_cast<EReverbSendMethod>(StaticEnum<EReverbSendMethod>()->GetValueByNameString(ReverbSendMethod));
 		}
-		if (Attenuation->TryGetStringField("FalloffMode", StringFalloffMode)) {
-			ENaturalSoundFalloffMode FalloffMode;
-
-			if (StringFalloffMode.EndsWith("Hold")) FalloffMode = ENaturalSoundFalloffMode::Hold;
-			else if (StringFalloffMode.EndsWith("Silent")) FalloffMode = ENaturalSoundFalloffMode::Silent;
-			else FalloffMode = ENaturalSoundFalloffMode::Continues;
-
-			SoundAttenuation->Attenuation.FalloffMode = FalloffMode;
+		if (Attenuation->TryGetStringField("FalloffMode", FalloffMode)) {
+			SoundAttenuation->Attenuation.FalloffMode = static_cast<ENaturalSoundFalloffMode>(StaticEnum<ENaturalSoundFalloffMode>()->GetValueByNameString(FalloffMode));
 		}
-		if (Attenuation->TryGetStringField("DistanceAlgorithm", StringDistanceAlgorithm)) {
-			EAttenuationDistanceModel DistanceAlgorithm;
-
-			if (StringDistanceAlgorithm.EndsWith("Logarithmic")) DistanceAlgorithm = EAttenuationDistanceModel::Logarithmic;
-			else if (StringDistanceAlgorithm.EndsWith("Inverse")) DistanceAlgorithm = EAttenuationDistanceModel::Inverse;
-			else if (StringDistanceAlgorithm.EndsWith("LogReverse")) DistanceAlgorithm = EAttenuationDistanceModel::LogReverse;
-			else if (StringDistanceAlgorithm.EndsWith("NaturalSound")) DistanceAlgorithm = EAttenuationDistanceModel::NaturalSound;
-			else if (StringDistanceAlgorithm.EndsWith("Custom")) DistanceAlgorithm = EAttenuationDistanceModel::Custom;
-			else DistanceAlgorithm = EAttenuationDistanceModel::Linear;
-
-			SoundAttenuation->Attenuation.DistanceAlgorithm = DistanceAlgorithm;
+		if (Attenuation->TryGetStringField("DistanceAlgorithm", DistanceAlgorithm)) {
+			SoundAttenuation->Attenuation.DistanceAlgorithm = static_cast<EAttenuationDistanceModel>(StaticEnum<EAttenuationDistanceModel>()->GetValueByNameString(FalloffMode));
 		}
-		if (Attenuation->TryGetStringField("SpatializationAlgorithm", StringSpatializationAlgorithm)) {
-			ESoundSpatializationAlgorithm SpatializationAlgorithm;
-
-			if (StringSpatializationAlgorithm.EndsWith("SPATIALIZATION_HRTF")) SpatializationAlgorithm = SPATIALIZATION_HRTF;
-			else SpatializationAlgorithm = SPATIALIZATION_Default;
-
-			SoundAttenuation->Attenuation.SpatializationAlgorithm = SpatializationAlgorithm;
+		if (Attenuation->TryGetStringField("SpatializationAlgorithm", SpatializationAlgorithm)) {
+			SoundAttenuation->Attenuation.SpatializationAlgorithm = static_cast<ESoundSpatializationAlgorithm>(StaticEnum<ESoundSpatializationAlgorithm>()->GetValueByNameString(SpatializationAlgorithm));
 		}
-		if (Attenuation->TryGetStringField("AttenuationShape", StringAttenuationShape)) {
-			EAttenuationShape::Type AttenuationShape;
-
-			if (StringAttenuationShape.EndsWith("Capsule")) AttenuationShape = EAttenuationShape::Capsule;
-			else if (StringAttenuationShape.EndsWith("Box")) AttenuationShape = EAttenuationShape::Box;
-			else if (StringAttenuationShape.EndsWith("Cone")) AttenuationShape = EAttenuationShape::Cone;
-			else AttenuationShape = EAttenuationShape::Sphere;
-
-			SoundAttenuation->Attenuation.AttenuationShape = AttenuationShape;
+		if (Attenuation->TryGetStringField("AttenuationShape", AttenuationShape)) {
+			SoundAttenuation->Attenuation.AttenuationShape = static_cast<EAttenuationShape::Type>(StaticEnum<EAttenuationShape::Type>()->GetValueByNameString(AttenuationShape));
 		}
-		if (Attenuation->TryGetStringField("OcclusionTraceChannel", StringOcclusionTraceChannel)) {
-			ECollisionChannel OcclusionTraceChannel;
-
-			if (StringOcclusionTraceChannel.EndsWith("ECC_WorldStatic")) OcclusionTraceChannel = ECC_WorldStatic;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_WorldDynamic")) OcclusionTraceChannel = ECC_WorldDynamic;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_Pawn")) OcclusionTraceChannel = ECC_Pawn;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_Visibility")) OcclusionTraceChannel = ECC_Visibility;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_Camera")) OcclusionTraceChannel = ECC_Camera;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_PhysicsBody")) OcclusionTraceChannel = ECC_PhysicsBody;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_Vehicle")) OcclusionTraceChannel = ECC_Vehicle;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_Destructible")) OcclusionTraceChannel = ECC_Destructible;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel1")) OcclusionTraceChannel = ECC_EngineTraceChannel1;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel2")) OcclusionTraceChannel = ECC_EngineTraceChannel2;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel3")) OcclusionTraceChannel = ECC_EngineTraceChannel3;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel4")) OcclusionTraceChannel = ECC_EngineTraceChannel4;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel5")) OcclusionTraceChannel = ECC_EngineTraceChannel5;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_EngineTraceChannel6")) OcclusionTraceChannel = ECC_EngineTraceChannel6;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel1")) OcclusionTraceChannel = ECC_GameTraceChannel1;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel2")) OcclusionTraceChannel = ECC_GameTraceChannel2;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel3")) OcclusionTraceChannel = ECC_GameTraceChannel3;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel4")) OcclusionTraceChannel = ECC_GameTraceChannel4;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel5")) OcclusionTraceChannel = ECC_GameTraceChannel5;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel6")) OcclusionTraceChannel = ECC_GameTraceChannel6;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel7")) OcclusionTraceChannel = ECC_GameTraceChannel7;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel8")) OcclusionTraceChannel = ECC_GameTraceChannel8;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel9")) OcclusionTraceChannel = ECC_GameTraceChannel9;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel10")) OcclusionTraceChannel = ECC_GameTraceChannel10;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel11")) OcclusionTraceChannel = ECC_GameTraceChannel11;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel12")) OcclusionTraceChannel = ECC_GameTraceChannel12;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel13")) OcclusionTraceChannel = ECC_GameTraceChannel13;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel14")) OcclusionTraceChannel = ECC_GameTraceChannel14;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel15")) OcclusionTraceChannel = ECC_GameTraceChannel15;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel16")) OcclusionTraceChannel = ECC_GameTraceChannel16;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel17")) OcclusionTraceChannel = ECC_GameTraceChannel17;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_GameTraceChannel18")) OcclusionTraceChannel = ECC_GameTraceChannel18;
-			else if (StringOcclusionTraceChannel.EndsWith("ECC_OverlapAll_Deprecated")) OcclusionTraceChannel = ECC_OverlapAll_Deprecated;
-			else OcclusionTraceChannel = ECC_Visibility;
-
-			SoundAttenuation->Attenuation.OcclusionTraceChannel = OcclusionTraceChannel;
+		if (Attenuation->TryGetStringField("OcclusionTraceChannel", OcclusionTraceChannel)) {
+			SoundAttenuation->Attenuation.OcclusionTraceChannel = static_cast<ECollisionChannel>(StaticEnum<ECollisionChannel>()->GetValueByNameString(OcclusionTraceChannel));
 		}
 
 		if (const TSharedPtr<FJsonObject>* AttenuationShapeExtents; Attenuation->TryGetObjectField("AttenuationShapeExtents", AttenuationShapeExtents)) {
