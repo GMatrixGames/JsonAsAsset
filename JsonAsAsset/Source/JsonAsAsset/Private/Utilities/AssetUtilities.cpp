@@ -58,13 +58,6 @@ UObject* FAssetUtilities::GetSelectedAsset() {
 }
 
 FRichCurveKey FAssetUtilities::ObjectToRichCurveKey(const TSharedPtr<FJsonObject>& Object) {
-	ERichCurveInterpMode InterpMode;
-	FString StringInterpMode = Object->GetStringField("InterpMode");
-
-	if (StringInterpMode == "RCIM_Linear") InterpMode = RCIM_Linear;
-	else if (StringInterpMode == "RCIM_Cubic") InterpMode = RCIM_Cubic;
-	else if (StringInterpMode == "RCIM_Constant") InterpMode = RCIM_Constant;
-	else InterpMode = RCIM_None;
-
-	return FRichCurveKey(Object->GetNumberField("Time"), Object->GetNumberField("Value"), Object->GetNumberField("ArriveTangent"), Object->GetNumberField("LeaveTangent"), InterpMode);
+	FString InterpMode = Object->GetStringField("InterpMode");
+	return FRichCurveKey(Object->GetNumberField("Time"), Object->GetNumberField("Value"), Object->GetNumberField("ArriveTangent"), Object->GetNumberField("LeaveTangent"), static_cast<ERichCurveInterpMode>(StaticEnum<ERichCurveInterpMode>()->GetValueByNameString(InterpMode)));
 }
