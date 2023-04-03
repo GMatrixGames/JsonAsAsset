@@ -30,7 +30,7 @@ However the version of your FModel application may affect the plugin's processin
 **Using JsonAsAsset**:
 <br> After importing the plugin, click on the window tab (top left) and press JsonAsAsset (at the bottom) to select a JSON file. Then, it should import the asset and you can use it.
 
------------
+  -----------
 
 ### What's supported?
 *Asset types are still being added to this plugin, contribute if you like*
