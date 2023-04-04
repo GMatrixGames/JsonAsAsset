@@ -43,5 +43,8 @@ However the version of your FModel application may affect the plugin's processin
 - SubsurfaceProfile
 - SkeletalMeshLODSettings
 - Animation (curves, sync markers)
-- ReverbEffect
 - SoundAttenuation
+- ReverbEffect
+
+### JSON Logo
+The logo used in this plugin is from: [JSON.org](https://www.json.org/json-en.html)
