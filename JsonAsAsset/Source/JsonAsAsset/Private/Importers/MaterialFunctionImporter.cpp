@@ -690,9 +690,11 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetObjectField("MaterialFunction", MaterialFunctionPtr) && MaterialFunctionPtr != nullptr) {
 				MaterialFunctionCall->MaterialFunction = LoadObject<UMaterialFunction>(MaterialFunctionPtr);
 
+				// Notify material function is missing
 				if (MaterialFunctionCall->MaterialFunction == nullptr) {
-					const FText DialogText = FText::FromString("Material Function Missing: " + MaterialFunctionPtr->Get()->GetStringField("ObjectPath"));
-					FMessageDialog::Open(EAppMsgType::Ok, DialogText);
+					FString ObjectPath;
+					MaterialFunctionPtr->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
+					AppendNotification(FText::FromString("Material Function Missing: " + ObjectPath), SNotificationItem::CS_Fail);
 				}
 			}
 
@@ -1071,6 +1073,13 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			const TSharedPtr<FJsonObject>* Collection = nullptr;
 			if (Properties->TryGetObjectField("Collection", Collection) && Collection != nullptr) {
 				CollectionParameter->Collection = LoadObject<UMaterialParameterCollection>(Collection);
+
+				if (CollectionParameter->Collection == nullptr) {
+					FString ObjectPath;
+					Collection->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
+
+					AppendNotification(FText::FromString("Material Parameter Collection Missing: " + ObjectPath), SNotificationItem::CS_Fail);
+				}
 			}
 
 			FString ParameterName;
@@ -3298,6 +3307,19 @@ void UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 		bool IsDefaultMeshpaintTexture;
 		if (Json->TryGetBoolField("IsDefaultMeshpaintTexture", IsDefaultMeshpaintTexture)) TextureBase->IsDefaultMeshpaintTexture = IsDefaultMeshpaintTexture;
 	}
+}
+
+void UMaterialFunctionImporter::AppendNotification(FText Text, SNotificationItem::ECompletionState CompletionState) {
+	// Let user know material functions are missing
+	FNotificationInfo Info = FNotificationInfo(Text);
+	Info.ExpireDuration = 2.0f;
+	Info.bUseLargeFont = true;
+	Info.bUseSuccessFailIcons = true;
+	Info.WidthOverride = FOptionalSize(500);
+	Info.SubText = FText::FromString(FString("Material Graph"));
+
+	TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+	NotificationPtr->SetCompletionState(CompletionState);
 }
 
 UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* Parent, const FName Name, const FName Type) const {

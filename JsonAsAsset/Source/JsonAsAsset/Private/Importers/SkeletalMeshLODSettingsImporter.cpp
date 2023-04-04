@@ -12,17 +12,12 @@ bool USkeletalMeshLODSettingsImporter::ImportData() {
 	try {
 		UDataAssetFactory* DataAssetFactory = NewObject<UDataAssetFactory>();
 		USkeletalMeshLODSettingsDerived* LODDataAsset = Cast<USkeletalMeshLODSettingsDerived>(
-			DataAssetFactory->FactoryCreateNew(USkeletalMeshLODSettings::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public,
-			                                   nullptr, GWarn));
-		FAssetRegistryModule::AssetCreated(LODDataAsset);
-		if (!LODDataAsset->MarkPackageDirty()) return false;
-		Package->SetDirtyFlag(true);
-		LODDataAsset->PostEditChange();
-		LODDataAsset->AddToRoot();
+			DataAssetFactory->FactoryCreateNew(USkeletalMeshLODSettings::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
+
+		// Empty LOD Groups
 		LODDataAsset->EmptyLODGroups();
 
 		TArray<TSharedPtr<FJsonValue>> LODGroupsObject = JsonObject->GetObjectField("Properties")->GetArrayField("LODGroups");
-
 		for (int i = 0; i < LODGroupsObject.Num(); i++) {
 			TSharedPtr<FJsonObject> LODDataObject = LODGroupsObject[i]->AsObject();
 			FSkeletalMeshLODGroupSettings SkeletalMeshLODGroup = FSkeletalMeshLODGroupSettings();
@@ -155,6 +150,9 @@ bool USkeletalMeshLODSettingsImporter::ImportData() {
 			SkeletalMeshLODGroup.ReductionSettings = OptimizationSettings;
 			LODDataAsset->AddLODGroup(SkeletalMeshLODGroup);
 		}
+
+		// Handle edit changes, and add it to the content browser
+		if (!HandleAssetCreation(LODDataAsset)) return false;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;

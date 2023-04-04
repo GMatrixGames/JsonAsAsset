@@ -12,14 +12,15 @@
 #include "Misc/FileHelper.h"
 #include "ToolMenus.h"
 
-// | ------------------------------------------------------
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Styling/SlateIconFinder.h"
 
 // ----> Importers
 #include "Importers/CurveFloatImporter.h"
 #include "Importers/CurveLinearColorImporter.h"
 #include "Importers/DataTableImporter.h"
 #include "Importers/Importer.h"
-#include "Importers/ParticleModuleTypeDataBeam2Importer.h"
 #include "Importers/SkeletalMeshLODSettingsImporter.h"
 #include "Importers/SkeletonImporter.h"
 #include "Importers/SoundAttenuationImporter.h"
@@ -31,7 +32,6 @@
 #include "Importers/MaterialParameterCollectionImporter.h"
 #include "Importers/MaterialInstanceConstantImporter.h"
 #include "Utilities/AssetUtilities.h"
-
 // ------------------------------------------------------ |
 
 #define LOCTEXT_NAMESPACE "FJsonAsAssetModule"
@@ -122,11 +122,27 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 
 					else if (Type == "DataTable") Importer = new UDataTableImporter(Name, DataObject, Package, OutermostPkg);
 					else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, DataObject, Package, OutermostPkg);
-					else if (Type == "ParticleModuleTypeDataBeam2") Importer = new UParticleModuleTypeDataBeam2Importer(Name, DataObject, Package, OutermostPkg);
 					else Importer = nullptr;
 
 					if (Importer != nullptr && Importer->ImportData()) {
-						UE_LOG(LogJson, Log, TEXT("Successfully imported \"%s\" as \"%s\""), *Name, *Type)
+						UE_LOG(LogJson, Log, TEXT("Successfully imported \"%s\" as \"%s\""), *Name, *Type);
+
+						// Setup notifcation's arguments
+						FFormatNamedArguments Args;
+						Args.Add(TEXT("AssetType"), FText::FromString(Type));
+
+						// Create notifcation
+						FNotificationInfo Info(FText::Format(LOCTEXT("ImportedAsset", "Imported type: {AssetType}"), Args));
+						Info.ExpireDuration = 2.0f;
+						Info.bUseLargeFont = true;
+						Info.bUseSuccessFailIcons = false;
+						Info.WidthOverride = FOptionalSize(350);
+						Info.Image = FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail"));
+						Info.SubText = FText::FromString(Name);
+
+						// Set icon as successful
+						TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+						NotificationPtr->SetCompletionState(SNotificationItem::CS_Success);
 					} else {
 						FText DialogText = FText::FromString("The \"" + Type + "\" cannot be imported!");
 						FMessageDialog::Open(EAppMsgType::Ok, DialogText);

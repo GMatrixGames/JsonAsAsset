@@ -12,11 +12,8 @@ bool UReverbEffectImporter::ImportData() {
 
 		UReverbEffect* ReverbEffect = NewObject<UReverbEffect>(Package, UReverbEffect::StaticClass(), *FileName, RF_Public | RF_Standalone);
 
-		FAssetRegistryModule::AssetCreated(ReverbEffect);
-		if (!ReverbEffect->MarkPackageDirty()) return false;
-		Package->SetDirtyFlag(true);
-		ReverbEffect->PostEditChange();
-		ReverbEffect->AddToRoot();
+		// Handle edit changes, and add it to the content browser
+		if (!HandleAssetCreation(ReverbEffect)) return false;
 
 		int64 AirAbsorptionGainHF;
 		int64 DecayHFRatio;

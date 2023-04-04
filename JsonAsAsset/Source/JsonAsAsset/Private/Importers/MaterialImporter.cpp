@@ -7,6 +7,8 @@
 #else
 #include "MaterialDomain.h"
 #endif
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
 #include "Dom/JsonObject.h"
 #include "Factories/MaterialFactoryNew.h"
 #include "Utilities/MathUtilities.h"
@@ -467,9 +469,8 @@ bool UMaterialImporter::ImportData() {
 		AddExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
 		AddComments(Material, StringExpressionCollection, Exports);
 
-		// Create Editor
-		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
-		FMaterialEditor* AssetEditorInstance = reinterpret_cast<FMaterialEditor*>(AssetEditorSubsystem->OpenEditorForAsset(Material) ? AssetEditorSubsystem->FindEditorForAsset(Material, true) : nullptr);
+		bool bEditorGraphOpen;
+		FMaterialEditor* AssetEditorInstance = nullptr;
 
 		// Handle Material Graphs
 		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
@@ -483,6 +484,14 @@ bool UMaterialImporter::ImportData() {
 				TSharedPtr<FJsonObject> SubgraphExpression;
 
 				FString SubgraphExpressionName;
+
+				if (!bEditorGraphOpen) {
+					// Create Editor
+					UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+					AssetEditorInstance = reinterpret_cast<FMaterialEditor*>(AssetEditorSubsystem->OpenEditorForAsset(Material) ? AssetEditorSubsystem->FindEditorForAsset(Material, true) : nullptr);
+
+					bEditorGraphOpen = true;
+				}
 
 				// Set SubgraphExpression
 				const TSharedPtr<FJsonObject>* SubgraphExpressionPtr = nullptr;
@@ -519,6 +528,18 @@ bool UMaterialImporter::ImportData() {
 
 					AddGenerics(Material, CompositeExpression, SubgraphExpression);
 				}
+
+				// Create notifcation
+				FNotificationInfo Info = FNotificationInfo(FText::FromString("Material Graph imported incomplete"));
+				Info.ExpireDuration = 2.0f;
+				Info.bUseLargeFont = true;
+				Info.bUseSuccessFailIcons = true;
+				Info.WidthOverride = FOptionalSize(350);
+				Info.SubText = FText::FromString(FString("Material"));
+
+				// Set icon as successful
+				TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+				NotificationPtr->SetCompletionState(SNotificationItem::CS_Fail);
 
 				DestinationGraph->Rename(*CompositeExpression->SubgraphName);
 				DestinationGraph->Material = MaterialGraph->Material;

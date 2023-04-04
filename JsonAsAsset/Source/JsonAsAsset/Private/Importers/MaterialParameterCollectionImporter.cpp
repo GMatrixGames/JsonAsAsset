@@ -9,11 +9,10 @@
 
 bool UMaterialParameterCollectionImporter::ImportData() {
 	try {
+		// Query properties for multi-use purposes
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
 		UMaterialParameterCollection* MaterialParameterCollection = NewObject<UMaterialParameterCollection>(Package, UMaterialParameterCollection::StaticClass(), *FileName, RF_Public | RF_Standalone);
-		HandleAssetCreation(MaterialParameterCollection);
-
 		MaterialParameterCollection->StateId = FGuid(Properties->GetStringField("StateId"));
 
 		const TArray<TSharedPtr<FJsonValue>>* ScalarParametersPtr;
@@ -44,6 +43,8 @@ bool UMaterialParameterCollectionImporter::ImportData() {
 			}
 		}
 
+		// Handle edit changes, and add it to the content browser
+		if (!HandleAssetCreation(MaterialParameterCollection)) return false;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
