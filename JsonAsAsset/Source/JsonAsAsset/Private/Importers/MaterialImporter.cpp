@@ -529,7 +529,7 @@ bool UMaterialImporter::ImportData() {
 					AddGenerics(Material, CompositeExpression, SubgraphExpression);
 				}
 
-				// Create notifcation
+				// Create notification
 				FNotificationInfo Info = FNotificationInfo(FText::FromString("Material Graph imported incomplete"));
 				Info.ExpireDuration = 2.0f;
 				Info.bUseLargeFont = true;

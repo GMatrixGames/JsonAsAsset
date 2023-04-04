@@ -1078,7 +1078,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 					FString ObjectPath;
 					Collection->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
 
-					AppendNotification(FText::FromString("Material Parameter Collection Missing: " + ObjectPath), SNotificationItem::CS_Fail);
+					AppendNotification(FText::FromString("Material Collection Missing: " + ObjectPath), SNotificationItem::CS_Fail);
 				}
 			}
 
