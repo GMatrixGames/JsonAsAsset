@@ -688,7 +688,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			const TSharedPtr<FJsonObject>* MaterialFunctionPtr = nullptr;
 			if (Properties->TryGetObjectField("MaterialFunction", MaterialFunctionPtr) && MaterialFunctionPtr != nullptr) {
-				MaterialFunctionCall->MaterialFunction = LoadObject<UMaterialFunction>(MaterialFunctionPtr);
+				LoadObject(MaterialFunctionPtr, MaterialFunctionCall->MaterialFunction);
 
 				// Notify material function is missing
 				if (MaterialFunctionCall->MaterialFunction == nullptr) {
@@ -1060,7 +1060,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			const TSharedPtr<FJsonObject>* DeclarationPtr = nullptr;
 			if (Properties->TryGetObjectField("Declaration", DeclarationPtr) && DeclarationPtr != nullptr) {
-				NamedRerouteUsage->Declaration = LoadObject<UMaterialExpressionNamedRerouteDeclaration>(DeclarationPtr);
+				LoadObject(DeclarationPtr, NamedRerouteUsage->Declaration);
 			}
 
 			FString DeclarationGuid;
@@ -1072,7 +1072,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			const TSharedPtr<FJsonObject>* Collection = nullptr;
 			if (Properties->TryGetObjectField("Collection", Collection) && Collection != nullptr) {
-				CollectionParameter->Collection = LoadObject<UMaterialParameterCollection>(Collection);
+				LoadObject(Collection, CollectionParameter->Collection);
 
 				if (CollectionParameter->Collection == nullptr) {
 					FString ObjectPath;
@@ -2711,12 +2711,12 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 
 			const TSharedPtr<FJsonObject>* CurvePtr = nullptr;
 			if (Properties->TryGetObjectField("Curve", CurvePtr) && CurvePtr != nullptr) {
-				CurveAtlasRowParameter->Curve = LoadObject<UCurveLinearColor>(CurvePtr);
+				LoadObject(CurvePtr, CurveAtlasRowParameter->Curve);
 			}
 
 			const TSharedPtr<FJsonObject>* AtlasPtr = nullptr;
 			if (Properties->TryGetObjectField("Atlas", AtlasPtr) && AtlasPtr != nullptr) {
-				CurveAtlasRowParameter->Atlas = LoadObject<UCurveLinearColorAtlas>(AtlasPtr);
+				LoadObject(AtlasPtr, CurveAtlasRowParameter->Atlas);
 			}
 
 			const TSharedPtr<FJsonObject>* InputTimePtr = nullptr;
@@ -3051,7 +3051,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 					// Grass Type Property
 					const TSharedPtr<FJsonObject>* GrassAsset = nullptr;
 					if (GrassType->TryGetObjectField("GrassAsset", GrassAsset) && GrassAsset != nullptr) {
-						GrassInput.GrassType = LoadObject<ULandscapeGrassType>(GrassAsset);
+						LoadObject(GrassAsset, GrassInput.GrassType);
 					}
 
 					const TSharedPtr<FJsonObject>* InputPtr = nullptr;
@@ -3296,7 +3296,7 @@ void UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 	if (UMaterialExpressionTextureBase* TextureBase = Cast<UMaterialExpressionTextureBase>(Expression)) {
 		const TSharedPtr<FJsonObject>* TexturePtr = nullptr;
 		if (Json->TryGetObjectField("Texture", TexturePtr) && TexturePtr != nullptr) {
-			TextureBase->Texture = LoadObject<UTexture>(TexturePtr);
+			LoadObject(TexturePtr, TextureBase->Texture);
 		}
 
 		FString SamplerType;
@@ -3309,7 +3309,7 @@ void UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 	}
 }
 
-void UMaterialFunctionImporter::AppendNotification(FText Text, SNotificationItem::ECompletionState CompletionState) {
+void UMaterialFunctionImporter::AppendNotification(const FText& Text, const SNotificationItem::ECompletionState CompletionState) {
 	// Let user know material functions are missing
 	FNotificationInfo Info = FNotificationInfo(Text);
 	Info.ExpireDuration = 2.0f;
@@ -3409,8 +3409,11 @@ FExpressionOutput UMaterialFunctionImporter::PopulateExpressionOutput(const FJso
 FName UMaterialFunctionImporter::GetExpressionName(const FJsonObject* JsonProperties) {
 	const TSharedPtr<FJsonValue> ExpressionField = JsonProperties->TryGetField("Expression");
 
-	if (ExpressionField == nullptr) return NAME_None;
-	if (ExpressionField->IsNull()) return NAME_None;
+	if (ExpressionField == nullptr || ExpressionField->IsNull()) {
+		// Must be from < 4.25
+		return FName(JsonProperties->GetStringField("ExpressionName"));
+	}
+
 	const TSharedPtr<FJsonObject> ExpressionObject = ExpressionField->AsObject();
 	FString ObjectName;
 	if (ExpressionObject->TryGetStringField("ObjectName", ObjectName)) {

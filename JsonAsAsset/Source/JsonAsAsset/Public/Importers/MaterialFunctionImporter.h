@@ -218,7 +218,7 @@ protected:
 	void AddExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter = false, bool bSubgraph = false);
 	void AddComments(UObject* Parent, const TSharedPtr<FJsonObject>& Json, TMap<FName, FImportData>& Exports);
 	void AddGenerics(UObject* Parent, UMaterialExpression* Expression, const TSharedPtr<FJsonObject>& Json);
-	void AppendNotification(FText Text, SNotificationItem::ECompletionState CompletionState);
+	void AppendNotification(const FText& Text, SNotificationItem::ECompletionState CompletionState);
 
 	UMaterialExpression* CreateEmptyExpression(UObject* Parent, FName Name, FName Type) const;
 

@@ -72,7 +72,7 @@ bool UMaterialImporter::ImportData() {
 		UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
 		UMaterial* Material = Cast<UMaterial>(MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
-		
+
 		Material->StateId = FGuid(Properties->GetStringField("StateId"));
 
 		FString MaterialDomain;
@@ -469,7 +469,7 @@ bool UMaterialImporter::ImportData() {
 		AddExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
 		AddComments(Material, StringExpressionCollection, Exports);
 
-		bool bEditorGraphOpen;
+		bool bEditorGraphOpen = false;
 		FMaterialEditor* AssetEditorInstance = nullptr;
 
 		// Handle Material Graphs
@@ -625,7 +625,6 @@ bool UMaterialImporter::ImportData() {
 			}
 		}
 
-		AssetEditorInstance->UpdateMaterialAfterGraphChange();
 		Material->PostEditChange();
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

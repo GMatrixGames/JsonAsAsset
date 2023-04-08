@@ -34,7 +34,8 @@ public class JsonAsAsset : ModuleRules
 				"AnimationDataController",
 				"MaterialEditor",
 				"ImageWriteQueue",
-				"Landscape"
+				"Landscape",
+				"AssetTools"
 			}
 		);
 

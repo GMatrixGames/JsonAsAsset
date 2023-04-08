@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Slate/WidgetRenderer.h"
 #include "Modules/ModuleManager.h"
 
 struct ImportOptionsBase

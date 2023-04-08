@@ -2,7 +2,6 @@
 
 #include "Importers/MaterialInstanceConstantImporter.h"
 
-#include "RemoteAssetDownloader.h"
 #include "Dom/JsonObject.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Utilities/MathUtilities.h"
@@ -26,7 +25,7 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 		const TSharedPtr<FJsonObject>* ParentPtr = nullptr;
 		if (Properties->TryGetObjectField("Parent", ParentPtr) && ParentPtr != nullptr) {
-			MaterialInstanceConstant->Parent = LoadObject<UMaterialInterface>(ParentPtr);
+			LoadObject(ParentPtr, MaterialInstanceConstant->Parent);
 		}
 
 		TArray<FScalarParameterValue> ScalarParameterValues;
@@ -87,21 +86,7 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 			const TSharedPtr<FJsonObject>* TexturePtr = nullptr;
 			if (Texture->TryGetObjectField("ParameterValue", TexturePtr) && TexturePtr != nullptr) {
-				FString Type;
-				FString Name;
-				TexturePtr->Get()->GetStringField("ObjectName").Split("'", &Type, &Name);
-				FString Path;
-				TexturePtr->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
-				Name = Name.Replace(TEXT("'"), TEXT(""));
-
-				UTexture2D* Tex = LoadObject<UTexture2D>(TexturePtr);
-				if (Tex == nullptr) {
-					if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Tex)) {
-						UE_LOG(LogJson, Log, TEXT("Something went wrong here!!"))
-					}
-				}
-
-				Parameter.ParameterValue = Tex;
+				LoadObject(TexturePtr, Parameter.ParameterValue);
 			}
 
 			TSharedPtr<FJsonObject> ParameterInfoJson = Texture->GetObjectField("ParameterInfo");

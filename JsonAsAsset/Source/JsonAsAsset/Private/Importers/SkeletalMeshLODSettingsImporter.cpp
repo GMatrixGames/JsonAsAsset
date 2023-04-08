@@ -23,7 +23,7 @@ bool USkeletalMeshLODSettingsImporter::ImportData() {
 			FSkeletalMeshLODGroupSettings SkeletalMeshLODGroup = FSkeletalMeshLODGroupSettings();
 
 			if (const TSharedPtr<FJsonObject>* BakePose; LODDataObject->TryGetObjectField("BakePose", BakePose) == true) {
-				SkeletalMeshLODGroup.BakePose = LoadObject<UAnimSequence>(BakePose);
+				LoadObject(BakePose, SkeletalMeshLODGroup.BakePose);
 			}
 
 			SkeletalMeshLODGroup.LODHysteresis = LODDataObject->GetNumberField("LODHysteresis");

@@ -3,17 +3,29 @@
 #include "Importers/Importer.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
+#include "RemoteAssetDownloader.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Engine/TextureRenderTarget2D.h"
 
-template <typename T>
-T* IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex) {
+template <class T>
+void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T> Object) {
 	FString Type;
 	FString Name;
 	PackageIndex->Get()->GetStringField("ObjectName").Split("'", &Type, &Name);
 	FString Path;
 	PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
 	Name = Name.Replace(TEXT("'"), TEXT(""));
-	return Cast<T>(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").TryLoad());
+
+	if (Object->IsA(UTexture::StaticClass()) && !Object->IsA(UTextureRenderTarget2D::StaticClass())) {
+		UTexture2D* O;
+		if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), O)) {
+			UE_LOG(LogJson, Log, TEXT("Something went wrong here!!"))
+		}
+
+		Object = Cast<T>(O);
+	}
+
+	Object = Cast<T>(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").TryLoad());
 }
 
 bool IImporter::HandleAssetCreation(UObject* Asset)

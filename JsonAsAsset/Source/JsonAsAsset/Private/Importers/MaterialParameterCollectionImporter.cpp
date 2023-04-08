@@ -2,7 +2,6 @@
 
 #include "Importers/MaterialParameterCollectionImporter.h"
 
-#include "RemoteAssetDownloader.h"
 #include "Dom/JsonObject.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Utilities/MathUtilities.h"

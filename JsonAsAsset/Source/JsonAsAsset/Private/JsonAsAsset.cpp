@@ -31,6 +31,7 @@
 #include "Importers/MaterialImporter.h"
 #include "Importers/MaterialParameterCollectionImporter.h"
 #include "Importers/MaterialInstanceConstantImporter.h"
+#include "Importers/TextureImporters.h"
 #include "Utilities/AssetUtilities.h"
 // ------------------------------------------------------ |
 
@@ -122,16 +123,17 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 
 					else if (Type == "DataTable") Importer = new UDataTableImporter(Name, DataObject, Package, OutermostPkg);
 					else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, DataObject, Package, OutermostPkg);
+					else if (Type == "TextureRenderTarget2D") Importer = new UTextureImporters(Name, DataObject, Package, OutermostPkg);
 					else Importer = nullptr;
 
 					if (Importer != nullptr && Importer->ImportData()) {
 						UE_LOG(LogJson, Log, TEXT("Successfully imported \"%s\" as \"%s\""), *Name, *Type);
 
-						// Setup notifcation's arguments
+						// Setup notification's arguments
 						FFormatNamedArguments Args;
 						Args.Add(TEXT("AssetType"), FText::FromString(Type));
 
-						// Create notifcation
+						// Create notification
 						FNotificationInfo Info(FText::Format(LOCTEXT("ImportedAsset", "Imported type: {AssetType}"), Args));
 						Info.ExpireDuration = 2.0f;
 						Info.bUseLargeFont = true;
