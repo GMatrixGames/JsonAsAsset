@@ -25,6 +25,8 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 	// TODO: Support virtual paths (plugins)
 	FString Path;
 
+	// const FString PathWithGame = "/FortUILibrary/MaterialFunctions/Shapes/" + Name;
+
 	OutputPath.Split("FortniteGame/Content", nullptr, &Path);
 	Path.Split("/", &Path, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 
