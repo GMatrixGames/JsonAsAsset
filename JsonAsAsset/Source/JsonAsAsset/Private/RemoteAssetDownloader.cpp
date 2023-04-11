@@ -37,7 +37,7 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTe
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
 	TSharedPtr<FJsonObject> JsonObject;
 	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
-		UPackage* Package = FAssetUtilities::CreateAssetPackage(Path);
+		UPackage* Package = FAssetUtilities::CreateAssetPackage(PackagePath);
 		const UTextureImporters* Importer = new UTextureImporters(AssetName, JsonObject, Package, nullptr);
 
 		UTexture* Texture;

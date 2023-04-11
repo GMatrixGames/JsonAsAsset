@@ -7,8 +7,8 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Engine/TextureRenderTarget2D.h"
 
-template <class T>
-void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T> Object) {
+template <typename T>
+void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object) {
 	FString Type;
 	FString Name;
 	PackageIndex->Get()->GetStringField("ObjectName").Split("'", &Type, &Name);
@@ -16,20 +16,21 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
 	Name = Name.Replace(TEXT("'"), TEXT(""));
 
-	if (Object->IsA(UTexture::StaticClass()) && !Object->IsA(UTextureRenderTarget2D::StaticClass())) {
-		UTexture2D* O;
-		if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), O)) {
-			UE_LOG(LogJson, Log, TEXT("Something went wrong here!!"))
-		}
+	if (Object != nullptr) {
+		if (Object->IsA(UTexture::StaticClass()) && !Object->IsA(UTextureRenderTarget2D::StaticClass())) {
+			UTexture2D* O;
+			if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), O)) {
+				UE_LOG(LogJson, Log, TEXT("Something went wrong here!!"))
+			}
 
-		Object = Cast<T>(O);
+			Object = Cast<T>(O);
+		}
 	}
 
-	Object = Cast<T>(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").TryLoad());
+	Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
 }
 
-bool IImporter::HandleAssetCreation(UObject* Asset)
-{
+bool IImporter::HandleAssetCreation(UObject* Asset) {
 	FAssetRegistryModule::AssetCreated(Asset);
 	if (!Asset->MarkPackageDirty()) return false;
 	Package->SetDirtyFlag(true);
@@ -37,7 +38,7 @@ bool IImporter::HandleAssetCreation(UObject* Asset)
 	Asset->AddToRoot();
 
 	// Browse to newly added Asset
-	const TArray<FAssetData>& Assets = { Asset };
+	const TArray<FAssetData>& Assets = {Asset};
 	const FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	ContentBrowserModule.Get().SyncBrowserToAssets(Assets);
 
@@ -52,8 +53,7 @@ FName IImporter::GetExportNameOfSubobject(const FString& PackageIndex) {
 	return FName(Name);
 }
 
-TArray<TSharedPtr<FJsonValue>> IImporter::FilterExportsByOuter(const FString& Outer)
-{
+TArray<TSharedPtr<FJsonValue>> IImporter::FilterExportsByOuter(const FString& Outer) {
 	TArray<TSharedPtr<FJsonValue>> ReturnValue = TArray<TSharedPtr<FJsonValue>>();
 
 	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
@@ -68,8 +68,7 @@ TArray<TSharedPtr<FJsonValue>> IImporter::FilterExportsByOuter(const FString& Ou
 	return ReturnValue;
 }
 
-TSharedPtr<FJsonValue> IImporter::GetExportByObjectPath(const TSharedPtr<FJsonObject>& Object)
-{
+TSharedPtr<FJsonValue> IImporter::GetExportByObjectPath(const TSharedPtr<FJsonObject>& Object) {
 	const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Object);
 
 	FString StringIndex;
