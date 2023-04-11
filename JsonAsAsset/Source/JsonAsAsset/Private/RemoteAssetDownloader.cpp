@@ -3,6 +3,7 @@
 #include "RemoteAssetDownloader.h"
 
 #include "HttpModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Importers/TextureImporters.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Serialization/JsonReader.h"
@@ -41,7 +42,13 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTe
 		const UTextureImporters* Importer = new UTextureImporters(AssetName, JsonObject, Package, nullptr);
 
 		UTexture* Texture;
-		Importer->ImportTexture2D(Texture, Data, JsonObject->GetArrayField("jsonOutput")[0]->AsObject());
+		Importer->ImportTexture2D(Texture, Data, JsonObject->GetArrayField("jsonOutput")[0]->AsObject()->GetObjectField("Properties"));
+
+		FAssetRegistryModule::AssetCreated(Texture);
+		if (!Texture->MarkPackageDirty()) return false;
+		Package->SetDirtyFlag(true);
+		Texture->PostEditChange();
+		Texture->AddToRoot();
 
 		OutTexture = Cast<UTexture2D>(Texture);
 	}

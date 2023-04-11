@@ -16,14 +16,17 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
 	Name = Name.Replace(TEXT("'"), TEXT(""));
 
-	if (Object != nullptr) {
-		if (Object->IsA(UTexture::StaticClass()) && !Object->IsA(UTextureRenderTarget2D::StaticClass())) {
-			UTexture2D* O;
-			if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), O)) {
+	const UObject* DefaultObject = T::StaticClass()->ClassDefaultObject;
+	
+	if (DefaultObject != nullptr) {
+		if (DefaultObject->IsA(UTexture::StaticClass()) && !DefaultObject->IsA(UTextureRenderTarget2D::StaticClass())) {
+			UTexture2D* Tex;
+			if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Tex)) {
 				UE_LOG(LogJson, Log, TEXT("Something went wrong here!!"))
 			}
 
-			Object = Cast<T>(O);
+			Object = Cast<T>(Tex);
+			return;
 		}
 	}
 
