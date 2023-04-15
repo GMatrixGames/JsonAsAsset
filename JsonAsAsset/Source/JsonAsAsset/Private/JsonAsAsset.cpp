@@ -176,6 +176,18 @@ void FJsonAsAssetModule::RegisterMenus() {
 			}
 		}
 	}
+	
+	// this places the button at the top tool bar.
+	{
+		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
+		{
+			FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("JsonAsAsset");
+			{
+				FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FJsonAsAssetCommands::Get().PluginAction));
+				Entry.SetCommandList(PluginCommands);
+			}
+		}
+	}
 }
 
 TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) {
