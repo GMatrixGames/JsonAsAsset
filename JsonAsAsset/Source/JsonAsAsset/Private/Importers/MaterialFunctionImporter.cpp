@@ -1667,7 +1667,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				FName AExpressionName = GetExpressionName(AObject);
 				if (CreatedExpressionMap.Contains(AExpressionName)) {
 					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					SkyLightEnvMapSample->PixelShader = A;
+					SkyLightEnvMapSample->Direction = A;
 				}
 			}
 
