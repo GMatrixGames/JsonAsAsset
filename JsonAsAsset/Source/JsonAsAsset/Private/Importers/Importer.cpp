@@ -1,6 +1,7 @@
 ﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Importers/Importer.h"
+#include "Settings/JsonAsAssetSettings.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
 #include "RemoteAssetDownloader.h"
@@ -16,17 +17,20 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
 	Name = Name.Replace(TEXT("'"), TEXT(""));
 
-	const UObject* DefaultObject = T::StaticClass()->ClassDefaultObject;
-	
-	if (DefaultObject != nullptr) {
-		if (DefaultObject->IsA(UTexture::StaticClass()) && !DefaultObject->IsA(UTextureRenderTarget2D::StaticClass())) {
-			UTexture2D* Tex;
-			if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Tex)) {
-				UE_LOG(LogJson, Log, TEXT("Something went wrong here!!"))
-			}
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+	if (Settings->bTextureRemoteDownload) {
+		const UObject* DefaultObject = T::StaticClass()->ClassDefaultObject;
 
-			Object = Cast<T>(Tex);
-			return;
+		if (DefaultObject != nullptr) {
+			if (DefaultObject->IsA(UTexture::StaticClass()) && !DefaultObject->IsA(UTextureRenderTarget2D::StaticClass())) {
+				UTexture2D* Tex;
+				if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Tex)) {
+					UE_LOG(LogJson, Log, TEXT("Something went wrong here!!"))
+				}
+
+				Object = Cast<T>(Tex);
+				return;
+			}
 		}
 	}
 
@@ -40,10 +44,13 @@ bool IImporter::HandleAssetCreation(UObject* Asset) {
 	Asset->PostEditChange();
 	Asset->AddToRoot();
 
-	// Browse to newly added Asset
-	const TArray<FAssetData>& Assets = {Asset};
-	const FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	ContentBrowserModule.Get().SyncBrowserToAssets(Assets);
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+	if (Settings->bJumpToAsset) {
+		// Browse to newly added Asset
+		const TArray<FAssetData>& Assets = { Asset };
+		const FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+		ContentBrowserModule.Get().SyncBrowserToAssets(Assets);
+	}
 
 	return true;
 }
