@@ -17,6 +17,8 @@
 #include "Materials/MaterialExpressionSceneDepth.h"
 #include "Materials/MaterialExpressionClamp.h"
 #include "Materials/MaterialExpressionComment.h"
+#include "Materials/MaterialExpressionSkyLightEnvMapSample.h"
+#include "Materials/MaterialExpressionSign.h"
 #include "Materials/MaterialExpressionComponentMask.h"
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionConstant2Vector.h"
@@ -355,6 +357,21 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = Arcsine;
+		} else if (Type->Type == "MaterialExpressionSign") {
+			UMaterialExpressionSign* Sign = static_cast<UMaterialExpressionSign*>(Expression);
+
+			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
+				FJsonObject* InputObject = InputPtr->Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					Sign->Input = Input;
+				}
+			}
+
+			Expression = Sign;
 		} else if (Type->Type == "MaterialExpressionArcsineFast") {
 			UMaterialExpressionArcsineFast* ArcsineFast = static_cast<UMaterialExpressionArcsineFast*>(Expression);
 
@@ -1641,6 +1658,30 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = ShaderStageSwitch;
+		} else if (Type->Type == "MaterialExpressionSkyLightEnvMapSample") {
+			UMaterialExpressionSkyLightEnvMapSample* SkyLightEnvMapSample = Cast<UMaterialExpressionSkyLightEnvMapSample>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("Direction", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					SkyLightEnvMapSample->PixelShader = A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("Roughness", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					SkyLightEnvMapSample->Roughness = B;
+				}
+			}
+
+			Expression = SkyLightEnvMapSample;
 		} else if (Type->Type == "MaterialExpressionReflectionVectorWS") {
 			UMaterialExpressionReflectionVectorWS* ReflectionVectorWS = Cast<UMaterialExpressionReflectionVectorWS>(Expression);
 
@@ -3325,8 +3366,11 @@ void UMaterialFunctionImporter::AppendNotification(const FText& Text, const SNot
 UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* Parent, const FName Name, const FName Type) const {
 	if (IgnoredTypes.Contains(Type.ToString())) return nullptr;
 
-	const FString Class = "/Script/Engine." + Type.ToString();
+	// Handle different module expressions
+	const FString Engine_Class = "/Script/Engine." + Type.ToString();
+	const FString Landscape_Class = "/Script/Landscape." + Type.ToString();
 
+	// Let user know that a expression is not added yet
 	if (!AcceptedTypes.Contains(Type.ToString())) {
 		UE_LOG(LogJson, Warning, TEXT("Missing support for expression type: \"%s\""), *Type.ToString());
 		if (Type.ToString() != FString("")) {
@@ -3335,7 +3379,15 @@ UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* P
 		}
 	}
 
-	return NewObject<UMaterialExpression>(Parent, FindObject<UClass>(nullptr, *Class), Name, RF_Transactional);
+	// Try to find using Engine
+	UClass* ExpressionClass = FindObject<UClass>(nullptr, *Engine_Class);
+
+	// If failed, try to use Landscape
+	if (ExpressionClass == nullptr) 
+		ExpressionClass = FindObject<UClass>(nullptr, *Landscape_Class);
+
+	// Return a new expression
+	return NewObject<UMaterialExpression>(Parent, ExpressionClass, Name, RF_Transactional);
 }
 
 FExpressionInput UMaterialFunctionImporter::PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression, const FString& Type) {
