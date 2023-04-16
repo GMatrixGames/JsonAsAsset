@@ -4,6 +4,7 @@
 #include "Factories/MaterialFunctionFactoryNew.h"
 
 #include "Curves/CurveLinearColorAtlas.h"
+#include "VT/RuntimeVirtualTextureEnum.h"
 #include "Dom/JsonObject.h"
 #include "Utilities/MathUtilities.h"
 #include "Materials/MaterialParameterCollection.h"
@@ -17,8 +18,11 @@
 #include "Materials/MaterialExpressionSceneDepth.h"
 #include "Materials/MaterialExpressionClamp.h"
 #include "Materials/MaterialExpressionComment.h"
+#include "Materials/MaterialExpressionRuntimeVirtualTextureSample.h"
+#include "Materials/MaterialExpressionRuntimeVirtualTextureSampleParameter.h"
 #include "Materials/MaterialExpressionSkyLightEnvMapSample.h"
 #include "Materials/MaterialExpressionSign.h"
+#include "Materials/MaterialExpressionVirtualTextureFeatureSwitch.h"
 #include "Materials/MaterialExpressionComponentMask.h"
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionConstant2Vector.h"
@@ -591,6 +595,88 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetNumberField("ConstB", ConstB)) Multiply->ConstB = ConstB;
 
 			Expression = Multiply;
+		}
+		if (Type->Type == "MaterialExpressionRuntimeVirtualTextureSample" || Type->Type == "MaterialExpressionRuntimeVirtualTextureSampleParameter") {
+			UMaterialExpressionRuntimeVirtualTextureSample* RuntimeVirtualTextureSample = Cast<UMaterialExpressionRuntimeVirtualTextureSample>(Expression);
+
+			const TSharedPtr<FJsonObject>* CoordinatesPtr = nullptr;
+			if (Properties->TryGetObjectField("Coordinates", CoordinatesPtr) && CoordinatesPtr != nullptr) {
+				FJsonObject* CoordinatesObject = CoordinatesPtr->Get();
+				FName CoordinatesExpressionName = GetExpressionName(CoordinatesObject);
+				if (CreatedExpressionMap.Contains(CoordinatesExpressionName)) {
+					FExpressionInput Coordinates = PopulateExpressionInput(CoordinatesObject, *CreatedExpressionMap.Find(CoordinatesExpressionName));
+					RuntimeVirtualTextureSample->Coordinates = Coordinates;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* WorldPositionPtr = nullptr;
+			if (Properties->TryGetObjectField("WorldPosition", WorldPositionPtr) && WorldPositionPtr != nullptr) {
+				FJsonObject* WorldPositionObject = WorldPositionPtr->Get();
+				FName WorldPositionExpressionName = GetExpressionName(WorldPositionObject);
+				if (CreatedExpressionMap.Contains(WorldPositionExpressionName)) {
+					FExpressionInput WorldPosition = PopulateExpressionInput(WorldPositionObject, *CreatedExpressionMap.Find(WorldPositionExpressionName));
+					RuntimeVirtualTextureSample->WorldPosition = WorldPosition;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* MipValuePtr = nullptr;
+			if (Properties->TryGetObjectField("MipValue", MipValuePtr) && MipValuePtr != nullptr) {
+				FJsonObject* MipValueObject = MipValuePtr->Get();
+				FName MipValueExpressionName = GetExpressionName(MipValueObject);
+				if (CreatedExpressionMap.Contains(MipValueExpressionName)) {
+					FExpressionInput MipValue = PopulateExpressionInput(MipValueObject, *CreatedExpressionMap.Find(MipValueExpressionName));
+					RuntimeVirtualTextureSample->MipValue = MipValue;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* VirtualTexture = nullptr;
+			if (Properties->TryGetObjectField("VirtualTexture", VirtualTexture) && VirtualTexture != nullptr) {
+				LoadObject(VirtualTexture, RuntimeVirtualTextureSample->VirtualTexture);
+
+				if (RuntimeVirtualTextureSample->VirtualTexture == nullptr) {
+					FString ObjectPath;
+					VirtualTexture->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
+
+					AppendNotification(FText::FromString("Virtual Texture Sample Missing: " + ObjectPath), SNotificationItem::CS_Fail);
+				}
+			}
+
+			FString MaterialType;
+			if (Properties->TryGetStringField("MaterialType", MaterialType)) {
+				RuntimeVirtualTextureSample->MaterialType = static_cast<ERuntimeVirtualTextureMaterialType>(StaticEnum<ERuntimeVirtualTextureMaterialType>()->GetValueByNameString(MaterialType));
+
+			}
+
+			bool bSinglePhysicalSpace;
+			if (Properties->TryGetBoolField("bSinglePhysicalSpace", bSinglePhysicalSpace)) RuntimeVirtualTextureSample->bSinglePhysicalSpace = bSinglePhysicalSpace;
+			bool bAdaptive;
+			if (Properties->TryGetBoolField("bAdaptive", bAdaptive)) RuntimeVirtualTextureSample->bAdaptive = bAdaptive;
+
+			FString MipValueMode;
+			if (Properties->TryGetStringField("MipValueMode", MipValueMode)) {
+				RuntimeVirtualTextureSample->MipValueMode = static_cast<ERuntimeVirtualTextureMipValueMode>(StaticEnum<ERuntimeVirtualTextureMipValueMode>()->GetValueByNameString(MipValueMode));
+			}
+
+			FString TextureAddressMode;
+			if (Properties->TryGetStringField("TextureAddressMode", TextureAddressMode)) {
+				RuntimeVirtualTextureSample->TextureAddressMode = static_cast<ERuntimeVirtualTextureTextureAddressMode>(StaticEnum<ERuntimeVirtualTextureTextureAddressMode>()->GetValueByNameString(TextureAddressMode));
+			}
+
+			Expression = RuntimeVirtualTextureSample;
+		}
+		if (Type->Type == "MaterialExpressionRuntimeVirtualTextureSampleParameter") {
+			UMaterialExpressionRuntimeVirtualTextureSampleParameter* RuntimeVirtualTextureSampleParameter = Cast<UMaterialExpressionRuntimeVirtualTextureSampleParameter>(Expression);
+
+			FString ExpressionGUID;
+			if (Properties->TryGetStringField("ExpressionGUID", ExpressionGUID)) RuntimeVirtualTextureSampleParameter->ExpressionGUID = FGuid(ExpressionGUID);
+			FString ParameterName;
+			if (Properties->TryGetStringField("ParameterName", ParameterName)) RuntimeVirtualTextureSampleParameter->ParameterName = FName(ParameterName);
+			FString Group;
+			if (Properties->TryGetStringField("Group", Group)) RuntimeVirtualTextureSampleParameter->Group = FName(Group);
+			int SortPriority;
+			if (Properties->TryGetNumberField("SortPriority", SortPriority)) RuntimeVirtualTextureSampleParameter->SortPriority = SortPriority;
+
+			Expression = RuntimeVirtualTextureSampleParameter;
 		}
 		if (Type->Type == "MaterialExpressionVectorParameter" || Type->Type == "MaterialExpressionChannelMaskParameter") {
 			UMaterialExpressionVectorParameter* VectorParameter = Cast<UMaterialExpressionVectorParameter>(Expression);
@@ -1658,8 +1744,32 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = ShaderStageSwitch;
+		} else if (Type->Type == "MaterialExpressionVirtualTextureFeatureSwitch") {
+			UMaterialExpressionVirtualTextureFeatureSwitch* VirtualTextureFeatureSwitch = static_cast<UMaterialExpressionVirtualTextureFeatureSwitch*>(Expression);
+
+			const TSharedPtr<FJsonObject>* APtr = nullptr;
+			if (Properties->TryGetObjectField("No", APtr) && APtr != nullptr) {
+				FJsonObject* AObject = APtr->Get();
+				FName AExpressionName = GetExpressionName(AObject);
+				if (CreatedExpressionMap.Contains(AExpressionName)) {
+					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
+					VirtualTextureFeatureSwitch->No = A;
+				}
+			}
+
+			const TSharedPtr<FJsonObject>* BPtr = nullptr;
+			if (Properties->TryGetObjectField("Yes", BPtr) && BPtr != nullptr) {
+				FJsonObject* BObject = BPtr->Get();
+				FName BExpressionName = GetExpressionName(BObject);
+				if (CreatedExpressionMap.Contains(BExpressionName)) {
+					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
+					VirtualTextureFeatureSwitch->Yes = B;
+				}
+			}
+
+			Expression = VirtualTextureFeatureSwitch;
 		} else if (Type->Type == "MaterialExpressionSkyLightEnvMapSample") {
-			UMaterialExpressionSkyLightEnvMapSample* SkyLightEnvMapSample = Cast<UMaterialExpressionSkyLightEnvMapSample>(Expression);
+			UMaterialExpressionSkyLightEnvMapSample* SkyLightEnvMapSample = static_cast<UMaterialExpressionSkyLightEnvMapSample*>(Expression);
 
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (Properties->TryGetObjectField("Direction", APtr) && APtr != nullptr) {
@@ -3030,6 +3140,13 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetNumberField("LightIndex", LightIndex)) SkyAtmosphereLightDirection->LightIndex = LightIndex;
 
 			Expression = SkyAtmosphereLightDirection;
+		} else if (Type->Type == "MaterialExpressionStaticBoolParameter") {
+			UMaterialExpressionStaticBoolParameter* StaticBoolParameter = static_cast<UMaterialExpressionStaticBoolParameter*>(Expression);
+
+			bool DefaultValue;
+			if (Properties->TryGetBoolField("DefaultValue", DefaultValue)) StaticBoolParameter->DefaultValue = DefaultValue;
+
+			Expression = StaticBoolParameter;
 		} else if (Type->Type == "MaterialExpressionSkyAtmosphereLightDiskLuminance") {
 			UMaterialExpressionSkyAtmosphereLightDiskLuminance* SkyAtmosphereLightDiskLuminance = static_cast<UMaterialExpressionSkyAtmosphereLightDiskLuminance*>(Expression);
 
