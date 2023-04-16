@@ -17,6 +17,14 @@ class UJsonAsAssetSettings : public UDeveloperSettings
 #if WITH_EDITOR
 	virtual FText GetSectionText() const override;
 #endif
+	// How your export folder is formatted
+	// Ex: Output/Exports/
+	//
+	// DO NOT CHANGE IF YOU DO NOT KNOW
+	// WHAT YOUR DOING
+	UPROPERTY(config, EditAnywhere, Category = Behavior)
+		FString ExportFolder;
+
 	// Browse to newly added Asset
 	UPROPERTY(config, EditAnywhere, Category = Behavior)
 	bool bJumpToAsset;
