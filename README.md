@@ -28,7 +28,7 @@ However the version of your FModel application may affect the plugin's processin
 <br> To import JsonAsAsset into your project, you simply head over to the [Releases](https://github.com/Tectors/JsonAsAsset/releases) and get a release that matches you unreal engine version. If not, compile the plugin yourself.
 
 **Using JsonAsAsset**:
-<br> After importing the plugin, click on the window tab (top left) and press JsonAsAsset (at the bottom) to select a JSON file. Then, it should import the asset and you can use it.
+<br> After importing the plugin, click on the JSON logo (top center) and press JsonAsAsset (at the bottom) to select a JSON file. Then, it should import the asset and you can use it.
 
    -----------
 
