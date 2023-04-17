@@ -11,10 +11,13 @@
 #include "Json.h"
 #include "Misc/FileHelper.h"
 #include "ToolMenus.h"
+#include "LevelEditor.h"
 
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Styling/SlateIconFinder.h"
+
+#include "Dialogs/Dialogs.h"
 
 // ----> Importers
 #include "Importers/CurveFloatImporter.h"
@@ -52,6 +55,17 @@ void FJsonAsAssetModule::StartupModule() {
 		FCanExecuteAction());
 
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FJsonAsAssetModule::RegisterMenus));
+
+	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	{
+		TSharedPtr<FExtender> NewMenuExtender = MakeShareable(new FExtender);
+		NewMenuExtender->AddMenuExtension("Tools",
+			EExtensionHook::After,
+			PluginCommands,
+			FMenuExtensionDelegate::CreateRaw(this, &FJsonAsAssetModule::AddMenuEntry));
+
+		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(NewMenuExtender);
+	}
 }
 
 void FJsonAsAssetModule::ShutdownModule() {
@@ -158,24 +172,6 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 void FJsonAsAssetModule::RegisterMenus() {
 	// Owner will be used for cleanup in call to UToolMenus::UnregisterOwner
 	FToolMenuOwnerScoped OwnerScoped(this);
-
-	{
-		UToolMenu* Menu = UToolMenus::Get()->ExtendMenu("LevelEditor.MainMenu.Window");
-		{
-			FToolMenuSection& Section = Menu->FindOrAddSection("WindowLayout");
-			Section.AddMenuEntryWithCommandList(FJsonAsAssetCommands::Get().PluginAction, PluginCommands);
-		}
-	}
-	{
-		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar");
-		{
-			FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("Settings");
-			{
-				FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FJsonAsAssetCommands::Get().PluginAction));
-				Entry.SetCommandList(PluginCommands);
-			}
-		}
-	}
 	
 	// this places the button at the top tool bar.
 	{
@@ -183,7 +179,19 @@ void FJsonAsAssetModule::RegisterMenus() {
 		{
 			FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("JsonAsAsset");
 			{
-				FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FJsonAsAssetCommands::Get().PluginAction));
+				FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitComboButton(
+					"JsonAsAsset",
+					FUIAction(
+						FExecuteAction(),
+						FCanExecuteAction(),
+						FGetActionCheckState()
+					),
+					FOnGetContent::CreateRaw(this, &FJsonAsAssetModule::CreateToolbarMenuEntries),
+					LOCTEXT("JsonAsAssetDisplayName", "JsonAsAsset"),
+					LOCTEXT("JsonAsAsset", "List of actions for JsonAsAsset"),
+					FSlateIcon(FJsonAsAssetStyle::Get().GetStyleSetName(), FName("JsonAsAsset.PluginAction"))
+				));
+
 				Entry.SetCommandList(PluginCommands);
 			}
 		}
@@ -211,6 +219,45 @@ TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) 
 	}
 
 	return ReturnValue;
+}
+
+void FJsonAsAssetModule::AddMenuEntry(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.BeginSection("JSONTools", TAttribute<FText>(FText::FromString("JSON Tools")));
+	MenuBuilder.AddMenuEntry(FJsonAsAssetCommands::Get().PluginAction);
+	MenuBuilder.EndSection();
+}
+
+TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarMenuEntries()
+{
+	FMenuBuilder MenuBuilder(false, nullptr);
+	MenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "JSON Tools"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("JsonAsAssetButton", "Documentation"),
+			LOCTEXT("JsonAsAssetButtonTooltip", "Documentation for JsonAsAsset"),
+			FSlateIcon(FAppStyle::Get().GetStyleSetName(), "AssetEditor.Apply"),
+			FUIAction(
+				FExecuteAction::CreateLambda([this]() {
+					FString TheURL = "https://github.com/Tectors/JsonAsAsset";
+					FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr);
+				})
+			),
+			NAME_None
+		);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("JsonAsAssetButton", "JsonAsAsset"),
+			LOCTEXT("JsonAsAssetButtonTooltip", "Execute JsonAsAsset"),
+			FSlateIcon(FJsonAsAssetStyle::Get().GetStyleSetName(), "JsonAsAsset.PluginAction"),
+			FUIAction(
+				FExecuteAction::CreateRaw(this, &FJsonAsAssetModule::PluginButtonClicked)
+			),
+			NAME_None
+		);
+	}
+	MenuBuilder.EndSection();
+	return MenuBuilder.MakeWidget();
 }
 
 #undef LOCTEXT_NAMESPACE

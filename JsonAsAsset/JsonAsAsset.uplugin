@@ -11,8 +11,8 @@
 	"MarketplaceURL": "https://github.com/Tectors/JsonAsAsset",
 	"SupportURL": "",
 	"CanContainContent": false,
-	"IsBetaVersion": true,
-	"IsExperimentalVersion": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": true,
 	"Installed": false,
 	"Modules": [
 		{

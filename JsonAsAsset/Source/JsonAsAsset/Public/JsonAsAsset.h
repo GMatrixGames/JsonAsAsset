@@ -27,6 +27,9 @@ private:
 	void RegisterMenus();
 
 	TSharedPtr<FUICommandList> PluginCommands;
+	void AddMenuEntry(FMenuBuilder& MenuBuilder);
+
+	TSharedRef<SWidget> CreateToolbarMenuEntries();
 	
 	// Creates a dialog for a file
 	TArray<FString> OpenFileDialog(FString Title, FString Type);

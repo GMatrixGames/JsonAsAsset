@@ -36,7 +36,8 @@ public class JsonAsAsset : ModuleRules
 				"MaterialEditor",
 				"ImageWriteQueue",
 				"Landscape",
-				"AssetTools"
+				"AssetTools",
+				"EditorStyle"
 			}
 		);
 
