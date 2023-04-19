@@ -140,7 +140,9 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			StaticSwitchParameters.Add(Parameter);
 		}
 
+#if IS_PINNACLE
 		MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
+#endif
 
 		// SavePackageHelper(Package, *Package->GetName());
 	} catch (const char* Exception) {

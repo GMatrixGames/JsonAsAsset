@@ -8,8 +8,9 @@ public class JsonAsAsset : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(
-			new string[]
+		PublicDefinitions.Add((Target.Version.BranchName ?? "UE").StartsWith("++Pinnacle") ? "IS_PINNACLE=1" : "IS_PINNACLE=0");
+
+		PublicDependencyModuleNames.AddRange(new string[]
 			{
 				"Core",
 				"Json",
@@ -21,8 +22,7 @@ public class JsonAsAsset : ModuleRules
 			}
 		);
 
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
+		PrivateDependencyModuleNames.AddRange(new string[]
 			{
 				"Projects",
 				"InputCore",
