@@ -22,16 +22,14 @@
 #include "Framework/Notifications/NotificationManager.h"
 
 #include "Dialogs/Dialogs.h"
+#include "ISettingsModule.h"
 // ------------------------------------------------------ |
 
 #define LOCTEXT_NAMESPACE "FJsonAsAssetModule"
 
 void FJsonAsAssetModule::StartupModule() {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-
 	FJsonAsAssetStyle::Initialize();
 	FJsonAsAssetStyle::ReloadTextures();
-
 	FJsonAsAssetCommands::Register();
 
 	PluginCommands = MakeShareable(new FUICommandList);
@@ -42,7 +40,7 @@ void FJsonAsAssetModule::StartupModule() {
 
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FJsonAsAssetModule::RegisterMenus));
 
-	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	/*FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 	{
 		TSharedPtr<FExtender> NewMenuExtender = MakeShareable(new FExtender);
 		NewMenuExtender->AddMenuExtension("Tools",
@@ -51,23 +49,7 @@ void FJsonAsAssetModule::StartupModule() {
 			FMenuExtensionDelegate::CreateRaw(this, &FJsonAsAssetModule::AddMenuEntry));
 
 		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(NewMenuExtender);
-	}
-
-	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
-	if (Settings->ExportDirectory.Path.IsEmpty()) {
-		// Create notification
-		FNotificationInfo Info(FText::FromString("Exports Directory Empty"));
-		Info.ExpireDuration = 15.0f;
-		Info.bUseLargeFont = true;
-		Info.bUseSuccessFailIcons = true;
-		Info.WidthOverride = FOptionalSize(350);
-		Info.SubText = FText::FromString("For JsonAsAsset to function properly, set your exports directory in plugin settings.");
-		Info.HyperlinkText = FText::FromString("JsonAsAsset");
-
-		TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-		NotificationPtr->SetCompletionState(SNotificationItem::CS_Fail);
-	}
+	}*/
 }
 
 void FJsonAsAssetModule::ShutdownModule() {
@@ -79,25 +61,11 @@ void FJsonAsAssetModule::ShutdownModule() {
 
 void FJsonAsAssetModule::PluginButtonClicked() {
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
-	if (Settings->ExportDirectory.Path.IsEmpty()) {
-		// Create notification
-		FNotificationInfo Info(FText::FromString("Exports Directory Empty"));
-		Info.ExpireDuration = 15.0f;
-		Info.bUseLargeFont = true;
-		Info.bUseSuccessFailIcons = true;
-		Info.WidthOverride = FOptionalSize(350);
-		Info.SubText = FText::FromString("For JsonAsAsset to function properly, set your exports directory in plugin settings.");
-		Info.HyperlinkText = FText::FromString("JsonAsAsset");
-
-		TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-		NotificationPtr->SetCompletionState(SNotificationItem::CS_Fail);
-
+	if (Settings->ExportDirectory.Path.IsEmpty())
 		return;
-	}
 
 	// Dialog for a JSON File
-	TArray<FString> OutFileNames = OpenFileDialog("Open JSON files", "JSON Files|*.json");
+	TArray<FString> OutFileNames = OpenFileDialog("Open JSON file", "JSON Files|*.json");
 	if (OutFileNames.Num() == 0) {
 		return;
 	}
@@ -113,7 +81,6 @@ void FJsonAsAssetModule::RegisterMenus() {
 	// Owner will be used for cleanup in call to UToolMenus::UnregisterOwner
 	FToolMenuOwnerScoped OwnerScoped(this);
 	
-	// this places the button at the top tool bar.
 	{
 		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
 		{
@@ -163,6 +130,7 @@ TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) 
 	return ReturnValue;
 }
 
+// NOTE: Unused
 void FJsonAsAssetModule::AddMenuEntry(FMenuBuilder& MenuBuilder)
 {
 	MenuBuilder.BeginSection("JSONTools", TAttribute<FText>(FText::FromString("JSON Tools")));
@@ -216,27 +184,59 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarMenuEntries()
 			LOCTEXT("JsonAsAssetButtonTooltip", "Execute JsonAsAsset"),
 			FSlateIcon(FJsonAsAssetStyle::Get().GetStyleSetName(), "JsonAsAsset.PluginAction"),
 			FUIAction(
-				FExecuteAction::CreateRaw(this, &FJsonAsAssetModule::PluginButtonClicked)
+				FExecuteAction::CreateRaw(this, &FJsonAsAssetModule::PluginButtonClicked),
+				FCanExecuteAction::CreateLambda([this]() {
+					const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+					return !Settings->ExportDirectory.Path.IsEmpty();
+				})
 			),
 			NAME_None
 		);
 	}
 	MenuBuilder.EndSection();
 
-	/*MenuBuilder.BeginSection("JsonAsAssetSettings", FText::FromString("Settings"));
-	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("JsonAsAssetButton", "Enable Reference Automation"),
-			LOCTEXT("JsonAsAssetButtonTooltip", "Recursively import references if needed"),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateLambda([this]() {
-				})
-			),
-			NAME_None
-		);
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+	bool bActionRequired =
+		Settings->ExportDirectory.Path.IsEmpty() //||..
+		;
+
+	if (bActionRequired) {
+		MenuBuilder.BeginSection("JsonAsAssetActionRequired", FText::FromString("Action Required"));
+		{
+			// Export Directory Missing
+			if (Settings->ExportDirectory.Path.IsEmpty())
+				MenuBuilder.AddMenuEntry(
+					LOCTEXT("JsonAsAssetButton", "Export Directory Missing"),
+					LOCTEXT("JsonAsAssetButtonTooltip", "Change your exports directory in JsonAsAsset's Plugin Settings"),
+					FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.WarningWithColor"),
+					FUIAction(
+						FExecuteAction::CreateLambda([this]() {
+							// Send user to plugin
+							FModuleManager::LoadModuleChecked<ISettingsModule>("Settings")
+								.ShowViewer("Project", "Plugins", "JsonAsAsset");
+						})
+					),
+					NAME_None
+				);
+		}
+		MenuBuilder.EndSection();
 	}
-	MenuBuilder.EndSection();*/
+
+	MenuBuilder.AddSeparator();
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("JsonAsAssetButton", "Open Plugin Settings"),
+		LOCTEXT("JsonAsAssetButtonTooltip", "Brings you to the JsonAsAsset Settings"),
+		FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Settings"),
+		FUIAction(
+			FExecuteAction::CreateLambda([this]() {
+				// Send user to plugin
+				FModuleManager::LoadModuleChecked<ISettingsModule>("Settings")
+					.ShowViewer("Project", "Plugins", "JsonAsAsset");
+			})
+		),
+		NAME_None
+	);
 
 	return MenuBuilder.MakeWidget();
 }

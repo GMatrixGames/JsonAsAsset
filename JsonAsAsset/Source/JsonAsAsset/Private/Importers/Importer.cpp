@@ -51,7 +51,7 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 			if (DefaultObject->IsA(UTexture::StaticClass()) && !DefaultObject->IsA(UTextureRenderTarget2D::StaticClass())) {
 				UTexture2D* Tex;
 				if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Tex)) {
-					UE_LOG(LogJson, Log, TEXT("Something went wrong here!!"))
+					UE_LOG(LogJson, Log, TEXT("Something went wrong here!!"));
 				}
 
 				Object = Cast<T>(Tex);
@@ -64,26 +64,17 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 }
 
 bool IImporter::HandleReference(FString GamePath) {
-	// GamePath: /Game/Athena/Environments/Landscape/Foliage/M_Athena_Flower_Master
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
-	if (!Settings->bAutomateReferences) {
+	if (!Settings->bAutomateReferences)
 		return false;
-	}
 
-	// ../Output/Exports/FortniteGame/Content/Athena/Environments/Landscape/Foliage/M_Athena_Flower_Master.json
 	FString UnSanitizedCodeName;
-	// FortniteGame/Content/Athena/Environments/Landscape/Foliage/M_Athena_Flower_Master.json
 	FilePath.Split(Settings->ExportDirectory.Path + "/", nullptr, &UnSanitizedCodeName);
-	// FortniteGame
 	UnSanitizedCodeName.Split("/", &UnSanitizedCodeName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 
 	// TODO: As of writing this, I don't know how to add Plugin support
 	FString UnSanitizedPath;
-	// FortniteGame/Content/Athena/Environments/Landscape/Foliage/M_Athena_Flower_Master
 	UnSanitizedPath = GamePath.Replace(TEXT("/Game/"), *(UnSanitizedCodeName + "/Content/"));
-
-	// ../Output/Exports/FortniteGame/Content/Athena/Environments/Landscape/Foliage/M_Athena_Flower_Master.json
 	UnSanitizedPath = (Settings->ExportDirectory.Path + "/") + UnSanitizedPath + ".json";
 
 	FString ContentBefore;
@@ -92,7 +83,7 @@ bool IImporter::HandleReference(FString GamePath) {
 
 		return true;
 	}
-
+	
 	return false;
 }
 
@@ -110,7 +101,6 @@ void IImporter::ImportReference(FString File) {
 	/* ---------------------------------------- */
 
 	if (FJsonSerializer::Deserialize(JsonReader, JsonParsed)) {
-		GLog->Log("JsonAsAsset: Deserialized file, reading the contents.");
 		TArray<TSharedPtr<FJsonValue>> DataObjects = JsonParsed->GetArrayField("data");
 
 		TArray<FString> Types;
@@ -129,9 +119,10 @@ void IImporter::ImportReference(FString File) {
 			FString Name = DataObject->GetStringField("Name");
 
 			if (IImporter::CanImport(Type)) {
-				if (FPaths::IsRelative(File)) {
+				// Convert from relative to full
+				// NOTE: Used for references
+				if (FPaths::IsRelative(File))
 					File = FPaths::ConvertRelativePathToFull(File);
-				}
 
 				UPackage* LocalOutermostPkg;
 				UPackage* LocalPackage = FAssetUtilities::CreateAssetPackage(Name, File, LocalOutermostPkg);
@@ -193,13 +184,10 @@ bool IImporter::HandleAssetCreation(UObject* Asset) {
 	Asset->PostEditChange();
 	Asset->AddToRoot();
 
-	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-	if (Settings->bJumpToAsset) {
-		// Browse to newly added Asset
-		const TArray<FAssetData>& Assets = { Asset };
-		const FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-		ContentBrowserModule.Get().SyncBrowserToAssets(Assets);
-	}
+	// Browse to newly added Asset
+	const TArray<FAssetData>& Assets = { Asset };
+	const FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	ContentBrowserModule.Get().SyncBrowserToAssets(Assets);
 
 	return true;
 }

@@ -5,31 +5,28 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
-struct ImportOptionsBase
-{
+struct ImportOptionsBase {
 	bool bImportWithPath;
 };
 
 class FToolBarBuilder;
 class FMenuBuilder;
 
-class FJsonAsAssetModule : public IModuleInterface
-{
+class FJsonAsAssetModule : public IModuleInterface {
 public:
-	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
-	/** This function will be bound to Command. */
+	// Executes File Dialog
 	void PluginButtonClicked();
-
 private:
 	void RegisterMenus();
 
 	TSharedPtr<FUICommandList> PluginCommands;
+
+	// UI Functions
 	void AddMenuEntry(FMenuBuilder& MenuBuilder);
 	TSharedRef<SWidget> FillComboButton(TSharedPtr<class FUICommandList> Commands);
-
 	TSharedRef<SWidget> CreateToolbarMenuEntries();
 	
 	// Creates a dialog for a file

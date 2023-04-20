@@ -94,7 +94,7 @@ UObject* FAssetUtilities::GetSelectedAsset() {
 		const FText DialogText = FText::FromString(TEXT("A function to find a selected asset failed, please select a asset to go further."));
 		FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 
-		// None found, therefore we need to return nullptr.
+		// None found, therefore we need to return nullptr
 		return nullptr;
 	}
 

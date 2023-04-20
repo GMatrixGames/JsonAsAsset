@@ -7,8 +7,7 @@
 
 // We use this to set variables
 // in the LOD asset
-class USkeletalMeshLODSettingsDerived : public USkeletalMeshLODSettings
-{
+class USkeletalMeshLODSettingsDerived : public USkeletalMeshLODSettings {
 public:
 	void SetLODGroups(TArray<FSkeletalMeshLODGroupSettings> LODGroupsInput);
 	void AddLODGroup(FSkeletalMeshLODGroupSettings LODGroupInput);

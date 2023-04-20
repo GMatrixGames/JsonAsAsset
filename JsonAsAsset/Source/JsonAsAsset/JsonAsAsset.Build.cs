@@ -37,11 +37,10 @@ public class JsonAsAsset : ModuleRules
 				"ImageWriteQueue",
 				"Landscape",
 				"AssetTools",
-				"EditorStyle"
+				"EditorStyle",
+				"Settings"
 			}
 		);
-
-		// PublicDefinitions.Add("IS_PINNACLE");
 
 		if (Target.Version.MajorVersion == 4)
 		{

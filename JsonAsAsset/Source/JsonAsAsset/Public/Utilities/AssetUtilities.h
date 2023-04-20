@@ -2,8 +2,7 @@
 
 #pragma once
 
-class FAssetUtilities
-{
+class FAssetUtilities {
 public:
 	static UPackage* CreateAssetPackage(const FString& FullPath);
 	static UPackage* CreateAssetPackage(const FString& Name, const FString& OutputPath);

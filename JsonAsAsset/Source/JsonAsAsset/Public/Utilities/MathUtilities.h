@@ -2,8 +2,7 @@
 
 #pragma once
 
-class FMathUtilities
-{
+class FMathUtilities {
 public:
 	static FVector ObjectToVector(const FJsonObject* Object);
 	static FVector3f ObjectToVector3f(const FJsonObject* Object);
