@@ -9,8 +9,11 @@
 */
 class IImporter {
 public:
-	IImporter(const FString& FileName, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg, const TArray<TSharedPtr<FJsonValue>>& AllJsonObjects = {}) {
+	IImporter() {
+	}
+	IImporter(const FString& FileName, const FString& FilePath, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg, const TArray<TSharedPtr<FJsonValue>>& AllJsonObjects = {}) {
 		this->FileName = FileName;
+		this->FilePath = FilePath;
 		this->JsonObject = JsonObject;
 		this->Package = Package;
 		this->OutermostPkg = OutermostPkg;
@@ -64,6 +67,8 @@ public:
 		return AcceptedTypes;
 	}
 
+	void ImportReference(FString File);
+	bool HandleReference(FString GamePath);
 protected:
 	template <class T = UObject>
 	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);
@@ -74,6 +79,7 @@ protected:
 	TSharedPtr<FJsonValue> GetExportByObjectPath(const TSharedPtr<FJsonObject>& Object);
 
 	FString FileName;
+	FString FilePath;
 	TSharedPtr<FJsonObject> JsonObject;
 	UPackage* Package;
 	UPackage* OutermostPkg;

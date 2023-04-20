@@ -7,38 +7,21 @@
 #include "Developer/DesktopPlatform/Public/IDesktopPlatform.h"
 #include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
 #include "Interfaces/IMainFrameModule.h"
+#include "Styling/SlateIconFinder.h"
 #include "Misc/MessageDialog.h"
 #include "Json.h"
 #include "Misc/FileHelper.h"
 #include "ToolMenus.h"
 #include "LevelEditor.h"
 
-#include "Widgets/Notifications/SNotificationList.h"
-#include "Framework/Notifications/NotificationManager.h"
-#include "Styling/SlateIconFinder.h"
-
 #include "Interfaces/IPluginManager.h"
 #include "Settings/JsonAsAssetSettings.h"
+#include "Importers/Importer.h"
+
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
 
 #include "Dialogs/Dialogs.h"
-
-// ----> Importers
-#include "Importers/CurveFloatImporter.h"
-#include "Importers/CurveLinearColorImporter.h"
-#include "Importers/DataTableImporter.h"
-#include "Importers/Importer.h"
-#include "Importers/SkeletalMeshLODSettingsImporter.h"
-#include "Importers/SkeletonImporter.h"
-#include "Importers/SoundAttenuationImporter.h"
-#include "Importers/ReverbEffectImporter.h"
-#include "Importers/SubsurfaceProfileImporter.h"
-#include "Importers/AnimationBaseImporter.h"
-#include "Importers/MaterialFunctionImporter.h"
-#include "Importers/MaterialImporter.h"
-#include "Importers/MaterialParameterCollectionImporter.h"
-#include "Importers/MaterialInstanceConstantImporter.h"
-#include "Importers/TextureImporters.h"
-#include "Utilities/AssetUtilities.h"
 // ------------------------------------------------------ |
 
 #define LOCTEXT_NAMESPACE "FJsonAsAssetModule"
@@ -69,6 +52,22 @@ void FJsonAsAssetModule::StartupModule() {
 
 		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(NewMenuExtender);
 	}
+
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+	if (Settings->ExportDirectory.Path.IsEmpty()) {
+		// Create notification
+		FNotificationInfo Info(FText::FromString("Exports Directory Empty"));
+		Info.ExpireDuration = 15.0f;
+		Info.bUseLargeFont = true;
+		Info.bUseSuccessFailIcons = true;
+		Info.WidthOverride = FOptionalSize(350);
+		Info.SubText = FText::FromString("For JsonAsAsset to function properly, set your exports directory in plugin settings.");
+		Info.HyperlinkText = FText::FromString("JsonAsAsset");
+
+		TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+		NotificationPtr->SetCompletionState(SNotificationItem::CS_Fail);
+	}
 }
 
 void FJsonAsAssetModule::ShutdownModule() {
@@ -79,6 +78,24 @@ void FJsonAsAssetModule::ShutdownModule() {
 }
 
 void FJsonAsAssetModule::PluginButtonClicked() {
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+	if (Settings->ExportDirectory.Path.IsEmpty()) {
+		// Create notification
+		FNotificationInfo Info(FText::FromString("Exports Directory Empty"));
+		Info.ExpireDuration = 15.0f;
+		Info.bUseLargeFont = true;
+		Info.bUseSuccessFailIcons = true;
+		Info.WidthOverride = FOptionalSize(350);
+		Info.SubText = FText::FromString("For JsonAsAsset to function properly, set your exports directory in plugin settings.");
+		Info.HyperlinkText = FText::FromString("JsonAsAsset");
+
+		TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+		NotificationPtr->SetCompletionState(SNotificationItem::CS_Fail);
+
+		return;
+	}
+
 	// Dialog for a JSON File
 	TArray<FString> OutFileNames = OpenFileDialog("Open JSON files", "JSON Files|*.json");
 	if (OutFileNames.Num() == 0) {
@@ -86,89 +103,9 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 	}
 
 	for (FString& File : OutFileNames) {
-		/*----------------------  Parse JSON into UE JSON Reader---------------------- */
-		FString ContentBefore;
-		FFileHelper::LoadFileToString(ContentBefore, *File);
-
-		FString Content = FString(TEXT("{\"data\": "));
-		Content.Append(ContentBefore);
-		Content.Append(FString("}"));
-
-		TSharedPtr<FJsonObject> JsonParsed;
-		TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Content);
-		/* ---------------------- ---------------------- ------------------------- */
-
-		if (FJsonSerializer::Deserialize(JsonReader, JsonParsed)) {
-			GLog->Log("JsonAsAsset: Deserialized file, reading the contents.");
-			TArray<TSharedPtr<FJsonValue>> DataObjects = JsonParsed->GetArrayField("data");
-
-			// Validation
-			TArray<FString> Types;
-			for (TSharedPtr<FJsonValue>& Obj : DataObjects) Types.Add(Obj->AsObject()->GetStringField("Type"));
-
-			// If type is not supported, decline
-			if (!IImporter::CanImportAny(Types)) {
-				const FText DialogText = FText::FromString("No exports from \"" + OutFileNames[0] + "\" can be imported!");
-				FMessageDialog::Open(EAppMsgType::Ok, DialogText);
-			}
-
-			for (const TSharedPtr<FJsonValue>& Obj : DataObjects) {
-				TSharedPtr<FJsonObject> DataObject = Obj->AsObject();
-
-				FString Type = DataObject->GetStringField("Type");
-				FString Name = DataObject->GetStringField("Name");
-
-				if (IImporter::CanImport(Type)) {
-					UPackage* OutermostPkg;
-					UPackage* Package = FAssetUtilities::CreateAssetPackage(Name, File, OutermostPkg);
-					IImporter* Importer;
-
-					if (Type == "CurveFloat") Importer = new UCurveFloatImporter(Name, DataObject, Package, OutermostPkg);
-					else if (Type == "CurveLinearColor") Importer = new UCurveLinearColorImporter(Name, DataObject, Package, OutermostPkg);
-					else if (Type == "AnimSequence") Importer = new UAnimationBaseImporter(Name, DataObject, Package, OutermostPkg);
-
-					else if (Type == "Skeleton") Importer = new USkeletonImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
-					else if (Type == "SkeletalMeshLODSettings") Importer = new USkeletalMeshLODSettingsImporter(Name, DataObject, Package, OutermostPkg);
-
-					else if (Type == "ReverbEffect") Importer = new UReverbEffectImporter(Name, DataObject, Package, OutermostPkg);
-					else if (Type == "SoundAttenuation") Importer = new USoundAttenuationImporter(Name, DataObject, Package, OutermostPkg);
-
-					else if (Type == "Material") Importer = new UMaterialImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
-					else if (Type == "MaterialFunction") Importer = new UMaterialFunctionImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
-					else if (Type == "MaterialInstanceConstant") Importer = new UMaterialInstanceConstantImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
-					else if (Type == "MaterialParameterCollection") Importer = new UMaterialParameterCollectionImporter(Name, DataObject, Package, OutermostPkg, DataObjects);
-
-					else if (Type == "DataTable") Importer = new UDataTableImporter(Name, DataObject, Package, OutermostPkg);
-					else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, DataObject, Package, OutermostPkg);
-					else if (Type == "TextureRenderTarget2D") Importer = new UTextureImporters(Name, DataObject, Package, OutermostPkg);
-					else Importer = nullptr;
-
-					if (Importer != nullptr && Importer->ImportData()) {
-						UE_LOG(LogJson, Log, TEXT("Successfully imported \"%s\" as \"%s\""), *Name, *Type);
-
-						// Setup notification's arguments
-						FFormatNamedArguments Args;
-						Args.Add(TEXT("AssetType"), FText::FromString(Type));
-
-						// Create notification
-						FNotificationInfo Info(FText::Format(LOCTEXT("ImportedAsset", "Imported type: {AssetType}"), Args));
-						Info.ExpireDuration = 2.0f;
-						Info.bUseLargeFont = true;
-						Info.bUseSuccessFailIcons = false;
-						Info.WidthOverride = FOptionalSize(350);
-						Info.Image = FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail"));
-						Info.SubText = FText::FromString(Name);
-
-						// Set icon as successful
-						TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-						NotificationPtr->SetCompletionState(SNotificationItem::CS_Success);
-					} else {
-						FText DialogText = FText::FromString("The \"" + Type + "\" cannot be imported!");
-						FMessageDialog::Open(EAppMsgType::Ok, DialogText);
-					}
-				}
-			}
-		}
+		// Import asset by IImporter
+		IImporter* Importer = new IImporter();
+		Importer->ImportReference(File);
 	}
 }
 
@@ -215,9 +152,11 @@ TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) 
 
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (DesktopPlatform) {
+		const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
 		uint32 SelectionFlag = 1;
 		// JSON Files|*.json
-		DesktopPlatform->OpenFileDialog(ParentWindowHandle, Title, TEXT(""), FString(""), Type, SelectionFlag,
+		DesktopPlatform->OpenFileDialog(ParentWindowHandle, Title, Settings->ExportDirectory.Path, FString(""), Type, SelectionFlag,
 		                                ReturnValue);
 	}
 
@@ -249,10 +188,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarMenuEntries()
 							FText::FromString(Asset),
 							FText::FromString(Asset),
 							FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail")),
-							FUIAction(
-								FExecuteAction::CreateLambda([this]() {
-						})
-							)
+							FUIAction()
 						);
 					}
 				}
@@ -287,28 +223,20 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarMenuEntries()
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection("JsonAsAssetSettings", FText::FromString("Settings"));
+	/*MenuBuilder.BeginSection("JsonAsAssetSettings", FText::FromString("Settings"));
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("JsonAsAssetButton", "Enable Material Automation"),
-			LOCTEXT("JsonAsAssetButtonTooltip", "Recursively import material functions if needed"),
+			LOCTEXT("JsonAsAssetButton", "Enable Reference Automation"),
+			LOCTEXT("JsonAsAssetButtonTooltip", "Recursively import references if needed"),
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateLambda([this]() {
-					const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-				}),
-				FCanExecuteAction(),
-				FIsActionChecked::CreateLambda([this]() {
-					const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
-					return Settings->bAutomateMaterialFunctionImporting;
 				})
 			),
-			NAME_None,
-			EUserInterfaceActionType::ToggleButton
+			NAME_None
 		);
 	}
-	MenuBuilder.EndSection();
+	MenuBuilder.EndSection();*/
 
 	return MenuBuilder.MakeWidget();
 }

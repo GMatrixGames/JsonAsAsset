@@ -6,8 +6,8 @@
 
 class UTextureImporters : public IImporter {
 public:
-	UTextureImporters(const FString& FileName, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg):
-		IImporter(FileName, JsonObject, Package, OutermostPkg) {
+	UTextureImporters(const FString& FileName, const FString& FilePath, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg):
+		IImporter(FileName, FilePath, JsonObject, Package, OutermostPkg) {
 	}
 
 	virtual bool ImportData() override;

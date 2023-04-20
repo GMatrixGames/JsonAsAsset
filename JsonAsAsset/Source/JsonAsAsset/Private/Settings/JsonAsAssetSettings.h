@@ -17,13 +17,14 @@ class UJsonAsAssetSettings : public UDeveloperSettings
 #if WITH_EDITOR
 	virtual FText GetSectionText() const override;
 #endif
-	// How your export folder is formatted
-	// Ex: Output/Exports/
-	//
-	// DO NOT CHANGE IF YOU DO NOT KNOW
-	// WHAT YOUR DOING
-	UPROPERTY(config, EditAnywhere, Category = Behavior)
-		FString ExportFolder;
+
+	// FModel Exports Folder
+	UPROPERTY(config, EditAnywhere, Category = AssetConfiguration)
+	FDirectoryPath ExportDirectory;
+
+	// Automate importing references
+	UPROPERTY(config, EditAnywhere, Category = AssetConfiguration)
+	bool bAutomateReferences;
 
 	// Browse to newly added Asset
 	UPROPERTY(config, EditAnywhere, Category = Behavior)
@@ -31,10 +32,6 @@ class UJsonAsAssetSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category = Textures)
 	bool bTextureRemoteDownload;
-
-	// Automate material function importing
-	UPROPERTY(config, EditAnywhere, Category = Behavior)
-	bool bAutomateMaterialFunctionImporting;
 };
 
 // Taken from: https://github.com/nachomonkey/RefreshAllNodes

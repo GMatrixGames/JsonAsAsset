@@ -6,8 +6,8 @@
 
 class USkeletalMeshLODSettingsImporter : public IImporter {
 public:
-	USkeletalMeshLODSettingsImporter(const FString& FileName, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg):
-		IImporter(FileName, JsonObject, Package, OutermostPkg) {
+	USkeletalMeshLODSettingsImporter(const FString& FileName, const FString& FilePath, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg):
+		IImporter(FileName, FilePath, JsonObject, Package, OutermostPkg) {
 	}
 
 	virtual bool ImportData() override;

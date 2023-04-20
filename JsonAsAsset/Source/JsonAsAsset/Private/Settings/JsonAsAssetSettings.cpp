@@ -7,7 +7,6 @@ UJsonAsAssetSettings::UJsonAsAssetSettings() {
 	SectionName = TEXT("JsonAsAsset");
 
 	bJumpToAsset = true;
-	ExportFolder = FString("Output/Exports/");
 }
 
 #if WITH_EDITOR

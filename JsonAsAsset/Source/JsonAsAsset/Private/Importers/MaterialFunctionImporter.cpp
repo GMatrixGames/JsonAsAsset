@@ -797,7 +797,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				if (MaterialFunctionCall->MaterialFunction == nullptr) {
 					FString ObjectPath;
 					MaterialFunctionPtr->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
-					AppendNotification(FText::FromString("Material Function Missing: " + ObjectPath), SNotificationItem::CS_Fail);
+					if (!HandleReference(ObjectPath))
+						AppendNotification(FText::FromString("Material Function Missing: " + ObjectPath), SNotificationItem::CS_Fail);
+					else LoadObject(MaterialFunctionPtr, MaterialFunctionCall->MaterialFunction);
 				}
 			}
 
@@ -1181,7 +1183,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 					FString ObjectPath;
 					Collection->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
 
-					AppendNotification(FText::FromString("Material Collection Missing: " + ObjectPath), SNotificationItem::CS_Fail);
+					if (!HandleReference(ObjectPath))
+						AppendNotification(FText::FromString("Material Collection Missing: " + ObjectPath), SNotificationItem::CS_Fail);
+					else LoadObject(Collection, CollectionParameter->Collection);
 				}
 			}
 

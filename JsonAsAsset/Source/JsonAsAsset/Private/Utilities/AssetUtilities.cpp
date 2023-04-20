@@ -30,7 +30,7 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 
 	// Ex: FortniteGame/..../.../ -> /..../.../
 	FString ModifiablePath;
-	OutputPath.Split(*Settings->ExportFolder, nullptr, &ModifiablePath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+	OutputPath.Split(*(Settings->ExportDirectory.Path + "/"), nullptr, &ModifiablePath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 	ModifiablePath.Split("/", nullptr, &ModifiablePath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 	ModifiablePath.Split("/", &ModifiablePath, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 	// Ex: RestPath: Plugins/ContentLibraries/EpicBaseTextures
