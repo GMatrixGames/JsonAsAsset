@@ -41,6 +41,8 @@ public class JsonAsAsset : ModuleRules
 			}
 		);
 
+		// PublicDefinitions.Add("IS_PINNACLE");
+
 		if (Target.Version.MajorVersion == 4)
 		{
 			PrivateDependencyModuleNames.Add("AnimationDataController");

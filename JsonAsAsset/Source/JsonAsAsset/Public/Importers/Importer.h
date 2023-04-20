@@ -60,6 +60,10 @@ public:
 		return false;
 	}
 
+	static TArray<FString> GetAcceptedTypes() {
+		return AcceptedTypes;
+	}
+
 protected:
 	template <class T = UObject>
 	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);

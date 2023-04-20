@@ -31,6 +31,10 @@ class UJsonAsAssetSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category = Textures)
 	bool bTextureRemoteDownload;
+
+	// Automate material function importing
+	UPROPERTY(config, EditAnywhere, Category = Behavior)
+	bool bAutomateMaterialFunctionImporting;
 };
 
 // Taken from: https://github.com/nachomonkey/RefreshAllNodes

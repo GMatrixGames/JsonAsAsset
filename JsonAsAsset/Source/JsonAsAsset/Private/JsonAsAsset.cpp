@@ -17,6 +17,9 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Styling/SlateIconFinder.h"
 
+#include "Interfaces/IPluginManager.h"
+#include "Settings/JsonAsAssetSettings.h"
+
 #include "Dialogs/Dialogs.h"
 
 // ----> Importers
@@ -230,9 +233,35 @@ void FJsonAsAssetModule::AddMenuEntry(FMenuBuilder& MenuBuilder)
 
 TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarMenuEntries()
 {
+	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("JsonAsAsset");
+
 	FMenuBuilder MenuBuilder(false, nullptr);
-	MenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "JSON Tools"));
+	MenuBuilder.BeginSection("JsonAsAssetSection", FText::FromString("JSON Tools v" + Plugin->GetDescriptor().VersionName));
 	{
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("JsonAsAssetMenu", "Asset Types"),
+			LOCTEXT("JsonAsAssetMenuToolTip", "List of supported assets for JsonAsAsset"),
+			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
+				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Asset Classes"));
+				{
+					for (FString& Asset : IImporter::GetAcceptedTypes()) {
+						InnerMenuBuilder.AddMenuEntry(
+							FText::FromString(Asset),
+							FText::FromString(Asset),
+							FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail")),
+							FUIAction(
+								FExecuteAction::CreateLambda([this]() {
+						})
+							)
+						);
+					}
+				}
+				InnerMenuBuilder.EndSection();
+			}),
+			false,
+			FSlateIcon(FAppStyle::Get().GetStyleSetName(), "LevelEditor.Tabs.Viewports")
+		);
+
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("JsonAsAssetButton", "Documentation"),
 			LOCTEXT("JsonAsAssetButtonTooltip", "Documentation for JsonAsAsset"),
@@ -257,6 +286,37 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarMenuEntries()
 		);
 	}
 	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("JsonAsAssetSettings", FText::FromString("Settings"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("JsonAsAssetButton", "Enable Material Automation"),
+			LOCTEXT("JsonAsAssetButtonTooltip", "Recursively import material functions if needed"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateLambda([this]() {
+					const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+				}),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateLambda([this]() {
+					const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+					return Settings->bAutomateMaterialFunctionImporting;
+				})
+			),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+		);
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef<SWidget> FJsonAsAssetModule::FillComboButton(TSharedPtr<class FUICommandList> Commands)
+{
+	FMenuBuilder MenuBuilder(true, Commands);
+
 	return MenuBuilder.MakeWidget();
 }
 

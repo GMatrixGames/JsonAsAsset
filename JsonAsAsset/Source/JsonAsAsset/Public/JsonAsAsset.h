@@ -28,6 +28,7 @@ private:
 
 	TSharedPtr<FUICommandList> PluginCommands;
 	void AddMenuEntry(FMenuBuilder& MenuBuilder);
+	TSharedRef<SWidget> FillComboButton(TSharedPtr<class FUICommandList> Commands);
 
 	TSharedRef<SWidget> CreateToolbarMenuEntries();
 	
