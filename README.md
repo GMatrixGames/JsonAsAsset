@@ -47,10 +47,5 @@ However the version of your FModel application may affect the plugin's processin
 - SoundAttenuation
 - ReverbEffect
 
-## What's the settings?
-
-**Importing JsonAsAsset**:
-<br> To import JsonAsAsset into your project, you simply head over to the [Releases](https://github.com/Tectors/JsonAsAsset/releases) and get a release that matches you unreal engine version. If not, compile the plugin yourself.
-
 ### JSON Logo
 The logo used in this plugin is from: [JSON.org](https://www.json.org/json-en.html)
