@@ -252,9 +252,6 @@ bool UMaterialImporter::ImportData() {
 		const TSharedPtr<FJsonObject>* TranslucentMultipleScatteringExtinction;
 		if (JsonObject->TryGetObjectField("TranslucentMultipleScatteringExtinction", TranslucentMultipleScatteringExtinction)) Material->TranslucentMultipleScatteringExtinction = FMathUtilities::ObjectToLinearColor(TranslucentMultipleScatteringExtinction->Get());
 
-		// Handle edit changes, and add it to the content browser
-		if (!HandleAssetCreation(Material)) return false;
-
 		// Clear any default expressions the engine adds (ex: Result)
 		Material->GetExpressionCollection().Empty();
 
@@ -468,6 +465,9 @@ bool UMaterialImporter::ImportData() {
 		// Iterate through all the expression names
 		AddExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
 		AddComments(Material, StringExpressionCollection, Exports);
+
+		// Handle edit changes, and add it to the content browser
+		if (!HandleAssetCreation(Material)) return false;
 
 		bool bEditorGraphOpen = false;
 		FMaterialEditor* AssetEditorInstance = nullptr;

@@ -137,9 +137,6 @@ bool UMaterialFunctionImporter::ImportData() {
 		bool bPrefixParameterNames;
 		if (JsonObject->GetObjectField("Properties")->TryGetBoolField("bPrefixParameterNames", bPrefixParameterNames)) MaterialFunction->bPrefixParameterNames = bPrefixParameterNames;
 
-		// Handle edit changes, and add it to the content browser
-		if (!HandleAssetCreation(MaterialFunction)) return false;
-
 		// Clear any default expressions the engine adds (ex: Result)
 		MaterialFunction->GetExpressionCollection().Empty();
 
@@ -156,6 +153,9 @@ bool UMaterialFunctionImporter::ImportData() {
 		AddExpressions(MaterialFunction, ExpressionNames, Exports, CreatedExpressionMap);
 
 		AddComments(MaterialFunction, StringExpressionCollection, Exports);
+
+		// Handle edit changes, and add it to the content browser
+		if (!HandleAssetCreation(MaterialFunction)) return false;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception))
 		return false;

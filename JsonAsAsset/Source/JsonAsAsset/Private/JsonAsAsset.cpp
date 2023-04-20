@@ -108,11 +108,9 @@ TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) 
 
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (DesktopPlatform) {
-		const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
 		uint32 SelectionFlag = 1;
 		// JSON Files|*.json
-		DesktopPlatform->OpenFileDialog(ParentWindowHandle, Title, Settings->ExportDirectory.Path, FString(""), Type, SelectionFlag,
+		DesktopPlatform->OpenFileDialog(ParentWindowHandle, Title, FString(""), FString(""), Type, SelectionFlag,
 		                                ReturnValue);
 	}
 
