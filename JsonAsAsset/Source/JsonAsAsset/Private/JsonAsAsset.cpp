@@ -39,17 +39,6 @@ void FJsonAsAssetModule::StartupModule() {
 		FCanExecuteAction());
 
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FJsonAsAssetModule::RegisterMenus));
-
-	/*FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-	{
-		TSharedPtr<FExtender> NewMenuExtender = MakeShareable(new FExtender);
-		NewMenuExtender->AddMenuExtension("Tools",
-			EExtensionHook::After,
-			PluginCommands,
-			FMenuExtensionDelegate::CreateRaw(this, &FJsonAsAssetModule::AddMenuEntry));
-
-		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(NewMenuExtender);
-	}*/
 }
 
 void FJsonAsAssetModule::ShutdownModule() {
