@@ -23,11 +23,7 @@ private:
 	void RegisterMenus();
 
 	TSharedPtr<FUICommandList> PluginCommands;
-
-	// UI Functions
-	void AddMenuEntry(FMenuBuilder& MenuBuilder);
-	TSharedRef<SWidget> FillComboButton(TSharedPtr<class FUICommandList> Commands);
-	TSharedRef<SWidget> CreateToolbarMenuEntries();
+	TSharedRef<SWidget> CreateToolbarDropdown();
 	
 	// Creates a dialog for a file
 	TArray<FString> OpenFileDialog(FString Title, FString Type);

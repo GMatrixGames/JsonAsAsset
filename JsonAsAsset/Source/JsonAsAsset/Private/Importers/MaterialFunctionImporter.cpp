@@ -637,7 +637,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 					FString ObjectPath;
 					VirtualTexture->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
 
-					AppendNotification(FText::FromString("Virtual Texture Sample Missing: " + ObjectPath), SNotificationItem::CS_Fail);
+					AppendNotification(FText::FromString("Virtual Texture Sample Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
 				}
 			}
 
@@ -798,7 +798,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 					FString ObjectPath;
 					MaterialFunctionPtr->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
 					if (!HandleReference(ObjectPath))
-						AppendNotification(FText::FromString("Material Function Missing: " + ObjectPath), SNotificationItem::CS_Fail);
+						AppendNotification(FText::FromString("Material Function Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
 					else LoadObject(MaterialFunctionPtr, MaterialFunctionCall->MaterialFunction);
 				}
 			}
@@ -1184,7 +1184,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 					Collection->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
 
 					if (!HandleReference(ObjectPath))
-						AppendNotification(FText::FromString("Material Collection Missing: " + ObjectPath), SNotificationItem::CS_Fail);
+						AppendNotification(FText::FromString("Material Collection Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
 					else LoadObject(Collection, CollectionParameter->Collection);
 				}
 			}
@@ -3469,19 +3469,6 @@ void UMaterialFunctionImporter::AddGenerics(UObject* Parent, UMaterialExpression
 		bool IsDefaultMeshpaintTexture;
 		if (Json->TryGetBoolField("IsDefaultMeshpaintTexture", IsDefaultMeshpaintTexture)) TextureBase->IsDefaultMeshpaintTexture = IsDefaultMeshpaintTexture;
 	}
-}
-
-void UMaterialFunctionImporter::AppendNotification(const FText& Text, const SNotificationItem::ECompletionState CompletionState) {
-	// Let user know material functions are missing
-	FNotificationInfo Info = FNotificationInfo(Text);
-	Info.ExpireDuration = 2.0f;
-	Info.bUseLargeFont = true;
-	Info.bUseSuccessFailIcons = true;
-	Info.WidthOverride = FOptionalSize(500);
-	Info.SubText = FText::FromString(FString("Material Graph"));
-
-	TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-	NotificationPtr->SetCompletionState(CompletionState);
 }
 
 UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* Parent, const FName Name, const FName Type) const {

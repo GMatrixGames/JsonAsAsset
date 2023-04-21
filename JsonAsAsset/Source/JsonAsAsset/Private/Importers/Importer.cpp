@@ -151,22 +151,16 @@ void IImporter::ImportReference(FString File) {
 				if (Importer != nullptr && Importer->ImportData()) {
 					UE_LOG(LogJson, Log, TEXT("Successfully imported \"%s\" as \"%s\""), *Name, *Type);
 
-					// Setup notification's arguments
-					FFormatNamedArguments Args;
-					Args.Add(TEXT("AssetType"), FText::FromString(Type));
-
-					// Create notification
-					FNotificationInfo Info(FText::Format(LOCTEXT("ImportedAsset", "Imported type: {AssetType}"), Args));
-					Info.ExpireDuration = 2.0f;
-					Info.bUseLargeFont = true;
-					Info.bUseSuccessFailIcons = false;
-					Info.WidthOverride = FOptionalSize(350);
-					Info.Image = FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail"));
-					Info.SubText = FText::FromString(Name);
-
-					// Set icon as successful
-					TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-					NotificationPtr->SetCompletionState(SNotificationItem::CS_Success);
+					// Notification for asset
+					AppendNotification(
+						FText::FromString("Imported type: " + Type),
+						FText::FromString(Name),
+						2.0f,
+						FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
+						SNotificationItem::CS_Success,
+						false,
+						350.0f
+					);
 				}
 				else {
 					FText DialogText = FText::FromString("The \"" + Type + "\" cannot be imported!");
@@ -222,6 +216,31 @@ TSharedPtr<FJsonValue> IImporter::GetExportByObjectPath(const TSharedPtr<FJsonOb
 	ValueObject->GetStringField("ObjectPath").Split(".", nullptr, &StringIndex);
 
 	return AllJsonObjects[FCString::Atod(*StringIndex)];
+}
+
+void IImporter::AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons, float WidthOverride) {
+	FNotificationInfo Info = FNotificationInfo(Text);
+	Info.ExpireDuration = ExpireDuration;
+	Info.bUseLargeFont = true;
+	Info.bUseSuccessFailIcons = bUseSuccessFailIcons;
+	Info.WidthOverride = FOptionalSize(WidthOverride);
+	Info.SubText = SubText;
+
+	TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+	NotificationPtr->SetCompletionState(CompletionState);
+}
+
+void IImporter::AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, const FSlateBrush* SlateBrush, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons, float WidthOverride) {
+	FNotificationInfo Info = FNotificationInfo(Text);
+	Info.ExpireDuration = ExpireDuration;
+	Info.bUseLargeFont = true;
+	Info.bUseSuccessFailIcons = bUseSuccessFailIcons;
+	Info.WidthOverride = FOptionalSize(WidthOverride);
+	Info.SubText = SubText;
+	Info.Image = SlateBrush;
+
+	TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+	NotificationPtr->SetCompletionState(CompletionState);
 }
 
 #undef LOCTEXT_NAMESPACE

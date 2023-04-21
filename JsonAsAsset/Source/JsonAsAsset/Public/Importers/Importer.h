@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Dom/JsonObject.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 /*
 * Global handler for converting JSON to assets
@@ -69,6 +70,9 @@ public:
 
 	void ImportReference(FString File);
 	bool HandleReference(FString GamePath);
+
+	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
+	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, const FSlateBrush* SlateBrush, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
 protected:
 	template <class T = UObject>
 	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);

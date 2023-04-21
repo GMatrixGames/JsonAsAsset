@@ -4,6 +4,7 @@
 #include "JsonAsAssetStyle.h"
 #include "JsonAsAssetCommands.h"
 
+// ------------------------------------------------------ |
 #include "Developer/DesktopPlatform/Public/IDesktopPlatform.h"
 #include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
 #include "Interfaces/IMainFrameModule.h"
@@ -67,9 +68,8 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 }
 
 void FJsonAsAssetModule::RegisterMenus() {
-	// Owner will be used for cleanup in call to UToolMenus::UnregisterOwner
 	FToolMenuOwnerScoped OwnerScoped(this);
-	
+
 	{
 		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
 		{
@@ -82,7 +82,7 @@ void FJsonAsAssetModule::RegisterMenus() {
 						FCanExecuteAction(),
 						FGetActionCheckState()
 					),
-					FOnGetContent::CreateRaw(this, &FJsonAsAssetModule::CreateToolbarMenuEntries),
+					FOnGetContent::CreateRaw(this, &FJsonAsAssetModule::CreateToolbarDropdown),
 					LOCTEXT("JsonAsAssetDisplayName", "JsonAsAsset"),
 					LOCTEXT("JsonAsAsset", "List of actions for JsonAsAsset"),
 					FSlateIcon(FJsonAsAssetStyle::Get().GetStyleSetName(), FName("JsonAsAsset.PluginAction"))
@@ -109,23 +109,15 @@ TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) 
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (DesktopPlatform) {
 		uint32 SelectionFlag = 1;
-		// JSON Files|*.json
-		DesktopPlatform->OpenFileDialog(ParentWindowHandle, Title, FString(""), FString(""), Type, SelectionFlag,
-		                                ReturnValue);
+
+		// Open File Dialog
+		DesktopPlatform->OpenFileDialog(ParentWindowHandle, Title, FString(""), FString(""), Type, SelectionFlag, ReturnValue);
 	}
 
 	return ReturnValue;
 }
 
-// NOTE: Unused
-void FJsonAsAssetModule::AddMenuEntry(FMenuBuilder& MenuBuilder)
-{
-	MenuBuilder.BeginSection("JSONTools", TAttribute<FText>(FText::FromString("JSON Tools")));
-	MenuBuilder.AddMenuEntry(FJsonAsAssetCommands::Get().PluginAction);
-	MenuBuilder.EndSection();
-}
-
-TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarMenuEntries()
+TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 {
 	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("JsonAsAsset");
 
@@ -224,13 +216,6 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarMenuEntries()
 		),
 		NAME_None
 	);
-
-	return MenuBuilder.MakeWidget();
-}
-
-TSharedRef<SWidget> FJsonAsAssetModule::FillComboButton(TSharedPtr<class FUICommandList> Commands)
-{
-	FMenuBuilder MenuBuilder(true, Commands);
 
 	return MenuBuilder.MakeWidget();
 }
