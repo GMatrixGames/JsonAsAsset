@@ -44,7 +44,7 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTe
 		OutermostPkg = Package->GetOutermost();
 		Package->FullyLoad();
 
-		const UTextureImporters* Importer = new UTextureImporters(AssetName, Path, JsonObject, Package, nullptr);
+		const UTextureImporters* Importer = new UTextureImporters(AssetName, Path, JsonObject, Package, OutermostPkg);
 		TSharedPtr<FJsonObject> FinalJsonObject = JsonObject->GetArrayField("jsonOutput")[0]->AsObject();
 
 		UTexture* Texture = nullptr;
