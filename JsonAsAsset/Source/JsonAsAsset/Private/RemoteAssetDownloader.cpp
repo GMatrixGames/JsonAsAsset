@@ -89,10 +89,12 @@ bool FRemoteAssetDownloader::MakeMaterialParameterCollection(const FString& Path
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
 	TSharedPtr<FJsonObject> JsonObject;
 	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
-		UPackage* LocalOutermostPkg;
-		UPackage* LocalPackage = FAssetUtilities::CreateAssetPackage(AssetName, PackagePath, LocalOutermostPkg);
+		UPackage* OutermostPkg;
+		UPackage* Package = CreatePackage(*PackagePath);
+		OutermostPkg = Package->GetOutermost();
+		Package->FullyLoad();
 
-		UMaterialParameterCollectionImporter* MaterialCollectionImporter = new UMaterialParameterCollectionImporter(AssetName, Path, JsonObject->GetArrayField("jsonOutput")[0]->AsObject(), LocalPackage, LocalOutermostPkg, JsonObject->GetArrayField("jsonOutput"));
+		UMaterialParameterCollectionImporter* MaterialCollectionImporter = new UMaterialParameterCollectionImporter(AssetName, Path, JsonObject->GetArrayField("jsonOutput")[0]->AsObject(), Package, OutermostPkg, JsonObject->GetArrayField("jsonOutput"));
 		MaterialCollectionImporter->ImportData();
 
 		OutCollection = MaterialCollectionImporter->OutCollection;
