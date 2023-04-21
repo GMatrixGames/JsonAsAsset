@@ -23,7 +23,7 @@ bool UAnimationBaseImporter::ImportData() {
 		UAnimSequenceBase* AnimSequenceBase = Cast<UAnimSequenceBase>(FAssetUtilities::GetSelectedAsset());
 
 		/* In Unreal Engine 5, a new data model has been added to edit animation curves */
-		// Unreal Engine 5.1 changed handling getting a data model
+		// Unreal Engine 5.2 changed handling getting a data model
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 		TScriptInterface<IAnimationDataModel> Model = AnimSequenceBase->GetDataModelInterface();
 		checkf(Model != nullptr, TEXT("Invalid UAnimDataModel Object"));
@@ -32,7 +32,7 @@ bool UAnimationBaseImporter::ImportData() {
 		Controller->SetModel(Model);
 #endif
 
-		// Unreal Engine 5.1 and below works with just getting the data model from the animation
+		// Unreal Engine 5.2 and below works with just getting the data model from the animation
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 2
 		UAnimDataModel* Model = AnimSequenceBase->GetDataModel();
 		checkf(Model != nullptr, TEXT("Invalid UAnimDataModel Object"));

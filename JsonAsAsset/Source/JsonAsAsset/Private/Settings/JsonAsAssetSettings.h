@@ -18,13 +18,13 @@ class UJsonAsAssetSettings : public UDeveloperSettings
 	virtual FText GetSectionText() const override;
 #endif
 	// FModel Exports Folder
-	UPROPERTY(config, EditAnywhere, Category = "Asset | Configuration")
+	UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
 	FDirectoryPath ExportDirectory;
 
 	// Automate importing references
-	UPROPERTY(config, EditAnywhere, Category = "Asset | Configuration")
+	UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
 	bool bAutomateReferences;
 
-	UPROPERTY(config, EditAnywhere, Category = "Asset")
+	UPROPERTY(config, EditAnywhere, Category = "Asset|Remote Download")
 	bool bTextureRemoteDownload;
 };
