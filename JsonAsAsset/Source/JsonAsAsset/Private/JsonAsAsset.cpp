@@ -202,6 +202,44 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 		MenuBuilder.EndSection();
 	}
 
+	if (Settings->bTextureRemoteDownload || Settings->bMaterialRemoteDownload) {
+		MenuBuilder.BeginSection("JsonAsAssetRemoteDownload", FText::FromString("Remote Download"));
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("JsonAsAssetMenu", "Remote Download Types"),
+			LOCTEXT("JsonAsAssetMenuToolTip", "List of supported classes that can be downloaded using the API (only supports Fortnite)\n(to add more supported classes, enable other settings for remote downloading)\n| Uses Fortnite Central's API"),
+			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
+				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Asset Classes"));
+				{
+					TArray<FString> AcceptedTypes;
+
+					const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+					if (Settings->bTextureRemoteDownload) {
+						AcceptedTypes.Add("Texture2D");
+						AcceptedTypes.Add("TextureRenderTarget2D");
+					}
+
+					if (Settings->bMaterialRemoteDownload) {
+						AcceptedTypes.Add("MaterialParameterCollection");
+					}
+
+					for (FString& Asset : AcceptedTypes) {
+						InnerMenuBuilder.AddMenuEntry(
+							FText::FromString(Asset),
+							FText::FromString(Asset),
+							FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail")),
+							FUIAction()
+						);
+					}
+				}
+				InnerMenuBuilder.EndSection();
+			}),
+			false,
+			FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Audit")
+		);
+		MenuBuilder.EndSection();
+	}
+
 	MenuBuilder.AddSeparator();
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("JsonAsAssetButton", "Open Plugin Settings"),
