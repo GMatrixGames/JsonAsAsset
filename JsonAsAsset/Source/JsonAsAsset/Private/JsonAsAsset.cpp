@@ -148,7 +148,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("JsonAsAssetButton", "Documentation"),
 			LOCTEXT("JsonAsAssetButtonTooltip", "Documentation for JsonAsAsset"),
-			FSlateIcon(FAppStyle::Get().GetStyleSetName(), "AssetEditor.Apply"),
+			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Documentation"),
 			FUIAction(
 				FExecuteAction::CreateLambda([this]() {
 					FString TheURL = "https://github.com/Tectors/JsonAsAsset";
