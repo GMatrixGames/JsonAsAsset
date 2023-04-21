@@ -43,24 +43,79 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
 	Name = Name.Replace(TEXT("'"), TEXT(""));
 
+	Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
+
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-	if (Settings->bTextureRemoteDownload) {
+	bool bRemoteDownload = Settings->bTextureRemoteDownload || Settings->bMaterialRemoteDownload;
+
+	// Requests from FortniteCentral to download objects
+	if (bRemoteDownload && Object == nullptr) {
 		const UObject* DefaultObject = T::StaticClass()->ClassDefaultObject;
 
 		if (DefaultObject != nullptr) {
-			if (DefaultObject->IsA(UTexture::StaticClass()) && !DefaultObject->IsA(UTextureRenderTarget2D::StaticClass())) {
-				UTexture2D* Tex;
-				if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Tex)) {
-					UE_LOG(LogJson, Log, TEXT("Something went wrong here!!"));
-				}
+			// Texture Remote Download
+			if (Settings->bTextureRemoteDownload) {
+				if (Type == "Texture2D" || Type == "TextureRenderTarget2D") {
+					UTexture2D* Texture;
 
-				Object = Cast<T>(Tex);
-				return;
+					// Import texture
+					if (!FRemoteAssetDownloader::MakeTexture(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Texture)) {
+						AppendNotification(
+							FText::FromString("Download Failed: " + Type),
+							FText::FromString(Name),
+							5.0f,
+							FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
+							SNotificationItem::CS_Fail,
+							false,
+							450.0f
+						);
+					}
+					else AppendNotification(
+						FText::FromString("Remotely Downloaded: " + Name),
+						FText::FromString(Type),
+						2.0f,
+						FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
+						SNotificationItem::CS_Success,
+						false,
+						450.0f
+					);
+
+					Object = Cast<T>(Texture);
+					return;
+				}
+			}
+
+			// Material Remote Download
+			if (Settings->bMaterialRemoteDownload) {
+				if (DefaultObject->IsA(UMaterialParameterCollection::StaticClass())) {
+					UMaterialParameterCollection* MaterialParameterCollection;
+
+					if (!FRemoteAssetDownloader::MakeMaterialParameterCollection(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), MaterialParameterCollection)) {
+						AppendNotification(
+							FText::FromString("Download Failed: " + Type),
+							FText::FromString(Name),
+							5.0f,
+							FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
+							SNotificationItem::CS_Fail,
+							false,
+							450.0f
+						);
+					}
+					else AppendNotification(
+						FText::FromString("Remotely Downloaded: " + Name),
+						FText::FromString(Type),
+						2.0f,
+						FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
+						SNotificationItem::CS_Success,
+						false,
+						450.0f
+					);
+
+					Object = Cast<T>(MaterialParameterCollection);
+				}
 			}
 		}
 	}
-
-	Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
 }
 
 bool IImporter::HandleReference(FString GamePath) {

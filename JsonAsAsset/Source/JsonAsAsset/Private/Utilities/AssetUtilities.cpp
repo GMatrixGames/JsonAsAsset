@@ -15,8 +15,6 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& FullPath) {
 	UPackage* _ = Package->GetOutermost();
 	Package->FullyLoad();
 
-	GLog->Log(FullPath);
-
 	return Package;
 }
 

@@ -11,7 +11,6 @@ bool UTextureImporters::ImportData() {
 
 		UTexture* OutTexture = nullptr;
 
-		// if (Type == "Texture2D") ImportTexture2D(OutTexture, Data, JsonObject->GetObjectField("Properties")); // TODO
 		if (Type == "TextureRenderTarget2D") ImportRenderTarget2D(OutTexture, JsonObject->GetObjectField("Properties"));
 
 		// Handle edit changes, and add it to the content browser
@@ -31,7 +30,9 @@ bool UTextureImporters::ImportTexture2D(UTexture*& OutTexture2D, const TArray<ui
 
 	const uint8* ImageData = Data.GetData();
 	UTexture2D* Texture2D = Cast<UTexture2D>(TextureFactory->FactoryCreateBinary(UTexture2D::StaticClass(), Package, *FileName, RF_Standalone | RF_Public, nullptr,
-	                                                                             *FPaths::GetExtension(FileName + ".png").ToLower(), ImageData, ImageData + Data.Num(), GWarn));
+	                                                                           *FPaths::GetExtension(FileName + ".png").ToLower(), ImageData, ImageData + Data.Num(), GWarn));
+	if (Texture2D == nullptr)
+		return false;
 
 	FString AddressX;
 	if (Properties->TryGetStringField("AddressX", AddressX)) Texture2D->AddressX = static_cast<TextureAddress>(StaticEnum<TextureAddress>()->GetValueByNameString(AddressX));

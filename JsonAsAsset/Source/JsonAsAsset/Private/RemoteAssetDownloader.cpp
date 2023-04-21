@@ -5,6 +5,7 @@
 #include "HttpModule.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Importers/TextureImporters.h"
+#include "Importers/MaterialParameterCollectionImporter.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
@@ -38,11 +39,25 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTe
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
 	TSharedPtr<FJsonObject> JsonObject;
 	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
-		UPackage* Package = FAssetUtilities::CreateAssetPackage(PackagePath);
-		const UTextureImporters* Importer = new UTextureImporters(AssetName, Path, JsonObject, Package, nullptr);
+		UPackage* OutermostPkg;
+		UPackage* Package = CreatePackage(*PackagePath);
+		OutermostPkg = Package->GetOutermost();
+		Package->FullyLoad();
 
-		UTexture* Texture;
-		Importer->ImportTexture2D(Texture, Data, JsonObject->GetArrayField("jsonOutput")[0]->AsObject()->GetObjectField("Properties"));
+		const UTextureImporters* Importer = new UTextureImporters(AssetName, Path, JsonObject, Package, nullptr);
+		TSharedPtr<FJsonObject> FinalJsonObject = JsonObject->GetArrayField("jsonOutput")[0]->AsObject();
+
+		UTexture* Texture = nullptr;
+		
+		// Texture 2D
+		if (FinalJsonObject->GetStringField("Type") == "Texture2D")
+			Importer->ImportTexture2D(Texture, Data, FinalJsonObject->GetObjectField("Properties"));
+		// Texture Render Target 2D
+		if (FinalJsonObject->GetStringField("Type") == "TextureRenderTarget2D")
+			Importer->ImportRenderTarget2D(Texture, FinalJsonObject->GetObjectField("Properties"));
+
+		// If it still wasn't imported
+		if (Texture == nullptr) return false;
 
 		FAssetRegistryModule::AssetCreated(Texture);
 		if (!Texture->MarkPackageDirty()) return false;
@@ -51,6 +66,36 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTe
 		Texture->AddToRoot();
 
 		OutTexture = Cast<UTexture2D>(Texture);
+	}
+
+	return true;
+}
+
+bool FRemoteAssetDownloader::MakeMaterialParameterCollection(const FString& Path, UMaterialParameterCollection*& OutCollection) {
+	FHttpModule* HttpModule = &FHttpModule::Get();
+	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
+
+	FString PackagePath;
+	FString AssetName;
+	Path.Split(".", &PackagePath, &AssetName);
+
+	const TSharedRef<IHttpRequest> NewRequest = HttpModule->CreateRequest();
+	NewRequest->SetURL("https://fortnitecentral.genxgames.gg/api/v1/export?raw=true&path=" + Path);
+	NewRequest->SetVerb(TEXT("GET"));
+
+	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
+	if (!NewResponse.IsValid()) return false;
+
+	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
+	TSharedPtr<FJsonObject> JsonObject;
+	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
+		UPackage* LocalOutermostPkg;
+		UPackage* LocalPackage = FAssetUtilities::CreateAssetPackage(AssetName, PackagePath, LocalOutermostPkg);
+
+		UMaterialParameterCollectionImporter* MaterialCollectionImporter = new UMaterialParameterCollectionImporter(AssetName, Path, JsonObject->GetArrayField("jsonOutput")[0]->AsObject(), LocalPackage, LocalOutermostPkg, JsonObject->GetArrayField("jsonOutput"));
+		MaterialCollectionImporter->ImportData();
+
+		OutCollection = MaterialCollectionImporter->OutCollection;
 	}
 
 	return true;
