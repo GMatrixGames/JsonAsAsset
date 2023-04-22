@@ -12,6 +12,7 @@
 // ----> Importers
 #include "Importers/CurveFloatImporter.h"
 #include "Importers/CurveLinearColorImporter.h"
+#include "Importers/CurveLinearColorAtlasImporter.h"
 #include "Importers/DataTableImporter.h"
 #include "Importers/SkeletalMeshLODSettingsImporter.h"
 #include "Importers/SkeletonImporter.h"
@@ -118,6 +119,27 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	}
 }
 
+template <typename T>
+TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>> PackageArray, TArray<TObjectPtr<T>> Array) {
+	// Go through each
+	for (const TSharedPtr<FJsonValue> ArrayElement : PackageArray) {
+		TSharedPtr<FJsonObject> Ptr = ArrayElement->AsObject();
+
+		FString Type;
+		FString Name;
+		Ptr->GetStringField("ObjectName").Split("'", &Type, &Name);
+		FString Path;
+		Ptr->GetStringField("ObjectPath").Split(".", &Path, nullptr);
+		Name = Name.Replace(TEXT("'"), TEXT(""));
+
+		TObjectPtr<T> Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
+
+		Array.Add(Object);
+	}
+
+	return Array;
+}
+
 bool IImporter::HandleReference(FString GamePath) {
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 	if (!Settings->bAutomateReferences)
@@ -185,6 +207,7 @@ void IImporter::ImportReference(FString File) {
 
 				if (Type == "CurveFloat") Importer = new UCurveFloatImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "CurveLinearColor") Importer = new UCurveLinearColorImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else if (Type == "CurveLinearColorAtlas") Importer = new UCurveLinearColorAtlasImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "AnimSequence") Importer = new UAnimationBaseImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
 				else if (Type == "Skeleton") Importer = new USkeletonImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, DataObjects);

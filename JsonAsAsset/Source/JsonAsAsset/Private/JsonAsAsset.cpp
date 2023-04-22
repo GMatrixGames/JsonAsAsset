@@ -217,7 +217,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 						FExecuteAction::CreateLambda([this]() {
 							// Send user to plugin
 							FModuleManager::LoadModuleChecked<ISettingsModule>("Settings")
-								.ShowViewer("Project", "Plugins", "JsonAsAsset");
+								.ShowViewer("Editor", "Plugins", "JsonAsAsset");
 						})
 					),
 					NAME_None
@@ -241,6 +241,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 					if (Settings->bTextureRemoteDownload) {
 						AcceptedTypes.Add("Texture2D");
 						AcceptedTypes.Add("TextureRenderTarget2D");
+						AcceptedTypes.Add("CurveLinearColorAtlas");
 					}
 
 					if (Settings->bMaterialRemoteDownload) {
@@ -273,7 +274,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 			FExecuteAction::CreateLambda([this]() {
 				// Send user to plugin
 				FModuleManager::LoadModuleChecked<ISettingsModule>("Settings")
-					.ShowViewer("Project", "Plugins", "JsonAsAsset");
+					.ShowViewer("Editor", "Plugins", "JsonAsAsset");
 			})
 		),
 		NAME_None

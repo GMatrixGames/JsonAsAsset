@@ -32,6 +32,7 @@ private:
 		"CurveFloat",
 		// "CurveVector", // TODO
 		"CurveLinearColor",
+		"CurveLinearColorAtlas",
 
 		"SkeletalMeshLODSettings",
 		"Skeleton",
@@ -76,6 +77,8 @@ public:
 protected:
 	template <class T = UObject>
 	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);
+	template <class T = UObject>
+	TArray<TObjectPtr<T>> LoadObject(const TArray<TSharedPtr<FJsonValue>> PackageArray, TArray<TObjectPtr<T>> Array);
 	bool HandleAssetCreation(UObject* Asset);
 
 	FName GetExportNameOfSubobject(const FString& PackageIndex);
