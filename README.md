@@ -40,6 +40,7 @@ However the version of your FModel application may affect the plugin's processin
 - Material Instance Constant
 - Material Parameter Collection
 - CurveFloat
+- CurveVector
 - CurveLinearColor
 - CurveLinearColorAtlas
 - SubsurfaceProfile
