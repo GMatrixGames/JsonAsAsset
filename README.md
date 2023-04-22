@@ -47,6 +47,7 @@ However the version of your FModel application may affect the plugin's processin
 - SkeletalMeshLODSettings
 - Animation (curves, sync markers)
 - SoundAttenuation
+- SoundConcurrency
 - ReverbEffect
 
 ### JSON Logo
