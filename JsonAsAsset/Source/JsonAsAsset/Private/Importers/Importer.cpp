@@ -17,6 +17,7 @@
 #include "Importers/SkeletalMeshLODSettingsImporter.h"
 #include "Importers/SkeletonImporter.h"
 #include "Importers/SoundAttenuationImporter.h"
+#include "Importers/SoundConcurrencyImporter.h"
 #include "Importers/ReverbEffectImporter.h"
 #include "Importers/SubsurfaceProfileImporter.h"
 #include "Importers/AnimationBaseImporter.h"
@@ -217,6 +218,7 @@ void IImporter::ImportReference(FString File) {
 
 				else if (Type == "ReverbEffect") Importer = new UReverbEffectImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SoundAttenuation") Importer = new USoundAttenuationImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else if (Type == "SoundConcurrency") Importer = new USoundConcurrencyImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
 				else if (Type == "Material") Importer = new UMaterialImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, DataObjects);
 				else if (Type == "MaterialFunction") Importer = new UMaterialFunctionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, DataObjects);

@@ -48,6 +48,7 @@ private:
 		"DataTable",
 		"ReverbEffect",
 		"SoundAttenuation",
+		"SoundConcurrency",
 		"SubsurfaceProfile",
 
 		"PhysicalMaterial",
