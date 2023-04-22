@@ -30,7 +30,7 @@ public:
 private:
 	inline static TArray<FString> AcceptedTypes = {
 		"CurveFloat",
-		// "CurveVector", // TODO
+		"CurveVector",
 		"CurveLinearColor",
 		"CurveLinearColorAtlas",
 

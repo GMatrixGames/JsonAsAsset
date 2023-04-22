@@ -20,6 +20,7 @@
 #include "Importers/ReverbEffectImporter.h"
 #include "Importers/SubsurfaceProfileImporter.h"
 #include "Importers/AnimationBaseImporter.h"
+#include "Importers/CurveVectorImporter.h"
 #include "Importers/MaterialFunctionImporter.h"
 #include "Importers/MaterialImporter.h"
 #include "Importers/MaterialParameterCollectionImporter.h"
@@ -209,6 +210,7 @@ void IImporter::ImportReference(FString File) {
 				else if (Type == "CurveLinearColor") Importer = new UCurveLinearColorImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "CurveLinearColorAtlas") Importer = new UCurveLinearColorAtlasImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "AnimSequence") Importer = new UAnimationBaseImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else if (Type == "CurveVector") Importer = new UCurveVectorImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
 				else if (Type == "Skeleton") Importer = new USkeletonImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, DataObjects);
 				else if (Type == "SkeletalMeshLODSettings") Importer = new USkeletalMeshLODSettingsImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
