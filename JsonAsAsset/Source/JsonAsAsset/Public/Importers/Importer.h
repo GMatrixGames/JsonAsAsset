@@ -49,6 +49,8 @@ private:
 		"SoundAttenuation",
 		"SubsurfaceProfile",
 
+		"PhysicalMaterial",
+
 		"TextureRenderTarget2D"
 	};
 
