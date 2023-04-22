@@ -8,5 +8,8 @@ assignees: ''
 ---
 
 ## Request for Material Node to be added
+> MaterialExpression (put the expression here)
 
-Please attach the json file that contains the material node, and describe the material node.
+--------------------- DELETE ---------------------
+
+please attach the json file that contains the material node
