@@ -1,6 +1,7 @@
 #include "JsonAsAssetSettings.h"
 
 #define LOCTEXT_NAMESPACE "JsonAsAsset"
+
 UJsonAsAssetSettings::UJsonAsAssetSettings() {
 	CategoryName = TEXT("Plugins");
 	SectionName = TEXT("JsonAsAsset");
