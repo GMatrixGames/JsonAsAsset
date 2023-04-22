@@ -14,6 +14,10 @@ public:
 
 	virtual bool ImportData() override;
 
+	static TArray<FString> GetAcceptedTypes() {
+		return AcceptedTypes;
+	}
+
 protected:
 	inline static TArray<FString> AcceptedTypes = {
 		"MaterialExpressionAbs",
@@ -63,8 +67,18 @@ protected:
 		"MaterialExpressionStaticSwitch",
 		"MaterialExpressionPower",
 		"MaterialExpressionVirtualTextureFeatureSwitch",
+		"MaterialExpressionDistanceFieldsRenderingSwitch",
 		"MaterialExpressionRound",
 		"MaterialExpressionTextureSampleParameter2D",
+		"MaterialExpressionTextureSampleParameter2DArray",
+		"MaterialExpressionTextureSampleParameterCube",
+		"MaterialExpressionTextureSampleParameterCubeArray",
+		"MaterialExpressionTextureSampleParameterSubUV",
+		"MaterialExpressionTextureSampleParameterVolume",
+		"MaterialExpressionPreviousFrameSwitch",
+		"MaterialExpressionShadowReplace",
+		"MaterialExpressionLandscapeVisibilityMask",
+		"MaterialExpressionVectorNoise",
 		"MaterialExpressionFloor",
 		"MaterialExpressionCustom",
 		"MaterialExpressionCeil",
@@ -137,6 +151,7 @@ protected:
 		"MaterialExpressionMakeMaterialAttributes",
 		"MaterialExpressionBlendMaterialAttributes",
 		"MaterialExpressionBreakMaterialAttributes",
+		"MaterialExpressionMaterialAttributeLayers",
 		"MaterialExpressionSquareRoot",
 		"MaterialExpressionTwoSidedSign",
 		"MaterialExpressionVertexColor",
