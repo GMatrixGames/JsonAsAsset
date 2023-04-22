@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Math/Color.h"
+
 class FMathUtilities {
 public:
 	static FVector ObjectToVector(const FJsonObject* Object);
@@ -10,4 +12,5 @@ public:
 	static FRotator ObjectToRotator(const FJsonObject* Object);
 	static FQuat ObjectToQuat(const FJsonObject* Object);
 	static FLinearColor ObjectToLinearColor(const FJsonObject* Object);
+	static FColor ObjectToColor(const FJsonObject* Object);
 };

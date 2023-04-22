@@ -34,38 +34,7 @@ bool UTextureImporters::ImportTexture2D(UTexture*& OutTexture2D, const TArray<ui
 	if (Texture2D == nullptr)
 		return false;
 
-	FString AddressX;
-	if (Properties->TryGetStringField("AddressX", AddressX)) Texture2D->AddressX = static_cast<TextureAddress>(StaticEnum<TextureAddress>()->GetValueByNameString(AddressX));
-	FString AddressY;
-	if (Properties->TryGetStringField("AddressY", AddressY)) Texture2D->AddressY = static_cast<TextureAddress>(StaticEnum<TextureAddress>()->GetValueByNameString(AddressY));
-	FString LightingGuid;
-	if (Properties->TryGetStringField("LightingGuid", LightingGuid)) Texture2D->SetLightingGuid(FGuid(LightingGuid));
-	FString MipLoadOptions;
-	if (Properties->TryGetStringField("MipLoadOptions", MipLoadOptions)) Texture2D->MipLoadOptions = static_cast<ETextureMipLoadOptions>(StaticEnum<ETextureMipLoadOptions>()->GetValueByNameString(MipLoadOptions));
-	FString CompressionSettings;
-	if (Properties->TryGetStringField("CompressionSettings", CompressionSettings)) Texture2D->CompressionSettings = static_cast<TextureCompressionSettings>(StaticEnum<TextureCompressionSettings>()->GetValueByNameString(CompressionSettings));
-	FString Filter;
-	if (Properties->TryGetStringField("Filter", Filter)) Texture2D->Filter = static_cast<TextureFilter>(StaticEnum<TextureFilter>()->GetValueByNameString(Filter));
-	FString LODGroup;
-	if (Properties->TryGetStringField("LODGroup", LODGroup)) Texture2D->LODGroup = static_cast<TextureGroup>(StaticEnum<TextureGroup>()->GetValueByNameString(LODGroup));
-
-	bool SRGB;
-	if (Properties->TryGetBoolField("SRGB", SRGB)) Texture2D->SRGB = SRGB;
-	bool NeverStream;
-	if (Properties->TryGetBoolField("NeverStream", NeverStream)) Texture2D->NeverStream = NeverStream;
-	bool bGlobalForceMipLevelsToBeResident;
-	if (Properties->TryGetBoolField("bGlobalForceMipLevelsToBeResident", bGlobalForceMipLevelsToBeResident)) Texture2D->bGlobalForceMipLevelsToBeResident = bGlobalForceMipLevelsToBeResident;
-
-	FTexturePlatformData* PlatformData = Texture2D->GetPlatformData();
-
-	int SizeX;
-	if (Properties->TryGetNumberField("SizeX", SizeX)) PlatformData->SizeX = SizeX;
-	int SizeY;
-	if (Properties->TryGetNumberField("SizeY", SizeY)) PlatformData->SizeY = SizeY;
-	uint32 PackedData;
-	if (Properties->TryGetNumberField("PackedData", PackedData)) PlatformData->PackedData = PackedData;
-	FString PixelFormat;
-	if (Properties->TryGetStringField("PixelFormat", PixelFormat)) PlatformData->PixelFormat = static_cast<EPixelFormat>(Texture2D->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
+	ImportTexture2D_Data(Texture2D, Properties);
 
 	if (Texture2D) {
 		OutTexture2D = Texture2D;
@@ -79,6 +48,8 @@ bool UTextureImporters::ImportRenderTarget2D(UTexture*& OutRenderTarget2D, const
 	UTextureRenderTargetFactoryNew* TextureFactory = NewObject<UTextureRenderTargetFactoryNew>();
 	TextureFactory->AddToRoot();
 	UTextureRenderTarget2D* RenderTarget2D = Cast<UTextureRenderTarget2D>(TextureFactory->FactoryCreateNew(UTextureRenderTarget2D::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
+
+	ImportTexture_Data(RenderTarget2D, Properties);
 
 	int SizeX;
 	if (Properties->TryGetNumberField("SizeX", SizeX)) RenderTarget2D->SizeX = SizeX;
@@ -94,20 +65,9 @@ bool UTextureImporters::ImportRenderTarget2D(UTexture*& OutRenderTarget2D, const
 
 	bool bAutoGenerateMips;
 	if (Properties->TryGetBoolField("bAutoGenerateMips", bAutoGenerateMips)) RenderTarget2D->bAutoGenerateMips = bAutoGenerateMips;
-
-	if (bAutoGenerateMips) {
-		FString MipsSamplerFilter;
-		if (Properties->TryGetStringField("MipsSamplerFilter", MipsSamplerFilter)) RenderTarget2D->MipsSamplerFilter = static_cast<TextureFilter>(StaticEnum<TextureFilter>()->GetValueByNameString(MipsSamplerFilter));
-	}
+	if (bAutoGenerateMips)
+		if (FString MipsSamplerFilter; Properties->TryGetStringField("MipsSamplerFilter", MipsSamplerFilter)) RenderTarget2D->MipsSamplerFilter = static_cast<TextureFilter>(StaticEnum<TextureFilter>()->GetValueByNameString(MipsSamplerFilter));
 	
-	FString LightingGuid;
-	if (Properties->TryGetStringField("LightingGuid", LightingGuid)) RenderTarget2D->SetLightingGuid(FGuid(LightingGuid));
-	bool SRGB;
-	if (Properties->TryGetBoolField("SRGB", SRGB)) RenderTarget2D->SRGB = SRGB;
-
-	FString LODGroup;
-	if (Properties->TryGetStringField("LODGroup", LODGroup)) RenderTarget2D->LODGroup = static_cast<TextureGroup>(StaticEnum<TextureGroup>()->GetValueByNameString(LODGroup));
-
 	const TSharedPtr<FJsonObject>* ClearColor;
 	if (Properties->TryGetObjectField("ClearColor", ClearColor)) RenderTarget2D->ClearColor = FMathUtilities::ObjectToLinearColor(ClearColor->Get());
 	
@@ -115,6 +75,91 @@ bool UTextureImporters::ImportRenderTarget2D(UTexture*& OutRenderTarget2D, const
 		OutRenderTarget2D = RenderTarget2D;
 		return true;
 	}
+
+	return false;
+}
+
+// Handle UTexture2D
+bool UTextureImporters::ImportTexture2D_Data(UTexture2D* InTexture2D, const TSharedPtr<FJsonObject>& Properties) const
+{
+	if (InTexture2D == nullptr) return false;
+
+	ImportTexture_Data(InTexture2D, Properties);
+
+	if (FString AddressX; Properties->TryGetStringField("AddressX", AddressX)) InTexture2D->AddressX = static_cast<TextureAddress>(StaticEnum<TextureAddress>()->GetValueByNameString(AddressX));
+	if (FString AddressY; Properties->TryGetStringField("AddressY", AddressY)) InTexture2D->AddressY = static_cast<TextureAddress>(StaticEnum<TextureAddress>()->GetValueByNameString(AddressY));
+	if (bool bHasBeenPaintedInEditor; Properties->TryGetBoolField("bHasBeenPaintedInEditor", bHasBeenPaintedInEditor)) InTexture2D->bHasBeenPaintedInEditor = bHasBeenPaintedInEditor;
+	
+	// --------- Platform Data --------- //
+	FTexturePlatformData* PlatformData = InTexture2D->GetPlatformData();
+
+	if (int SizeX; Properties->TryGetNumberField("SizeX", SizeX)) PlatformData->SizeX = SizeX;
+	if (int SizeY; Properties->TryGetNumberField("SizeY", SizeY)) PlatformData->SizeY = SizeY;
+	if (uint32 PackedData; Properties->TryGetNumberField("PackedData", PackedData)) PlatformData->PackedData = PackedData;
+	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat)) PlatformData->PixelFormat = static_cast<EPixelFormat>(InTexture2D->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
+
+	if (int FirstResourceMemMip; Properties->TryGetNumberField("FirstResourceMemMip", FirstResourceMemMip)) InTexture2D->FirstResourceMemMip = FirstResourceMemMip;
+	if (int LevelIndex; Properties->TryGetNumberField("LevelIndex", LevelIndex)) InTexture2D->LevelIndex = LevelIndex;
+
+	return false;
+}
+
+// Handle UTexture
+bool UTextureImporters::ImportTexture_Data(UTexture* InTexture, const TSharedPtr<FJsonObject>& Properties) const
+{
+	if (InTexture == nullptr) return false;
+
+	// Adjust parameters
+	if (float AdjustBrightness; Properties->TryGetNumberField("AdjustBrightness", AdjustBrightness)) InTexture->AdjustBrightness = AdjustBrightness;
+	if (float AdjustBrightnessCurve; Properties->TryGetNumberField("AdjustBrightnessCurve", AdjustBrightnessCurve)) InTexture->AdjustBrightnessCurve = AdjustBrightnessCurve;
+	if (float AdjustHue; Properties->TryGetNumberField("AdjustHue", AdjustHue)) InTexture->AdjustHue = AdjustHue;
+	if (float AdjustMaxAlpha; Properties->TryGetNumberField("AdjustMaxAlpha", AdjustMaxAlpha)) InTexture->AdjustMaxAlpha = AdjustMaxAlpha;
+	if (float AdjustMinAlpha; Properties->TryGetNumberField("AdjustMinAlpha", AdjustMinAlpha)) InTexture->AdjustMinAlpha = AdjustMinAlpha;
+	if (float AdjustRGBCurve; Properties->TryGetNumberField("AdjustRGBCurve", AdjustRGBCurve)) InTexture->AdjustRGBCurve = AdjustRGBCurve;
+	if (float AdjustSaturation; Properties->TryGetNumberField("AdjustSaturation", AdjustSaturation)) InTexture->AdjustSaturation = AdjustSaturation;
+	if (float AdjustVibrance; Properties->TryGetNumberField("AdjustVibrance", AdjustVibrance)) InTexture->AdjustVibrance = AdjustVibrance;
+
+	if (const TSharedPtr<FJsonObject>* AlphaCoverageThresholds; Properties->TryGetObjectField("AlphaCoverageThresholds", AlphaCoverageThresholds))
+		InTexture->AlphaCoverageThresholds = FMathUtilities::ObjectToVector(AlphaCoverageThresholds->Get());
+
+	if (bool bChromaKeyTexture; Properties->TryGetBoolField("bChromaKeyTexture", bChromaKeyTexture)) InTexture->bChromaKeyTexture = bChromaKeyTexture;
+	if (bool bFlipGreenChannel; Properties->TryGetBoolField("bFlipGreenChannel", bFlipGreenChannel)) InTexture->bFlipGreenChannel = bFlipGreenChannel;
+	if (bool bNoTiling; Properties->TryGetBoolField("bNoTiling", bNoTiling)) InTexture->bNoTiling = bNoTiling;
+	if (bool bPreserveBorder; Properties->TryGetBoolField("bPreserveBorder", bPreserveBorder)) InTexture->bPreserveBorder = bPreserveBorder;
+	if (bool bUseLegacyGamma; Properties->TryGetBoolField("bUseLegacyGamma", bUseLegacyGamma)) InTexture->bUseLegacyGamma = bUseLegacyGamma;
+
+	if (const TSharedPtr<FJsonObject>* ChromaKeyColor; Properties->TryGetObjectField("ChromaKeyColor", ChromaKeyColor)) InTexture->ChromaKeyColor = FMathUtilities::ObjectToColor(ChromaKeyColor->Get());
+	if (float ChromaKeyThreshold; Properties->TryGetNumberField("ChromaKeyThreshold", ChromaKeyThreshold)) InTexture->ChromaKeyThreshold = ChromaKeyThreshold;
+
+	if (float CompositePower; Properties->TryGetNumberField("CompositePower", CompositePower)) InTexture->CompositePower = CompositePower;
+	// if (const TSharedPtr<FJsonObject>* CompositeTexture; Properties->TryGetObjectField("CompositeTexture", CompositeTexture));
+	if (FString CompositeTextureMode; Properties->TryGetStringField("CompositeTextureMode", CompositeTextureMode)) InTexture->CompositeTextureMode = static_cast<ECompositeTextureMode>(StaticEnum<ECompositeTextureMode>()->GetValueByNameString(CompositeTextureMode));
+
+	if (bool CompressionNoAlpha; Properties->TryGetBoolField("CompressionNoAlpha", CompressionNoAlpha)) InTexture->CompressionNoAlpha = CompressionNoAlpha;
+	if (bool CompressionNone; Properties->TryGetBoolField("CompressionNone", CompressionNone)) InTexture->CompressionNone = CompressionNone;
+	if (FString CompressionQuality; Properties->TryGetStringField("CompressionQuality", CompressionQuality)) InTexture->CompressionQuality = static_cast<ETextureCompressionQuality>(StaticEnum<ETextureCompressionQuality>()->GetValueByNameString(CompressionQuality));
+	if (FString CompressionSettings; Properties->TryGetStringField("CompressionSettings", CompressionSettings)) InTexture->CompressionSettings = static_cast<TextureCompressionSettings>(StaticEnum<TextureCompressionSettings>()->GetValueByNameString(CompressionSettings));
+	if (bool CompressionYCoCg; Properties->TryGetBoolField("CompressionYCoCg", CompressionYCoCg)) InTexture->CompressionYCoCg = CompressionYCoCg;
+	if (bool DeferCompression; Properties->TryGetBoolField("DeferCompression", DeferCompression)) InTexture->DeferCompression = DeferCompression;
+	if (FString Filter; Properties->TryGetStringField("Filter", Filter)) InTexture->Filter = static_cast<TextureFilter>(StaticEnum<TextureFilter>()->GetValueByNameString(Filter));
+
+	// TODO: Add LayerFormatSettings
+	
+	if (int LODBias; Properties->TryGetNumberField("LODBias", LODBias)) InTexture->LODBias = LODBias;
+	if (FString LODGroup; Properties->TryGetStringField("LODGroup", LODGroup)) InTexture->LODGroup = static_cast<TextureGroup>(StaticEnum<TextureGroup>()->GetValueByNameString(LODGroup));
+	if (FString LossyCompressionAmount; Properties->TryGetStringField("LossyCompressionAmount", LossyCompressionAmount)) InTexture->LossyCompressionAmount = static_cast<ETextureLossyCompressionAmount>(StaticEnum<ETextureLossyCompressionAmount>()->GetValueByNameString(LossyCompressionAmount));
+
+	if (int MaxTextureSize; Properties->TryGetNumberField("MaxTextureSize", MaxTextureSize)) InTexture->MaxTextureSize = MaxTextureSize;
+	if (FString MipGenSettings; Properties->TryGetStringField("MipGenSettings", MipGenSettings)) InTexture->MipGenSettings = static_cast<TextureMipGenSettings>(StaticEnum<TextureMipGenSettings>()->GetValueByNameString(MipGenSettings));
+	if (FString MipLoadOptions; Properties->TryGetStringField("MipLoadOptions", MipLoadOptions)) InTexture->MipLoadOptions = static_cast<ETextureMipLoadOptions>(StaticEnum<ETextureMipLoadOptions>()->GetValueByNameString(MipLoadOptions));
+	
+	if (const TSharedPtr<FJsonObject>* PaddingColor; Properties->TryGetObjectField("PaddingColor", PaddingColor)) InTexture->PaddingColor = FMathUtilities::ObjectToColor(PaddingColor->Get());
+	if (FString PowerOfTwoMode; Properties->TryGetStringField("PowerOfTwoMode", PowerOfTwoMode)) InTexture->PowerOfTwoMode = static_cast<ETexturePowerOfTwoSetting::Type>(StaticEnum<ETexturePowerOfTwoSetting::Type>()->GetValueByNameString(PowerOfTwoMode));
+
+	if (bool SRGB; Properties->TryGetBoolField("SRGB", SRGB)) InTexture->SRGB = SRGB;
+	if (bool VirtualTextureStreaming; Properties->TryGetBoolField("VirtualTextureStreaming", VirtualTextureStreaming)) InTexture->VirtualTextureStreaming = VirtualTextureStreaming;
+
+	if (FString LightingGuid; Properties->TryGetStringField("LightingGuid", LightingGuid)) InTexture->SetLightingGuid(FGuid(LightingGuid));
 
 	return false;
 }

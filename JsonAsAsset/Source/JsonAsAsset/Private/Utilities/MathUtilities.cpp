@@ -1,7 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Utilities/MathUtilities.h"
-
 #include "Dom/JsonObject.h"
 
 FVector FMathUtilities::ObjectToVector(const FJsonObject* Object) {
@@ -26,4 +25,8 @@ FQuat FMathUtilities::ObjectToQuat(const FJsonObject* Object) {
 
 FLinearColor FMathUtilities::ObjectToLinearColor(const FJsonObject* Object) {
 	return FLinearColor(Object->GetNumberField("R"), Object->GetNumberField("G"), Object->GetNumberField("B"), Object->GetNumberField("A"));
+}
+
+FColor FMathUtilities::ObjectToColor(const FJsonObject* Object) {
+	return FColor(Object->GetNumberField("R"), Object->GetNumberField("G"), Object->GetNumberField("B"), Object->GetNumberField("A"));
 }
