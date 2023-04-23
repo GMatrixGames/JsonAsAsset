@@ -74,6 +74,8 @@ public:
 	void ImportReference(FString File);
 	bool HandleReference(FString GamePath);
 
+	bool HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File);
+
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, const FSlateBrush* SlateBrush, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
 protected:
@@ -82,6 +84,10 @@ protected:
 	template <class T = UObject>
 	TArray<TObjectPtr<T>> LoadObject(const TArray<TSharedPtr<FJsonValue>> PackageArray, TArray<TObjectPtr<T>> Array);
 	bool HandleAssetCreation(UObject* Asset);
+
+	// Wrapper for remote downloading
+	template <class T = UObject>
+	TObjectPtr<T> DownloadWrapper(TObjectPtr<T> InObject, FString Type, FString Name, FString Path);
 
 	FName GetExportNameOfSubobject(const FString& PackageIndex);
 	TArray<TSharedPtr<FJsonValue>> FilterExportsByOuter(const FString& Outer);

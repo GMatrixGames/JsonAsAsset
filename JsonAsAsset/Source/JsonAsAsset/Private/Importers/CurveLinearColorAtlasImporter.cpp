@@ -41,13 +41,8 @@ bool UCurveLinearColorAtlasImporter::ImportData() {
 
 		Object->UpdateResource();
 
-		if (bool bHasAnyDirtyTextures; Properties->TryGetBoolField("bHasAnyDirtyTextures", bHasAnyDirtyTextures)) Object->bHasAnyDirtyTextures = bHasAnyDirtyTextures;
-		if (bool bIsDirty; Properties->TryGetBoolField("bIsDirty", bIsDirty)) Object->bIsDirty = bIsDirty;
-		if (bool bShowDebugColorsForNullGradients; Properties->TryGetBoolField("bShowDebugColorsForNullGradients", bShowDebugColorsForNullGradients)) Object->bShowDebugColorsForNullGradients = bShowDebugColorsForNullGradients;
-		if (bool bSquareResolution; Properties->TryGetBoolField("bSquareResolution", bSquareResolution)) Object->bSquareResolution = bSquareResolution;
-
 		// Add gradient curves
-		FProperty* GradientCurvesProperty = FindField<FProperty>(Object->GetClass(), "GradientCurves");
+		FProperty* GradientCurvesProperty = FindFProperty<FProperty>(Object->GetClass(), "GradientCurves");
 		FPropertyChangedEvent PropertyChangedEvent(GradientCurvesProperty, EPropertyChangeType::ArrayAdd);
 
 		const TArray<TSharedPtr<FJsonValue>> GradientCurves = Properties->GetArrayField("GradientCurves");
@@ -57,7 +52,20 @@ bool UCurveLinearColorAtlasImporter::ImportData() {
 		Object->GradientCurves = CurvesLocal;
 		Object->PostEditChangeProperty(PropertyChangedEvent);
 
-		
+		if (bool bHasAnyDirtyTextures; Properties->TryGetBoolField("bHasAnyDirtyTextures", bHasAnyDirtyTextures)) Object->bHasAnyDirtyTextures = bHasAnyDirtyTextures;
+		if (bool bIsDirty; Properties->TryGetBoolField("bIsDirty", bIsDirty)) Object->bIsDirty = bIsDirty;
+		if (bool bShowDebugColorsForNullGradients; Properties->TryGetBoolField("bShowDebugColorsForNullGradients", bShowDebugColorsForNullGradients)) Object->bShowDebugColorsForNullGradients = bShowDebugColorsForNullGradients;
+		if (bool bSquareResolution; Properties->TryGetBoolField("bSquareResolution", bSquareResolution)) Object->bSquareResolution = bSquareResolution;
+
+		if (float TextureSize; Properties->TryGetNumberField("TextureSize", TextureSize))
+			Object->TextureSize = Properties->GetNumberField("TextureSize");
+		if (float TextureHeight; Properties->TryGetNumberField("TextureHeight", TextureHeight))
+			Object->TextureHeight = Properties->GetNumberField("TextureHeight");
+
+		FProperty* TextureSizeProperty = FindFProperty<FProperty>(Object->GetClass(), "TextureSize");
+		FPropertyChangedEvent TextureSizePropertyPropertyChangedEvent(TextureSizeProperty, EPropertyChangeType::ValueSet);
+		Object->PostEditChangeProperty(TextureSizePropertyPropertyChangedEvent);
+
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(Object)) return false;
 	} catch (const char* Exception) {

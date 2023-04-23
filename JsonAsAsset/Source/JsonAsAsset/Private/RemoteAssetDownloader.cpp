@@ -12,7 +12,58 @@
 #include "Utilities/AssetUtilities.h"
 #include "Utilities/RemoteUtilities.h"
 
-bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTexture) {
+template <typename T>
+bool FRemoteAssetDownloader::DownloadAsset(const FString& Path, const FString& Type, TObjectPtr<T>& OutObject, bool& bSuccess)
+{
+	// Supported Assets
+	if (Type ==
+		"Texture2D" ||
+		Type == "TextureRenderTarget2D" ||
+		Type == "MaterialParameterCollection"
+	) {
+		//		Manually supported asset types
+		// (ex: textures have to be handled differently)
+		if (Type ==
+			"Texture2D" ||
+			Type == "TextureRenderTarget2D"
+		) {
+			UTexture* Texture;
+
+			bSuccess = MakeTexture(Path, Texture);
+			if (bSuccess) OutObject = Cast<T>(Texture);
+
+			return true;
+		} else {
+			const TSharedPtr<FJsonObject> Response = RequestExports(Path);
+			if (Response == nullptr) return true;
+
+			TSharedPtr<FJsonObject> JsonObject = Response->GetArrayField("jsonOutput")[0]->AsObject();
+			FString PackagePath;
+			FString AssetName;
+			Path.Split(".", &PackagePath, &AssetName);
+
+			if (JsonObject) {
+				UPackage* OutermostPkg;
+				UPackage* Package = CreatePackage(*PackagePath);
+				OutermostPkg = Package->GetOutermost();
+				Package->FullyLoad();
+
+				// Import asset by IImporter
+				IImporter* Importer = new IImporter();
+				bSuccess = Importer->HandleExports(Response->GetArrayField("jsonOutput"), PackagePath);
+
+				// Define found object
+				OutObject = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *Path));
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture*& OutTexture) {
 	FHttpModule* HttpModule = &FHttpModule::Get();
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
@@ -65,13 +116,38 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture2D*& OutTe
 		Texture->PostEditChange();
 		Texture->AddToRoot();
 
-		OutTexture = Cast<UTexture2D>(Texture);
+		OutTexture = Texture;
 	}
 
 	return true;
 }
 
 bool FRemoteAssetDownloader::MakeMaterialParameterCollection(const FString& Path, UMaterialParameterCollection*& OutCollection) {
+	const TSharedPtr<FJsonObject> Response = RequestExports(Path);
+	if (Response == nullptr) return false;
+
+	TSharedPtr<FJsonObject> JsonObject = Response->GetArrayField("jsonOutput")[0]->AsObject();
+	FString PackagePath;
+	FString AssetName;
+	Path.Split(".", &PackagePath, &AssetName);
+
+	if (JsonObject) {
+		UPackage* OutermostPkg;
+		UPackage* Package = CreatePackage(*PackagePath);
+		OutermostPkg = Package->GetOutermost();
+		Package->FullyLoad();
+
+		UMaterialParameterCollectionImporter* MaterialCollectionImporter = new UMaterialParameterCollectionImporter(AssetName, Path, JsonObject, Package, OutermostPkg, Response->GetArrayField("jsonOutput"));
+		MaterialCollectionImporter->ImportData();
+
+		OutCollection = MaterialCollectionImporter->OutCollection;
+	} else return false;
+
+	return true;
+}
+
+const TSharedPtr<FJsonObject> FRemoteAssetDownloader::RequestExports(const FString& Path)
+{
 	FHttpModule* HttpModule = &FHttpModule::Get();
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
@@ -84,21 +160,13 @@ bool FRemoteAssetDownloader::MakeMaterialParameterCollection(const FString& Path
 	NewRequest->SetVerb(TEXT("GET"));
 
 	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
-	if (!NewResponse.IsValid()) return false;
+	if (!NewResponse.IsValid()) return TSharedPtr<FJsonObject>();
 
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
 	TSharedPtr<FJsonObject> JsonObject;
 	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
-		UPackage* OutermostPkg;
-		UPackage* Package = CreatePackage(*PackagePath);
-		OutermostPkg = Package->GetOutermost();
-		Package->FullyLoad();
-
-		UMaterialParameterCollectionImporter* MaterialCollectionImporter = new UMaterialParameterCollectionImporter(AssetName, Path, JsonObject->GetArrayField("jsonOutput")[0]->AsObject(), Package, OutermostPkg, JsonObject->GetArrayField("jsonOutput"));
-		MaterialCollectionImporter->ImportData();
-
-		OutCollection = MaterialCollectionImporter->OutCollection;
+		return JsonObject;
 	}
 
-	return true;
+	return TSharedPtr<FJsonObject>();
 }

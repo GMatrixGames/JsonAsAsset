@@ -25,52 +25,57 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 
 UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString& OutputPath, UPackage*& OutOutermostPkg) {
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
-	// Ex: FortniteGame/..../.../ -> /..../.../
 	FString ModifiablePath;
-	OutputPath.Split(*(Settings->ExportDirectory.Path + "/"), nullptr, &ModifiablePath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
-	ModifiablePath.Split("/", nullptr, &ModifiablePath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
-	ModifiablePath.Split("/", &ModifiablePath, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-	// Ex: RestPath: Plugins/ContentLibraries/EpicBaseTextures
-	// Ex: RestPath: Content/Athena
-	bool bIsPlugin = ModifiablePath.StartsWith("Plugins");
 
-	// Plugins/ContentLibraries/EpicBaseTextures -> ContentLibraries/EpicBaseTextures
-	if (bIsPlugin) ModifiablePath = ModifiablePath.Replace(TEXT("Plugins/"), TEXT("")).Replace(TEXT("GameFeatures/"), TEXT("")).Replace(TEXT("Content/"), TEXT(""));
-	// Content/Athena -> Game/Athena
-	else ModifiablePath = ModifiablePath.Replace(TEXT("Content"), TEXT("Game"));
+	// References Automatically Formatted
+	if (!OutputPath.StartsWith("/Game/") && !OutputPath.StartsWith("/Plugins/")) {
+		OutputPath.Split(*(Settings->ExportDirectory.Path + "/"), nullptr, &ModifiablePath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		ModifiablePath.Split("/", nullptr, &ModifiablePath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		ModifiablePath.Split("/", &ModifiablePath, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+		// Ex: RestPath: Plugins/ContentLibraries/EpicBaseTextures
+		// Ex: RestPath: Content/Athena
+		bool bIsPlugin = ModifiablePath.StartsWith("Plugins");
 
-	// ContentLibraries/EpicBaseTextures -> /ContentLibraries/EpicBaseTextures/
-	ModifiablePath = "/" + ModifiablePath + "/";
+		// Plugins/ContentLibraries/EpicBaseTextures -> ContentLibraries/EpicBaseTextures
+		if (bIsPlugin) ModifiablePath = ModifiablePath.Replace(TEXT("Plugins/"), TEXT("")).Replace(TEXT("GameFeatures/"), TEXT("")).Replace(TEXT("Content/"), TEXT(""));
+		// Content/Athena -> Game/Athena
+		else ModifiablePath = ModifiablePath.Replace(TEXT("Content"), TEXT("Game"));
 
-	// Check if plugin exists
-	if (bIsPlugin) {
-		FString PluginName;
-		ModifiablePath.Split("/", nullptr, &PluginName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
-		PluginName.Split("/", &PluginName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		// ContentLibraries/EpicBaseTextures -> /ContentLibraries/EpicBaseTextures/
+		ModifiablePath = "/" + ModifiablePath + "/";
 
-		if (IPluginManager::Get().FindPlugin(PluginName) == nullptr) {
-			#define LOCTEXT_NAMESPACE "UMG"
-			#if WITH_EDITOR
-			// Setup notification's arguments
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("PluginName"), FText::FromString(PluginName));
+		// Check if plugin exists
+		if (bIsPlugin) {
+			FString PluginName;
+			ModifiablePath.Split("/", nullptr, &PluginName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+			PluginName.Split("/", &PluginName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 
-			// Create notification
-			FNotificationInfo Info(FText::Format(LOCTEXT("NeedPlugin", "Plugin Missing: {PluginName}"), Args));
-			Info.ExpireDuration = 10.0f;
-			Info.bUseLargeFont = true;
-			Info.bUseSuccessFailIcons = true;
-			Info.WidthOverride = FOptionalSize(350);
-			Info.SubText = FText::FromString(FString("Asset will be placed in Content Folder"));
+			if (IPluginManager::Get().FindPlugin(PluginName) == nullptr) {
+				#define LOCTEXT_NAMESPACE "UMG"
+				#if WITH_EDITOR
+				// Setup notification's arguments
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("PluginName"), FText::FromString(PluginName));
 
-			TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-			NotificationPtr->SetCompletionState(SNotificationItem::CS_Fail);
-			#endif
-			#undef LOCTEXT_NAMESPACE
+				// Create notification
+				FNotificationInfo Info(FText::Format(LOCTEXT("NeedPlugin", "Plugin Missing: {PluginName}"), Args));
+				Info.ExpireDuration = 10.0f;
+				Info.bUseLargeFont = true;
+				Info.bUseSuccessFailIcons = true;
+				Info.WidthOverride = FOptionalSize(350);
+				Info.SubText = FText::FromString(FString("Asset will be placed in Content Folder"));
 
-			ModifiablePath = FString(TEXT("/Game/"));
+				TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+				NotificationPtr->SetCompletionState(SNotificationItem::CS_Fail);
+				#endif
+				#undef LOCTEXT_NAMESPACE
+
+				ModifiablePath = FString(TEXT("/Game/"));
+			}
 		}
+	} else {
+		ModifiablePath = OutputPath;
+		ModifiablePath.Split("/", &ModifiablePath, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 	}
 
 	const FString PathWithGame = ModifiablePath + Name;
