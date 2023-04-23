@@ -129,8 +129,7 @@
 #include "Materials/MaterialExpressionTruncate.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialExpressionNoise.h"
-
-//#include <MaterialX/MaterialExpressionLength.h>
+#include <Import/Private/MaterialX/MaterialExpressions/MaterialExpressionLength.h>
 
 bool UMaterialFunctionImporter::ImportData() {
 	try {
@@ -211,8 +210,7 @@ TMap<FName, UMaterialExpression*> UMaterialFunctionImporter::CreateExpressions(U
 
 		if (!bFound) continue;
 		UMaterialExpression* Ex = CreateEmptyExpression(Parent, Name, Type);
-		if (Ex == nullptr)
-			continue;
+		if (Ex == nullptr) continue;
 
 		CreatedExpressionMap.Add(Name, Ex);
 	}
@@ -340,7 +338,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = Abs;
-		}/* else if (Type->Type == "MaterialExpressionLength") {
+		} else if (Type->Type == "MaterialExpressionLength") {
 			UMaterialExpressionLength* Length = Cast<UMaterialExpressionLength>(Expression);
 
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
@@ -355,7 +353,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = Length;
-		}*/ else if (Type->Type == "MaterialExpressionFrac") {
+		} else if (Type->Type == "MaterialExpressionFrac") {
 			UMaterialExpressionFrac* Frac = Cast<UMaterialExpressionFrac>(Expression);
 
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
@@ -668,7 +666,6 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			FString MaterialType;
 			if (Properties->TryGetStringField("MaterialType", MaterialType)) {
 				RuntimeVirtualTextureSample->MaterialType = static_cast<ERuntimeVirtualTextureMaterialType>(StaticEnum<ERuntimeVirtualTextureMaterialType>()->GetValueByNameString(MaterialType));
-
 			}
 
 			bool bSinglePhysicalSpace;
@@ -744,8 +741,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				if (MaterialFunctionCall->MaterialFunction == nullptr) {
 					FString ObjectPath;
 					MaterialFunctionPtr->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
-					if (!HandleReference(ObjectPath))
-						AppendNotification(FText::FromString("Material Function Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
+					if (!HandleReference(ObjectPath)) AppendNotification(FText::FromString("Material Function Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
 					else LoadObject(MaterialFunctionPtr, MaterialFunctionCall->MaterialFunction);
 				}
 			}
@@ -1130,8 +1126,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 					FString ObjectPath;
 					Collection->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
 
-					if (!HandleReference(ObjectPath))
-						AppendNotification(FText::FromString("Material Collection Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
+					if (!HandleReference(ObjectPath)) AppendNotification(FText::FromString("Material Collection Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
 					else LoadObject(Collection, CollectionParameter->Collection);
 				}
 			}
@@ -1296,8 +1291,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 				}
 			}
 
-			if (FString NoiseFunction; Properties->TryGetStringField("NoiseFunction", NoiseFunction))
-				VectorNoise->NoiseFunction = static_cast<EVectorNoiseFunction>(StaticEnum<EVectorNoiseFunction>()->GetValueByNameString(NoiseFunction));
+			if (FString NoiseFunction; Properties->TryGetStringField("NoiseFunction", NoiseFunction)) VectorNoise->NoiseFunction = static_cast<EVectorNoiseFunction>(StaticEnum<EVectorNoiseFunction>()->GetValueByNameString(NoiseFunction));
 
 			if (int Quality; Properties->TryGetNumberField("Quality", Quality)) VectorNoise->Quality = Quality;
 			if (bool bTiling; Properties->TryGetBoolField("bTiling", bTiling)) VectorNoise->bTiling = bTiling;
@@ -3271,12 +3265,9 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 		if (Cast<UMaterialExpressionTextureSample>(Expression)) {
 			UMaterialExpressionTextureSample* TextureSample = Cast<UMaterialExpressionTextureSample>(Expression);
 
-			if (FString MipValueMode; Properties->TryGetStringField("MipValueMode", MipValueMode))
-				TextureSample->MipValueMode = static_cast<ETextureMipValueMode>(StaticEnum<ETextureMipValueMode>()->GetValueByNameString(MipValueMode));
-			if (FString SamplerSource; Properties->TryGetStringField("SamplerSource", SamplerSource))
-				TextureSample->SamplerSource = static_cast<ESamplerSourceMode>(StaticEnum<ESamplerSourceMode>()->GetValueByNameString(SamplerSource));
-			if (bool AutomaticViewMipBias; Properties->TryGetBoolField("AutomaticViewMipBias", AutomaticViewMipBias))
-				TextureSample->AutomaticViewMipBias = AutomaticViewMipBias;
+			if (FString MipValueMode; Properties->TryGetStringField("MipValueMode", MipValueMode)) TextureSample->MipValueMode = static_cast<ETextureMipValueMode>(StaticEnum<ETextureMipValueMode>()->GetValueByNameString(MipValueMode));
+			if (FString SamplerSource; Properties->TryGetStringField("SamplerSource", SamplerSource)) TextureSample->SamplerSource = static_cast<ESamplerSourceMode>(StaticEnum<ESamplerSourceMode>()->GetValueByNameString(SamplerSource));
+			if (bool AutomaticViewMipBias; Properties->TryGetBoolField("AutomaticViewMipBias", AutomaticViewMipBias)) TextureSample->AutomaticViewMipBias = AutomaticViewMipBias;
 
 			if (int ConstCoordinate; Properties->TryGetNumberField("ConstCoordinate", ConstCoordinate)) TextureSample->ConstCoordinate = ConstCoordinate;
 			if (int ConstMipValue; Properties->TryGetNumberField("ConstMipValue", ConstMipValue)) TextureSample->ConstMipValue = ConstMipValue;
@@ -3483,11 +3474,9 @@ UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* P
 	UClass* ExpressionClass = FindObject<UClass>(nullptr, *Engine_Class);
 
 	// If failed, try to use Landscape
-	if (ExpressionClass == nullptr) 
-		ExpressionClass = FindObject<UClass>(nullptr, *Landscape_Class);
+	if (ExpressionClass == nullptr) ExpressionClass = FindObject<UClass>(nullptr, *Landscape_Class);
 	// If failed, try to use InterchangeImport
-	if (ExpressionClass == nullptr)
-		ExpressionClass = FindObject<UClass>(nullptr, *InterchangeImport_Class);
+	if (ExpressionClass == nullptr) ExpressionClass = FindObject<UClass>(nullptr, *InterchangeImport_Class);
 
 	// Return a new expression
 	return NewObject<UMaterialExpression>(Parent, ExpressionClass, Name, RF_Transactional);
