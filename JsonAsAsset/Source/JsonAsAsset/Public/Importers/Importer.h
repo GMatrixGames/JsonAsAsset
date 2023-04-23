@@ -30,7 +30,7 @@ public:
 private:
 	inline static TArray<FString> AcceptedTypes = {
 		"CurveFloat",
-		// "CurveVector", // TODO
+		"CurveVector",
 		"CurveLinearColor",
 		"CurveLinearColorAtlas",
 
@@ -48,6 +48,7 @@ private:
 		"DataTable",
 		"ReverbEffect",
 		"SoundAttenuation",
+		"SoundConcurrency",
 		"SubsurfaceProfile",
 
 		"PhysicalMaterial",
