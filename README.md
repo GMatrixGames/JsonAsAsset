@@ -41,12 +41,14 @@ However the version of your FModel application may affect the plugin's processin
 - Material Parameter Collection
 - Physical Material
 - CurveFloat
+- CurveVector
 - CurveLinearColor
 - CurveLinearColorAtlas
 - SubsurfaceProfile
 - SkeletalMeshLODSettings
 - Animation (curves, sync markers)
 - SoundAttenuation
+- SoundConcurrency
 - ReverbEffect
 
 ### JSON Logo
