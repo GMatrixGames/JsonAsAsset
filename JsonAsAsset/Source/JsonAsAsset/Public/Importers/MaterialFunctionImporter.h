@@ -197,6 +197,7 @@ protected:
 		"MaterialExpressionLandscapeLayerSwitch",
 		"MaterialExpressionLandscapeLayerBlend",
 		"MaterialExpressionLandscapeLayerWeight"
+		"MaterialExpressionLandscapePhysicalMaterialOutput",
 	};
 
 	inline static TArray<FString> IgnoredTypes = {
@@ -244,7 +245,7 @@ protected:
 	FExpressionInput PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression, const FString& Type = "Default");
 	FExpressionOutput PopulateExpressionOutput(const FJsonObject* JsonProperties);
 
-	FName GetExpressionName(const FJsonObject* JsonProperties);
+	FName GetExpressionName(const FJsonObject* JsonProperties, FString OverrideParameterName = "Expression");
 
 	FFunctionExpressionOutput PopulateFuncExpressionOutput(const TSharedPtr<FJsonObject>& JsonProperties);
 	FFunctionExpressionInput PopulateFuncExpressionInput(const TSharedPtr<FJsonObject>& JsonProperties, TMap<FName, UMaterialExpression*>& CreatedExpressionMap);

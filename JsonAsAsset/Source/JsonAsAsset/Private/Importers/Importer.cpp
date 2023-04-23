@@ -65,13 +65,13 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 			if (bTriedDownload) {
 				if (bRemoteDownloadStatus) {
 					AppendNotification(
-						FText::FromString("Remotely Downloaded: " + Name),
-						FText::FromString(Type),
+						FText::FromString("Remotely Downloaded: " + Type),
+						FText::FromString(Name),
 						2.0f,
 						FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
 						SNotificationItem::CS_Success,
 						false,
-						450.0f
+						310.0f
 					);
 				}
 				else AppendNotification(
@@ -81,7 +81,7 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 					FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
 					SNotificationItem::CS_Fail,
 					false,
-					450.0f
+					310.0f
 				);
 			}
 		}

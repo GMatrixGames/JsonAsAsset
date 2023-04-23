@@ -45,6 +45,7 @@
 #include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
+#include "Materials/MaterialExpressionLandscapePhysicalMaterialOutput.h"
 #include "Materials/MaterialExpressionArcsine.h"
 #include "Materials/MaterialExpressionArcsineFast.h"
 #include "Materials/MaterialExpressionBumpOffset.h"
@@ -128,6 +129,8 @@
 #include "Materials/MaterialExpressionTruncate.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialExpressionNoise.h"
+
+//#include <MaterialX/MaterialExpressionLength.h>
 
 bool UMaterialFunctionImporter::ImportData() {
 	try {
@@ -337,7 +340,22 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = Abs;
-		} else if (Type->Type == "MaterialExpressionFrac") {
+		}/* else if (Type->Type == "MaterialExpressionLength") {
+			UMaterialExpressionLength* Length = Cast<UMaterialExpressionLength>(Expression);
+
+			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
+			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
+				FJsonObject* InputObject = InputPtr->Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					Length->Input = Input;
+				}
+			}
+
+			Expression = Length;
+		}*/ else if (Type->Type == "MaterialExpressionFrac") {
 			UMaterialExpressionFrac* Frac = Cast<UMaterialExpressionFrac>(Expression);
 
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
@@ -3084,6 +3102,28 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			if (Properties->TryGetNumberField("PreviewWeight", PreviewWeight)) LandscapeLayerSample->PreviewWeight = PreviewWeight;
 
 			Expression = LandscapeLayerSample;
+		} else if (Type->Type == "MaterialExpressionLandscapePhysicalMaterialOutput") {
+			UMaterialExpressionLandscapePhysicalMaterialOutput* LandscapePhysicalMaterialOutput = static_cast<UMaterialExpressionLandscapePhysicalMaterialOutput*>(Expression);
+
+			if (const TArray<TSharedPtr<FJsonValue>>* Inputs; Properties->TryGetArrayField("Inputs", Inputs))
+				for (const TSharedPtr<FJsonValue> InputPtr : *Inputs) {
+					TSharedPtr<FJsonObject> Input_Object = InputPtr->AsObject();
+					FPhysicalMaterialInput PhysicalMaterialInput = FPhysicalMaterialInput();
+
+					if (const TSharedPtr<FJsonObject>* PhysicalMaterial; Input_Object->TryGetObjectField("PhysicalMaterial", PhysicalMaterial)) LoadObject(PhysicalMaterial, PhysicalMaterialInput.PhysicalMaterial);
+					if (const TSharedPtr<FJsonObject>* _InputPtr; Input_Object->TryGetObjectField("Input", _InputPtr)) {
+						FJsonObject* InputObject = _InputPtr->Get();
+						FName InputExpressionName = GetExpressionName(InputObject);
+						if (CreatedExpressionMap.Contains(InputExpressionName)) {
+							FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+							PhysicalMaterialInput.Input = Input;
+						}
+					}
+
+					LandscapePhysicalMaterialOutput->Inputs.Add(PhysicalMaterialInput);
+				}
+
+			Expression = LandscapePhysicalMaterialOutput;
 		} else if (Type->Type == "MaterialExpressionLandscapeLayerCoords") {
 			UMaterialExpressionLandscapeLayerCoords* LandscapeLayerCoords = static_cast<UMaterialExpressionLandscapeLayerCoords*>(Expression);
 
@@ -3428,6 +3468,7 @@ UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* P
 	// Handle different module expressions
 	const FString Engine_Class = "/Script/Engine." + Type.ToString();
 	const FString Landscape_Class = "/Script/Landscape." + Type.ToString();
+	const FString InterchangeImport_Class = "/Script/InterchangeImport." + Type.ToString();
 
 	// Let user know that a expression is not added yet
 	if (!AcceptedTypes.Contains(Type.ToString())) {
@@ -3444,6 +3485,9 @@ UMaterialExpression* UMaterialFunctionImporter::CreateEmptyExpression(UObject* P
 	// If failed, try to use Landscape
 	if (ExpressionClass == nullptr) 
 		ExpressionClass = FindObject<UClass>(nullptr, *Landscape_Class);
+	// If failed, try to use InterchangeImport
+	if (ExpressionClass == nullptr)
+		ExpressionClass = FindObject<UClass>(nullptr, *InterchangeImport_Class);
 
 	// Return a new expression
 	return NewObject<UMaterialExpression>(Parent, ExpressionClass, Name, RF_Transactional);
@@ -3517,8 +3561,8 @@ FExpressionOutput UMaterialFunctionImporter::PopulateExpressionOutput(const FJso
 	return Output;
 }
 
-FName UMaterialFunctionImporter::GetExpressionName(const FJsonObject* JsonProperties) {
-	const TSharedPtr<FJsonValue> ExpressionField = JsonProperties->TryGetField("Expression");
+FName UMaterialFunctionImporter::GetExpressionName(const FJsonObject* JsonProperties, FString OverrideParameterName) {
+	const TSharedPtr<FJsonValue> ExpressionField = JsonProperties->TryGetField(OverrideParameterName);
 
 	if (ExpressionField == nullptr || ExpressionField->IsNull()) {
 		// Must be from < 4.25

@@ -39,7 +39,8 @@ public class JsonAsAsset : ModuleRules
 				"AssetTools",
 				"EditorStyle",
 				"Settings",
-				"PhysicsCore"
+				"PhysicsCore",
+				"MaterialX"
 			}
 		);
 
