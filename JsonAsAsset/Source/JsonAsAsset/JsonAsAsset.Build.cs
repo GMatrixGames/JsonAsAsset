@@ -40,7 +40,12 @@ public class JsonAsAsset : ModuleRules
 				"EditorStyle",
 				"Settings",
 				"PhysicsCore",
-				"MaterialX"
+				"InterchangeEngine",
+				"InterchangeNodes",
+				"InterchangeCommonParser",
+				"InterchangeFactoryNodes",
+				"InterchangeImport",
+				"InterchangePipelines"
 			}
 		);
 

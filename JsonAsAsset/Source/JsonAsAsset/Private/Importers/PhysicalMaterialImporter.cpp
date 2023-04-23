@@ -17,8 +17,8 @@ bool UPhysicalMaterialImporter::ImportData() {
             PhysicalMaterial->bOverrideRestitutionCombineMode = Properties->GetBoolField("bOverrideRestitutionCombineMode");
         if (float Density; Properties->TryGetNumberField("Density", Density))
             PhysicalMaterial->Density = Properties->GetNumberField("Density");
-        if (float DestructibleDamageThresholdScale; Properties->TryGetNumberField("DestructibleDamageThresholdScale", DestructibleDamageThresholdScale))
-            PhysicalMaterial->DestructibleDamageThresholdScale = Properties->GetNumberField("DestructibleDamageThresholdScale");
+        // if (float DestructibleDamageThresholdScale; Properties->TryGetNumberField("DestructibleDamageThresholdScale", DestructibleDamageThresholdScale))
+            // PhysicalMaterial->DestructibleDamageThresholdScale = Properties->GetNumberField("DestructibleDamageThresholdScale");
         if (float Friction; Properties->TryGetNumberField("Friction", Friction))
             PhysicalMaterial->Friction = Properties->GetNumberField("Friction");
         if (FString FrictionCombineMode; Properties->TryGetStringField("FrictionCombineMode", FrictionCombineMode))
