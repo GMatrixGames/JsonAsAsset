@@ -1,6 +1,7 @@
 ﻿#include "Importers/TextureImporters.h"
 
 #include "Engine/TextureRenderTarget2D.h"
+#include "Engine/TextureCube.h"
 #include "Factories/TextureFactory.h"
 #include "Factories/TextureRenderTargetFactoryNew.h"
 #include "Utilities/MathUtilities.h"
@@ -38,6 +39,35 @@ bool UTextureImporters::ImportTexture2D(UTexture*& OutTexture2D, const TArray<ui
 
 	if (Texture2D) {
 		OutTexture2D = Texture2D;
+		return true;
+	}
+
+	return false;
+}
+
+bool UTextureImporters::ImportTextureCube(UTexture*& OutTextureCube, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const
+{
+	UTextureFactory* TextureFactory = NewObject<UTextureFactory>();
+	TextureFactory->AddToRoot();
+	TextureFactory->SuppressImportOverwriteDialog();
+
+	const uint8* ImageData = Data.GetData();
+	UTextureCube* TextureCube = Cast<UTextureCube>(TextureFactory->FactoryCreateBinary(UTextureCube::StaticClass(), Package, *FileName, RF_Standalone | RF_Public, nullptr,
+		*FPaths::GetExtension(FileName + ".png").ToLower(), ImageData, ImageData + Data.Num(), GWarn));
+	if (TextureCube == nullptr)
+		return false;
+
+	ImportTexture_Data(TextureCube, Properties);
+
+	FTexturePlatformData* PlatformData = TextureCube->GetPlatformData();
+
+	if (int SizeX; Properties->TryGetNumberField("SizeX", SizeX)) PlatformData->SizeX = SizeX;
+	if (int SizeY; Properties->TryGetNumberField("SizeY", SizeY)) PlatformData->SizeY = SizeY;
+	if (uint32 PackedData; Properties->TryGetNumberField("PackedData", PackedData)) PlatformData->PackedData = PackedData;
+	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat)) PlatformData->PixelFormat = static_cast<EPixelFormat>(TextureCube->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
+
+	if (TextureCube) {
+		OutTextureCube = TextureCube;
 		return true;
 	}
 

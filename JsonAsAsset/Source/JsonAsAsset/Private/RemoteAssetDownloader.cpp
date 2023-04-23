@@ -17,18 +17,23 @@ bool FRemoteAssetDownloader::DownloadAsset(const FString& Path, const FString& T
 {
 	// Supported Assets
 	if (Type == "Texture2D" ||
+		Type == "TextureCube" ||
 		Type == "TextureRenderTarget2D" ||
 		Type == "MaterialParameterCollection" ||
+		Type == "CurveFloat" ||
+		Type == "CurveVector" ||
 		Type == "CurveLinearColorAtlas" ||
 		Type == "CurveLinearColor" ||
 		Type == "PhysicalMaterial" ||
+		Type == "SubsurfaceProfile" ||
 		Type == "LandscapeGrassType"
 	) {
 		//		Manually supported asset types
 		// (ex: textures have to be handled differently)
 		if (Type ==
 			"Texture2D" ||
-			Type == "TextureRenderTarget2D"
+			Type == "TextureRenderTarget2D" ||
+			Type == "TextureCube"
 		) {
 			UTexture* Texture;
 
@@ -106,6 +111,9 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture*& OutText
 		// Texture 2D
 		if (FinalJsonObject->GetStringField("Type") == "Texture2D")
 			Importer->ImportTexture2D(Texture, Data, FinalJsonObject->GetObjectField("Properties"));
+		// Texture Cube
+		if (FinalJsonObject->GetStringField("Type") == "TextureCube")
+			Importer->ImportTextureCube(Texture, Data, FinalJsonObject->GetObjectField("Properties"));
 		// Texture Render Target 2D
 		if (FinalJsonObject->GetStringField("Type") == "TextureRenderTarget2D")
 			Importer->ImportRenderTarget2D(Texture, FinalJsonObject->GetObjectField("Properties"));

@@ -289,12 +289,16 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 
 					if (Settings->bEnableRemoteDownload) {
 						AcceptedTypes.Add("Texture2D");
+						AcceptedTypes.Add("TextureCube");
 						AcceptedTypes.Add("TextureRenderTarget2D");
+						AcceptedTypes.Add("CurveFloat");
 						AcceptedTypes.Add("CurveLinearColor");
 						AcceptedTypes.Add("CurveLinearColorAtlas");
 
-						AcceptedTypes.Add("MaterialParameterCollection");
+						AcceptedTypes.Add("SubsurfaceProfile");
 						AcceptedTypes.Add("PhysicalMaterial");
+
+						AcceptedTypes.Add("MaterialParameterCollection");
 					}
 
 					for (FString& Asset : AcceptedTypes) {
