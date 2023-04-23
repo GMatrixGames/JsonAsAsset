@@ -73,6 +73,7 @@ bool FRemoteAssetDownloader::DownloadAsset(const FString& Path, const FString& T
 
 bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture*& OutTexture) {
 	FHttpModule* HttpModule = &FHttpModule::Get();
+
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
 	HttpRequest->SetURL("https://fortnitecentral.genxgames.gg/api/v1/export?path=" + Path);
@@ -129,30 +130,6 @@ bool FRemoteAssetDownloader::MakeTexture(const FString& Path, UTexture*& OutText
 
 		OutTexture = Texture;
 	}
-
-	return true;
-}
-
-bool FRemoteAssetDownloader::MakeMaterialParameterCollection(const FString& Path, UMaterialParameterCollection*& OutCollection) {
-	const TSharedPtr<FJsonObject> Response = RequestExports(Path);
-	if (Response == nullptr) return false;
-
-	TSharedPtr<FJsonObject> JsonObject = Response->GetArrayField("jsonOutput")[0]->AsObject();
-	FString PackagePath;
-	FString AssetName;
-	Path.Split(".", &PackagePath, &AssetName);
-
-	if (JsonObject) {
-		UPackage* OutermostPkg;
-		UPackage* Package = CreatePackage(*PackagePath);
-		OutermostPkg = Package->GetOutermost();
-		Package->FullyLoad();
-
-		UMaterialParameterCollectionImporter* MaterialCollectionImporter = new UMaterialParameterCollectionImporter(AssetName, Path, JsonObject, Package, OutermostPkg, Response->GetArrayField("jsonOutput"));
-		MaterialCollectionImporter->ImportData();
-
-		OutCollection = MaterialCollectionImporter->OutCollection;
-	} else return false;
 
 	return true;
 }
