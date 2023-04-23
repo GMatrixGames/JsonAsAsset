@@ -28,5 +28,5 @@ FLinearColor FMathUtilities::ObjectToLinearColor(const FJsonObject* Object) {
 }
 
 FColor FMathUtilities::ObjectToColor(const FJsonObject* Object) {
-	return FColor(Object->GetNumberField("R"), Object->GetNumberField("G"), Object->GetNumberField("B"), Object->GetNumberField("A"));
+	return ObjectToLinearColor(Object).ToFColor(true);
 }

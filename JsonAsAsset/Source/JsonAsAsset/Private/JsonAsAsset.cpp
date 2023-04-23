@@ -30,6 +30,10 @@
 
 #define LOCTEXT_NAMESPACE "FJsonAsAssetModule"
 
+#if PLATFORM_WINDOWS
+static TWeakPtr<SNotificationItem> ImportantNotificationPtr;
+#endif
+
 void FJsonAsAssetModule::StartupModule() {
 	FJsonAsAssetStyle::Initialize();
 	FJsonAsAssetStyle::ReloadTextures();
@@ -42,6 +46,51 @@ void FJsonAsAssetModule::StartupModule() {
 		FCanExecuteAction());
 
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FJsonAsAssetModule::RegisterMenus));
+
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+	if (Settings->ExportDirectory.Path.IsEmpty()) {
+		const FText TitleText = LOCTEXT("JsonAsAssetNotificationTitle", "Missing export directory for JsonAsAsset");
+		const FText MessageText = LOCTEXT("JsonAsAssetNotificationText",
+			"JsonAsAsset requires an export directory to handle references and to locally check for files to import. The plugin may not function properly without this set.\n\nFor more information, please see the documentation for JsonAsAsset."
+		);
+
+		FNotificationInfo Info(TitleText);
+		Info.SubText = MessageText;
+
+		Info.HyperlinkText = LOCTEXT("UnrealSoftwareRequirements", "JsonAsAsset Github");
+		Info.Hyperlink = FSimpleDelegate::CreateStatic([]() { 
+			FString TheURL = "https://github.com/Tectors/JsonAsAsset";
+			FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr); 
+		});
+
+		Info.bFireAndForget = false;
+		Info.FadeOutDuration = 3.0f;
+		Info.ExpireDuration = 0.0f;
+		Info.bUseLargeFont = false;
+		Info.bUseThrobber = false;
+
+		Info.ButtonDetails.Add(
+			FNotificationButtonInfo(LOCTEXT("OpenPluginSettings", "Open Settings"), FText::GetEmpty(),
+				FSimpleDelegate::CreateStatic([]() {
+					TSharedPtr<SNotificationItem> NotificationItem = ImportantNotificationPtr.Pin();
+
+					if (NotificationItem.IsValid())
+					{
+						NotificationItem->Fadeout();
+						ImportantNotificationPtr.Reset();
+					}
+
+					// Send user to plugin
+					FModuleManager::LoadModuleChecked<ISettingsModule>("Settings")
+						.ShowViewer("Editor", "Plugins", "JsonAsAsset");
+				})
+			)
+		);
+
+		ImportantNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+		ImportantNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
+	}
 }
 
 void FJsonAsAssetModule::ShutdownModule() {
@@ -226,11 +275,11 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 		MenuBuilder.EndSection();
 	}
 
-	if (Settings->bTextureRemoteDownload || Settings->bMaterialRemoteDownload) {
+	if (Settings->bEnableRemoteDownload) {
 		MenuBuilder.BeginSection("JsonAsAssetRemoteDownload", FText::FromString("Remote Download"));
 		MenuBuilder.AddSubMenu(
 			LOCTEXT("JsonAsAssetMenu", "Remote Download Types"),
-			LOCTEXT("JsonAsAssetMenuToolTip", "List of supported classes that can be downloaded using the API (only supports Fortnite)\n(to add more supported classes, enable other settings for remote downloading)\n| Uses Fortnite Central's API"),
+			LOCTEXT("JsonAsAssetMenuToolTip", "List of supported classes that can be downloaded using the API (only supports Fortnite)\n| Uses Fortnite Central's API"),
 			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
 				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Asset Classes"));
 				{
@@ -238,13 +287,12 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 
 					const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
-					if (Settings->bTextureRemoteDownload) {
+					if (Settings->bEnableRemoteDownload) {
 						AcceptedTypes.Add("Texture2D");
 						AcceptedTypes.Add("TextureRenderTarget2D");
+						AcceptedTypes.Add("CurveLinearColor");
 						AcceptedTypes.Add("CurveLinearColorAtlas");
-					}
 
-					if (Settings->bMaterialRemoteDownload) {
 						AcceptedTypes.Add("MaterialParameterCollection");
 					}
 

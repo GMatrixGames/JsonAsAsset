@@ -16,10 +16,11 @@ template <typename T>
 bool FRemoteAssetDownloader::DownloadAsset(const FString& Path, const FString& Type, TObjectPtr<T>& OutObject, bool& bSuccess)
 {
 	// Supported Assets
-	if (Type ==
-		"Texture2D" ||
+	if (Type == "Texture2D" ||
 		Type == "TextureRenderTarget2D" ||
-		Type == "MaterialParameterCollection"
+		Type == "MaterialParameterCollection" ||
+		Type == "CurveLinearColorAtlas" ||
+		Type == "CurveLinearColor"
 	) {
 		//		Manually supported asset types
 		// (ex: textures have to be handled differently)
@@ -50,7 +51,7 @@ bool FRemoteAssetDownloader::DownloadAsset(const FString& Path, const FString& T
 
 				// Import asset by IImporter
 				IImporter* Importer = new IImporter();
-				bSuccess = Importer->HandleExports(Response->GetArrayField("jsonOutput"), PackagePath);
+				bSuccess = Importer->HandleExports(Response->GetArrayField("jsonOutput"), PackagePath, true);
 
 				// Define found object
 				OutObject = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *Path));
