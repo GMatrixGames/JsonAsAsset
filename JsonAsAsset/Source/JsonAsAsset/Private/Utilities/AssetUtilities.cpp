@@ -76,6 +76,8 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 	} else {
 		ModifiablePath = OutputPath;
 		ModifiablePath.Split("/", &ModifiablePath, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+		ModifiablePath = ModifiablePath + "/";
 	}
 
 	const FString PathWithGame = ModifiablePath + Name;

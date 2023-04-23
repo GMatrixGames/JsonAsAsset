@@ -25,18 +25,11 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
 	bool bAutomateReferences;
 
-	// Downloads textures from FortniteCentral and automatically
+	// Downloads assets from FortniteCentral and automatically
 	// imports them into your project, without having them locally
 	// (only supports: Fortnite)
-	UPROPERTY(config, EditAnywhere, Category = "Asset|Remote Download")
-	bool bTextureRemoteDownload;
-
-	// Downloads from FortniteCentral:
 	//
-	// - Material Functions (not added yet)
-	// - Material Parameter Collection 
-	//
-	// (only supports: Fortnite)
-	UPROPERTY(config, EditAnywhere, Category = "Asset|Remote Download")
-	bool bMaterialRemoteDownload;
+	// NOTE: Please use the file selector, do not manually paste it 
+	UPROPERTY(config, EditAnywhere, Category = "Asset")
+	bool bEnableRemoteDownload;
 };

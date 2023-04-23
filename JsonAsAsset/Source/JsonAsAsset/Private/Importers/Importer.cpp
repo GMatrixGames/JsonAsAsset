@@ -49,7 +49,7 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 	}
 
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-	bool bRemoteDownload = Settings->bTextureRemoteDownload || Settings->bMaterialRemoteDownload;
+	bool bRemoteDownload = Settings->bEnableRemoteDownload;
 
 	// Requests from FortniteCentral to download objects
 	if (bRemoteDownload && InObject == nullptr) {
@@ -185,7 +185,7 @@ bool IImporter::HandleAssetCreation(UObject* Asset) {
 	return true;
 }
 
-bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File)
+bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, bool bHideNotifications)
 {
 	TArray<FString> Types;
 	for (TSharedPtr<FJsonValue>& Obj : Exports) Types.Add(Obj->AsObject()->GetStringField("Type"));
@@ -235,6 +235,12 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 			else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 			else if (Type == "TextureRenderTarget2D") Importer = new UTextureImporters(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 			else Importer = nullptr;
+
+			if (bHideNotifications) {
+				Importer->ImportData();
+
+				return true;
+			}
 
 			if (Importer != nullptr && Importer->ImportData()) {
 				UE_LOG(LogJson, Log, TEXT("Successfully imported \"%s\" as \"%s\""), *Name, *Type);

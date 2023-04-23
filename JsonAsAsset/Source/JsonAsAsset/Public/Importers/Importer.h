@@ -45,7 +45,6 @@ private:
 		"MaterialInstanceConstant",
 		"MaterialParameterCollection",
 
-		"DataTable",
 		"ReverbEffect",
 		"SoundAttenuation",
 		"SoundConcurrency",
@@ -75,7 +74,7 @@ public:
 	void ImportReference(FString File);
 	bool HandleReference(FString GamePath);
 
-	bool HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File);
+	bool HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, bool bHideNotifications = false);
 
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, const FSlateBrush* SlateBrush, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);

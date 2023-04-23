@@ -41,17 +41,6 @@ bool UCurveLinearColorAtlasImporter::ImportData() {
 
 		Object->UpdateResource();
 
-		// Add gradient curves
-		FProperty* GradientCurvesProperty = FindFProperty<FProperty>(Object->GetClass(), "GradientCurves");
-		FPropertyChangedEvent PropertyChangedEvent(GradientCurvesProperty, EPropertyChangeType::ArrayAdd);
-
-		const TArray<TSharedPtr<FJsonValue>> GradientCurves = Properties->GetArrayField("GradientCurves");
-		TArray<TObjectPtr<UCurveLinearColor>> CurvesLocal;
-
-		CurvesLocal = LoadObject(GradientCurves, CurvesLocal);
-		Object->GradientCurves = CurvesLocal;
-		Object->PostEditChangeProperty(PropertyChangedEvent);
-
 		if (bool bHasAnyDirtyTextures; Properties->TryGetBoolField("bHasAnyDirtyTextures", bHasAnyDirtyTextures)) Object->bHasAnyDirtyTextures = bHasAnyDirtyTextures;
 		if (bool bIsDirty; Properties->TryGetBoolField("bIsDirty", bIsDirty)) Object->bIsDirty = bIsDirty;
 		if (bool bShowDebugColorsForNullGradients; Properties->TryGetBoolField("bShowDebugColorsForNullGradients", bShowDebugColorsForNullGradients)) Object->bShowDebugColorsForNullGradients = bShowDebugColorsForNullGradients;
@@ -65,6 +54,17 @@ bool UCurveLinearColorAtlasImporter::ImportData() {
 		FProperty* TextureSizeProperty = FindFProperty<FProperty>(Object->GetClass(), "TextureSize");
 		FPropertyChangedEvent TextureSizePropertyPropertyChangedEvent(TextureSizeProperty, EPropertyChangeType::ValueSet);
 		Object->PostEditChangeProperty(TextureSizePropertyPropertyChangedEvent);
+
+		// Add gradient curves
+		FProperty* GradientCurvesProperty = FindFProperty<FProperty>(Object->GetClass(), "GradientCurves");
+		FPropertyChangedEvent PropertyChangedEvent(GradientCurvesProperty, EPropertyChangeType::ArrayAdd);
+
+		const TArray<TSharedPtr<FJsonValue>> GradientCurves = Properties->GetArrayField("GradientCurves");
+		TArray<TObjectPtr<UCurveLinearColor>> CurvesLocal;
+
+		CurvesLocal = LoadObject(GradientCurves, CurvesLocal);
+		Object->GradientCurves = CurvesLocal;
+		Object->PostEditChangeProperty(PropertyChangedEvent);
 
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(Object)) return false;
