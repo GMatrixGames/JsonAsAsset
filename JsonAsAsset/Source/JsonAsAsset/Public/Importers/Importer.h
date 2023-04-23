@@ -45,7 +45,6 @@ private:
 		"MaterialInstanceConstant",
 		"MaterialParameterCollection",
 
-		"DataTable",
 		"ReverbEffect",
 		"SoundAttenuation",
 		"SoundConcurrency",
