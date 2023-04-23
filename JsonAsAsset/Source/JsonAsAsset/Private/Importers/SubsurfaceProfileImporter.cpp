@@ -12,59 +12,42 @@ bool USubsurfaceProfileImporter::ImportData() {
 		TSharedPtr<FJsonObject> Settings = JsonObject->GetObjectField("Properties")->GetObjectField("Settings");
 
 		FSubsurfaceProfileStruct Profile;
-		bool bEnableBurley;
-		const TSharedPtr<FJsonObject>* BoundaryColorBleed;
-		int64 ExtinctionScale;
-		const TSharedPtr<FJsonObject>* FalloffColor;
-		int64 IOR;
-		int64 LobeMix;
-		const TSharedPtr<FJsonObject>* MeanFreePathColor;
-		int64 MeanFreePathDistance;
-		int64 NormalScale;
-		int64 Roughness0;
-		int64 Roughness1;
-		int64 ScatteringDistribution;
-		int64 ScatterRadius;
-		const TSharedPtr<FJsonObject>* SubsurfaceColor;
-		const TSharedPtr<FJsonObject>* SurfaceAlbedo;
-		const TSharedPtr<FJsonObject>* TransmissionTintColor;
-		int64 WorldUnitScale;
-
-		if (Settings->TryGetBoolField("bEnableBurley", bEnableBurley))
+		
+		if (bool bEnableBurley; Settings->TryGetBoolField("bEnableBurley", bEnableBurley))
 			Profile.bEnableBurley = bEnableBurley;
 
-		if (Settings->TryGetObjectField("BoundaryColorBleed", BoundaryColorBleed))
+		if (const TSharedPtr<FJsonObject>* BoundaryColorBleed; Settings->TryGetObjectField("BoundaryColorBleed", BoundaryColorBleed))
 			Profile.BoundaryColorBleed = FMathUtilities::ObjectToLinearColor(BoundaryColorBleed->Get());
-		if (Settings->TryGetObjectField("MeanFreePathColor", MeanFreePathColor))
+		if (const TSharedPtr<FJsonObject>* MeanFreePathColor; Settings->TryGetObjectField("MeanFreePathColor", MeanFreePathColor))
 			Profile.MeanFreePathColor = FMathUtilities::ObjectToLinearColor(MeanFreePathColor->Get());
-		if (Settings->TryGetObjectField("FalloffColor", FalloffColor))
+		if (const TSharedPtr<FJsonObject>* FalloffColor; Settings->TryGetObjectField("FalloffColor", FalloffColor))
 			Profile.FalloffColor = FMathUtilities::ObjectToLinearColor(FalloffColor->Get());
-		if (Settings->TryGetObjectField("TransmissionTintColor", TransmissionTintColor))
+		if (const TSharedPtr<FJsonObject>* TransmissionTintColor; Settings->TryGetObjectField("TransmissionTintColor", TransmissionTintColor))
 			Profile.TransmissionTintColor = FMathUtilities::ObjectToLinearColor(TransmissionTintColor->Get());
-		if (Settings->TryGetObjectField("SubsurfaceColor", SubsurfaceColor))
+		if (const TSharedPtr<FJsonObject>* SubsurfaceColor; Settings->TryGetObjectField("SubsurfaceColor", SubsurfaceColor))
 			Profile.SubsurfaceColor = FMathUtilities::ObjectToLinearColor(SubsurfaceColor->Get());
-		if (Settings->TryGetObjectField("SurfaceAlbedo", SurfaceAlbedo))
+		if (const TSharedPtr<FJsonObject>* SurfaceAlbedo; Settings->TryGetObjectField("SurfaceAlbedo", SurfaceAlbedo))
 			Profile.SurfaceAlbedo = FMathUtilities::ObjectToLinearColor(SurfaceAlbedo->Get());
 
-		if (Settings->TryGetNumberField("ExtinctionScale", ExtinctionScale))
+		if (int64 ExtinctionScale; Settings->TryGetNumberField("ExtinctionScale", ExtinctionScale))
 			Profile.ExtinctionScale = Settings->GetNumberField("ExtinctionScale");
-		if (Settings->TryGetNumberField("IOR", IOR))
+		if (int64 IOR; Settings->TryGetNumberField("IOR", IOR))
 			Profile.IOR = Settings->GetNumberField("IOR");
-		if (Settings->TryGetNumberField("LobeMix", LobeMix))
+		if (int64 LobeMix; Settings->TryGetNumberField("LobeMix", LobeMix))
 			Profile.LobeMix = Settings->GetNumberField("LobeMix");
-		if (Settings->TryGetNumberField("MeanFreePathDistance", MeanFreePathDistance))
+		if (int64 MeanFreePathDistance; Settings->TryGetNumberField("MeanFreePathDistance", MeanFreePathDistance))
 			Profile.MeanFreePathDistance = Settings->GetNumberField("MeanFreePathDistance");
-		if (Settings->TryGetNumberField("NormalScale", NormalScale))
+		if (int64 NormalScale; Settings->TryGetNumberField("NormalScale", NormalScale))
 			Profile.NormalScale = Settings->GetNumberField("NormalScale");
-		if (Settings->TryGetNumberField("Roughness0", Roughness0))
+		if (int64 Roughness0; Settings->TryGetNumberField("Roughness0", Roughness0))
 			Profile.Roughness0 = Settings->GetNumberField("Roughness0");
-		if (Settings->TryGetNumberField("Roughness1", Roughness1))
+		if (int64 Roughness1 ;Settings->TryGetNumberField("Roughness1", Roughness1))
 			Profile.Roughness1 = Settings->GetNumberField("Roughness1");
-		if (Settings->TryGetNumberField("ScatteringDistribution", ScatteringDistribution))
+		if (int64 ScatteringDistribution; Settings->TryGetNumberField("ScatteringDistribution", ScatteringDistribution))
 			Profile.ScatteringDistribution = Settings->GetNumberField("ScatteringDistribution");
-		if (Settings->TryGetNumberField("ScatterRadius", ScatterRadius))
+		if (int64 ScatterRadius; Settings->TryGetNumberField("ScatterRadius", ScatterRadius))
 			Profile.ScatterRadius = Settings->GetNumberField("ScatterRadius");
-		if (Settings->TryGetNumberField("WorldUnitScale", WorldUnitScale))
+		if (int64 WorldUnitScale; Settings->TryGetNumberField("WorldUnitScale", WorldUnitScale))
 			Profile.WorldUnitScale = Settings->GetNumberField("WorldUnitScale");
 
 		SubsurfaceProfile->Settings = Profile;
