@@ -196,7 +196,7 @@ protected:
 		"MaterialExpressionLandscapeLayerCoords",
 		"MaterialExpressionLandscapeLayerSwitch",
 		"MaterialExpressionLandscapeLayerBlend",
-		"MaterialExpressionLandscapeLayerWeight"
+		"MaterialExpressionLandscapeLayerWeight",
 		"MaterialExpressionLandscapePhysicalMaterialOutput",
 	};
 
