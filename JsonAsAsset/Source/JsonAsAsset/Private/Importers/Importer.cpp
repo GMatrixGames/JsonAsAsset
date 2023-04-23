@@ -22,6 +22,7 @@
 #include "Importers/ReverbEffectImporter.h"
 #include "Importers/SubsurfaceProfileImporter.h"
 #include "Importers/AnimationBaseImporter.h"
+#include "Importers/LandscapeGrassTypeImporter.h"
 #include "Importers/MaterialFunctionImporter.h"
 #include "Importers/MaterialImporter.h"
 #include "Importers/MaterialParameterCollectionImporter.h"
@@ -230,6 +231,8 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 			else if (Type == "MaterialInstanceConstant") Importer = new UMaterialInstanceConstantImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 			else if (Type == "MaterialParameterCollection") Importer = new UMaterialParameterCollectionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 			else if (Type == "PhysicalMaterial") Importer = new UPhysicalMaterialImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+
+			else if (Type == "LandscapeGrassType") Importer = new ULandscapeGrassTypeImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
 			else if (Type == "DataTable") Importer = new UDataTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 			else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);

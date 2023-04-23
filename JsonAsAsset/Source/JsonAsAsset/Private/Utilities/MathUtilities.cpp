@@ -30,3 +30,17 @@ FLinearColor FMathUtilities::ObjectToLinearColor(const FJsonObject* Object) {
 FColor FMathUtilities::ObjectToColor(const FJsonObject* Object) {
 	return ObjectToLinearColor(Object).ToFColor(true);
 }
+
+FLightingChannels FMathUtilities::ObjectToLightingChannels(const FJsonObject* Object) {
+	FLightingChannels LightingChannels = FLightingChannels();
+
+	LightingChannels.bChannel0 = Object->GetBoolField("bChannel0");
+	LightingChannels.bChannel1 = Object->GetBoolField("bChannel1");
+	LightingChannels.bChannel2 = Object->GetBoolField("bChannel2");
+
+	return LightingChannels;
+}
+
+FFloatInterval FMathUtilities::ObjectToFloatInterval(const FJsonObject* Object) {
+	return FFloatInterval(Object->GetNumberField("Min"), Object->GetNumberField("Max"));
+}

@@ -41,16 +41,17 @@ private:
 		"AnimMontage",
 
 		"Material",
+		"PhysicalMaterial",
 		"MaterialFunction",
 		"MaterialInstanceConstant",
 		"MaterialParameterCollection",
+
+		"LandscapeGrassType",
 
 		"ReverbEffect",
 		"SoundAttenuation",
 		"SoundConcurrency",
 		"SubsurfaceProfile",
-
-		"PhysicalMaterial",
 
 		"TextureRenderTarget2D"
 	};

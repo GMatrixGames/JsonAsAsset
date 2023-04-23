@@ -13,4 +13,6 @@ public:
 	static FQuat ObjectToQuat(const FJsonObject* Object);
 	static FLinearColor ObjectToLinearColor(const FJsonObject* Object);
 	static FColor ObjectToColor(const FJsonObject* Object);
+	static FLightingChannels ObjectToLightingChannels(const FJsonObject* Object);
+	static FFloatInterval ObjectToFloatInterval(const FJsonObject* Object);
 };
