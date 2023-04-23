@@ -41,7 +41,6 @@ private:
 		"AnimMontage",
 
 		"Material",
-		"PhysicalMaterial",
 		"MaterialFunction",
 		"MaterialInstanceConstant",
 		"MaterialParameterCollection",
@@ -53,7 +52,8 @@ private:
 		"SoundConcurrency",
 		"SubsurfaceProfile",
 
-		"TextureRenderTarget2D"
+		"TextureRenderTarget2D",
+		"PhysicalMaterial",
 	};
 
 public:
