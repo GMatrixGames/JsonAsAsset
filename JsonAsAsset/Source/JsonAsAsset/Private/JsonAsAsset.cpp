@@ -58,7 +58,7 @@ void FJsonAsAssetModule::StartupModule() {
 		FNotificationInfo Info(TitleText);
 		Info.SubText = MessageText;
 
-		Info.HyperlinkText = LOCTEXT("UnrealSoftwareRequirements", "JsonAsAsset Github");
+		Info.HyperlinkText = LOCTEXT("UnrealSoftwareRequirements", "JsonAsAsset Docs");
 		Info.Hyperlink = FSimpleDelegate::CreateStatic([]() { 
 			FString TheURL = "https://github.com/Tectors/JsonAsAsset";
 			FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr); 
