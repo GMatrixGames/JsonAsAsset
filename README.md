@@ -10,7 +10,7 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 <br> In Unreal Engine 5.2 and above, editor only data has been introduced to Unreal Engine. Allowing us to import materials and material functions into our own project from the pak files of a game.
 
 **Contributors**:
-<br> [Tector](https://github.com/Tectors), [TajGames](https://github.com/), and [GMatrix](https://github.com/GMatrixGames)
+<br> [Tector](https://github.com/Tectors), [TajGames](https://github.com/), [GMatrix](https://github.com/GMatrixGames), and [Zylox](https://github.com/0xZylox)
 
 ## What's the file format?
 <img align="right" width="150" height="150" src="https://raw.githubusercontent.com/4sval/FModel/master/FModel/FModel.ico">
