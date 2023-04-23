@@ -73,6 +73,8 @@ bool UMaterialImporter::ImportData() {
 		UMaterial* Material = Cast<UMaterial>(MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
+		if (const TSharedPtr<FJsonObject>* PhysMaterial; Properties->TryGetObjectField("PhysMaterial", PhysMaterial)) LoadObject(PhysMaterial, Material->PhysMaterial);
+
 		Material->StateId = FGuid(Properties->GetStringField("StateId"));
 
 		FString MaterialDomain;

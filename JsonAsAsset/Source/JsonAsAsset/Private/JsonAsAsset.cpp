@@ -294,6 +294,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 						AcceptedTypes.Add("CurveLinearColorAtlas");
 
 						AcceptedTypes.Add("MaterialParameterCollection");
+						AcceptedTypes.Add("PhysicalMaterial");
 					}
 
 					for (FString& Asset : AcceptedTypes) {

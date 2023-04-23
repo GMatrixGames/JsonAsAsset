@@ -20,7 +20,8 @@ bool FRemoteAssetDownloader::DownloadAsset(const FString& Path, const FString& T
 		Type == "TextureRenderTarget2D" ||
 		Type == "MaterialParameterCollection" ||
 		Type == "CurveLinearColorAtlas" ||
-		Type == "CurveLinearColor"
+		Type == "CurveLinearColor" ||
+		Type == "PhysicalMaterial"
 	) {
 		//		Manually supported asset types
 		// (ex: textures have to be handled differently)
