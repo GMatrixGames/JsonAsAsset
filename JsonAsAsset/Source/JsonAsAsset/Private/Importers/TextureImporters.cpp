@@ -52,8 +52,9 @@ bool UTextureImporters::ImportTextureCube(UTexture*& OutTextureCube, const TArra
 	TextureFactory->SuppressImportOverwriteDialog();
 
 	const uint8* ImageData = Data.GetData();
-	UTextureCube* TextureCube = Cast<UTextureCube>(TextureFactory->FactoryCreateBinary(UTextureCube::StaticClass(), Package, *FileName, RF_Standalone | RF_Public, nullptr,
+	UTextureCube* TextureCube = Cast<UTextureCube>((UTexture*)TextureFactory->FactoryCreateBinary(UTexture2D::StaticClass(), Package, *FileName, RF_Standalone | RF_Public, nullptr,
 		*FPaths::GetExtension(FileName + ".png").ToLower(), ImageData, ImageData + Data.Num(), GWarn));
+
 	if (TextureCube == nullptr)
 		return false;
 

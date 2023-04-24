@@ -129,7 +129,7 @@
 #include "Materials/MaterialExpressionTruncate.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialExpressionNoise.h"
-#include <Import/Private/MaterialX/MaterialExpressions/MaterialExpressionLength.h>
+//#include <Import/Private/MaterialX/MaterialExpressions/MaterialExpressionLength.h>
 
 bool UMaterialFunctionImporter::ImportData() {
 	try {
@@ -338,7 +338,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = Abs;
-		} else if (Type->Type == "MaterialExpressionLength") {
+		}/* else if (Type->Type == "MaterialExpressionLength") {
 			UMaterialExpressionLength* Length = Cast<UMaterialExpressionLength>(Expression);
 
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
@@ -353,7 +353,7 @@ void UMaterialFunctionImporter::AddExpressions(UObject* Parent, TArray<FName>& E
 			}
 
 			Expression = Length;
-		} else if (Type->Type == "MaterialExpressionFrac") {
+		} */else if (Type->Type == "MaterialExpressionFrac") {
 			UMaterialExpressionFrac* Frac = Cast<UMaterialExpressionFrac>(Expression);
 
 			const TSharedPtr<FJsonObject>* InputPtr = nullptr;

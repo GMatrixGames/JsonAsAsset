@@ -26,7 +26,8 @@ bool FRemoteAssetDownloader::DownloadAsset(const FString& Path, const FString& T
 		Type == "CurveLinearColor" ||
 		Type == "PhysicalMaterial" ||
 		Type == "SubsurfaceProfile" ||
-		Type == "LandscapeGrassType"
+		Type == "LandscapeGrassType" ||
+		Type == "MaterialInstanceConstant"
 	) {
 		//		Manually supported asset types
 		// (ex: textures have to be handled differently)
