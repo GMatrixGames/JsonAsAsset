@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include "Importer.h"
 #include "Materials/MaterialExpressionComposite.h"
-#include "MaterialFunctionImporter.h"
+#include "Utilities/EditorGraph/MaterialGraph_Interface.h"
 
-class UMaterialImporter : public UMaterialFunctionImporter {
+class UMaterialImporter : public UMaterialGraph_Interface {
 public:
 	UMaterialImporter(const FString& FileName, const FString& FilePath, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg, const TArray<TSharedPtr<FJsonValue>>& AllJsonObjects):
-		UMaterialFunctionImporter(FileName, FilePath, JsonObject, Package, OutermostPkg, AllJsonObjects) {
+		UMaterialGraph_Interface(FileName, FilePath, JsonObject, Package, OutermostPkg, AllJsonObjects) {
 	}
 
-	void ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, const TSharedPtr<FJsonObject>& _JsonObject, TMap<FName, FImportData>& Exports);
 	virtual bool ImportData() override;
 
+	// Subgraph Functions
+	void ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, const TSharedPtr<FJsonObject>& _JsonObject, TMap<FName, FImportData>& Exports);
 	TArray<TSharedPtr<FJsonValue>> FilterGraphNodesBySubgraphExpression(const FString& Outer);
 };

@@ -264,7 +264,7 @@ bool UMaterialImporter::ImportData() {
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
 
 		// Map out each expression for easier access
-		TMap<FName, UMaterialExpression*> CreatedExpressionMap = CreateExpressions(Material, Material->GetName(), ExpressionNames, Exports);
+		TMap<FName, UMaterialExpression*> CreatedExpressionMap = ConstructExpressions(Material, Material->GetName(), ExpressionNames, Exports);
 
 		const TSharedPtr<FJsonObject>* APtr = nullptr;
 		if (EdProps->TryGetObjectField("MaterialAttributes", APtr) && APtr != nullptr) {
@@ -465,8 +465,8 @@ bool UMaterialImporter::ImportData() {
 		}
 
 		// Iterate through all the expression names
-		AddExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
-		AddComments(Material, StringExpressionCollection, Exports);
+		PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
+		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);
 
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(Material)) return false;
@@ -528,7 +528,7 @@ bool UMaterialImporter::ImportData() {
 					CompositeExpression->Material = Material;
 					CompositeExpression->SubgraphName = Name;
 
-					AddGenerics(Material, CompositeExpression, SubgraphExpression);
+					MaterialGraphNode_ExpressionWrapper(Material, CompositeExpression, SubgraphExpression);
 				}
 
 				// Create notification
@@ -592,7 +592,7 @@ bool UMaterialImporter::ImportData() {
 					}
 
 					// Add all the expression properties
-					AddExpressions(MaterialGraph->Material, SubGraphExpressionNames, Exports, SubgraphExpressionMapping, true);
+					PropagateExpressions(MaterialGraph->Material, SubGraphExpressionNames, Exports, SubgraphExpressionMapping, true);
 
 					// All expressions (hopefully) have their properties
 					// so now we just make a material graph node for each
