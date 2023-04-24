@@ -44,3 +44,8 @@ FLightingChannels FMathUtilities::ObjectToLightingChannels(const FJsonObject* Ob
 FFloatInterval FMathUtilities::ObjectToFloatInterval(const FJsonObject* Object) {
 	return FFloatInterval(Object->GetNumberField("Min"), Object->GetNumberField("Max"));
 }
+
+FRichCurveKey FMathUtilities::ObjectToRichCurveKey(const TSharedPtr<FJsonObject>& Object) {
+	FString InterpMode = Object->GetStringField("InterpMode");
+	return FRichCurveKey(Object->GetNumberField("Time"), Object->GetNumberField("Value"), Object->GetNumberField("ArriveTangent"), Object->GetNumberField("LeaveTangent"), static_cast<ERichCurveInterpMode>(StaticEnum<ERichCurveInterpMode>()->GetValueByNameString(InterpMode)));
+}

@@ -5,7 +5,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Dom/JsonObject.h"
 #include "Factories/CurveFactory.h"
-#include "Utilities/AssetUtilities.h"
+#include "Utilities/MathUtilities.h"
 
 bool UCurveFloatImporter::ImportData() {
 	try {
@@ -17,7 +17,7 @@ bool UCurveFloatImporter::ImportData() {
 
 		// Add Keys
 		for (int32 i = 0; i < Keys.Num(); i++)
-			CurveAsset->FloatCurve.Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[i]->AsObject()));
+			CurveAsset->FloatCurve.Keys.Add(FMathUtilities::ObjectToRichCurveKey(Keys[i]->AsObject()));
 
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(CurveAsset)) return false;

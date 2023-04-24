@@ -7,7 +7,7 @@
 #include "Curves/CurveLinearColor.h"
 #include "Dom/JsonObject.h"
 #include "Factories/CurveFactory.h"
-#include "Utilities/AssetUtilities.h"
+#include "Utilities/MathUtilities.h"
 
 bool UCurveLinearColorImporter::ImportData() {
 	try {
@@ -24,7 +24,7 @@ bool UCurveLinearColorImporter::ImportData() {
 
 			// add keys to array
 			for (int j = 0; j < Keys.Num(); j++) {
-				LinearCurveAsset->FloatCurves[i].Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[j]->AsObject()));
+				LinearCurveAsset->FloatCurves[i].Keys.Add(FMathUtilities::ObjectToRichCurveKey(Keys[j]->AsObject()));
 			}
 		}
 

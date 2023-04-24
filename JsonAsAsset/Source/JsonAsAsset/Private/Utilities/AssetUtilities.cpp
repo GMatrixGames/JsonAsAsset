@@ -10,6 +10,16 @@
 #include "Settings/JsonAsAssetSettings.h"
 #include "Dom/JsonObject.h"
 
+#include "HttpModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "Importers/TextureImporters.h"
+#include "Importers/MaterialParameterCollectionImporter.h"
+#include "Interfaces/IHttpResponse.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Utilities/AssetUtilities.h"
+#include "Utilities/RemoteUtilities.h"
+
 UPackage* FAssetUtilities::CreateAssetPackage(const FString& FullPath) {
 	UPackage* Package = CreatePackage(*FullPath);
 	UPackage* _ = Package->GetOutermost();
@@ -107,7 +117,150 @@ UObject* FAssetUtilities::GetSelectedAsset() {
 	return SelectedAssets[0].GetAsset();
 }
 
-FRichCurveKey FAssetUtilities::ObjectToRichCurveKey(const TSharedPtr<FJsonObject>& Object) {
-	FString InterpMode = Object->GetStringField("InterpMode");
-	return FRichCurveKey(Object->GetNumberField("Time"), Object->GetNumberField("Value"), Object->GetNumberField("ArriveTangent"), Object->GetNumberField("LeaveTangent"), static_cast<ERichCurveInterpMode>(StaticEnum<ERichCurveInterpMode>()->GetValueByNameString(InterpMode)));
+// Constructing assets ect..
+template <typename T>
+bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, TObjectPtr<T>& OutObject, bool& bSuccess) {
+	// Supported Assets
+	if (Type == "Texture2D" ||
+		Type == "TextureCube" ||
+		Type == "TextureRenderTarget2D" ||
+		Type == "MaterialParameterCollection" ||
+		Type == "CurveFloat" ||
+		Type == "CurveVector" ||
+		Type == "CurveLinearColorAtlas" ||
+		Type == "CurveLinearColor" ||
+		Type == "PhysicalMaterial" ||
+		Type == "SubsurfaceProfile" ||
+		Type == "LandscapeGrassType" ||
+		Type == "MaterialInstanceConstant"
+		) {
+		//		Manually supported asset types
+		// (ex: textures have to be handled differently)
+		if (Type ==
+			"Texture2D" ||
+			Type == "TextureRenderTarget2D" ||
+			Type == "TextureCube"
+			) {
+			UTexture* Texture;
+
+			bSuccess = Construct_TypeTexture(Path, Texture);
+			if (bSuccess) OutObject = Cast<T>(Texture);
+
+			return true;
+		}
+		else {
+			const TSharedPtr<FJsonObject> Response = API_RequestExports(Path);
+			if (Response == nullptr) return true;
+
+			TSharedPtr<FJsonObject> JsonObject = Response->GetArrayField("jsonOutput")[0]->AsObject();
+			FString PackagePath;
+			FString AssetName;
+			Path.Split(".", &PackagePath, &AssetName);
+
+			if (JsonObject) {
+				UPackage* OutermostPkg;
+				UPackage* Package = CreatePackage(*PackagePath);
+				OutermostPkg = Package->GetOutermost();
+				Package->FullyLoad();
+
+				// Import asset by IImporter
+				IImporter* Importer = new IImporter();
+				bSuccess = Importer->HandleExports(Response->GetArrayField("jsonOutput"), PackagePath, true);
+
+				// Define found object
+				OutObject = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *Path));
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutTexture) {
+	FHttpModule* HttpModule = &FHttpModule::Get();
+
+	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
+
+	HttpRequest->SetURL("https://fortnitecentral.genxgames.gg/api/v1/export?path=" + Path);
+	HttpRequest->SetHeader("content-type", "image/png");
+	HttpRequest->SetVerb(TEXT("GET"));
+
+	const TSharedPtr<IHttpResponse> HttpResponse = FRemoteUtilities::ExecuteRequestSync(HttpRequest);
+	if (!HttpResponse.IsValid()) return false;
+
+	const TArray<uint8> Data = HttpResponse->GetContent();
+
+	FString PackagePath;
+	FString AssetName;
+	Path.Split(".", &PackagePath, &AssetName);
+
+	const TSharedRef<IHttpRequest> NewRequest = HttpModule->CreateRequest();
+	NewRequest->SetURL("https://fortnitecentral.genxgames.gg/api/v1/export?raw=true&path=" + Path);
+	NewRequest->SetVerb(TEXT("GET"));
+
+	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
+	if (!NewResponse.IsValid()) return false;
+
+	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
+	TSharedPtr<FJsonObject> JsonObject;
+	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
+		UPackage* OutermostPkg;
+		UPackage* Package = CreatePackage(*PackagePath);
+		OutermostPkg = Package->GetOutermost();
+		Package->FullyLoad();
+
+		const UTextureImporters* Importer = new UTextureImporters(AssetName, Path, JsonObject, Package, OutermostPkg);
+		TSharedPtr<FJsonObject> FinalJsonObject = JsonObject->GetArrayField("jsonOutput")[0]->AsObject();
+
+		UTexture* Texture = nullptr;
+
+		// Texture 2D
+		if (FinalJsonObject->GetStringField("Type") == "Texture2D")
+			Importer->ImportTexture2D(Texture, Data, FinalJsonObject->GetObjectField("Properties"));
+		// Texture Cube
+		if (FinalJsonObject->GetStringField("Type") == "TextureCube")
+			Importer->ImportTextureCube(Texture, Data, FinalJsonObject->GetObjectField("Properties"));
+		// Texture Render Target 2D
+		if (FinalJsonObject->GetStringField("Type") == "TextureRenderTarget2D")
+			Importer->ImportRenderTarget2D(Texture, FinalJsonObject->GetObjectField("Properties"));
+
+		// If it still wasn't imported
+		if (Texture == nullptr) return false;
+
+		FAssetRegistryModule::AssetCreated(Texture);
+		if (!Texture->MarkPackageDirty()) return false;
+		Package->SetDirtyFlag(true);
+		Texture->PostEditChange();
+		Texture->AddToRoot();
+
+		OutTexture = Texture;
+	}
+
+	return true;
+}
+
+const TSharedPtr<FJsonObject> FAssetUtilities::API_RequestExports(const FString& Path) {
+	FHttpModule* HttpModule = &FHttpModule::Get();
+	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
+
+	FString PackagePath;
+	FString AssetName;
+	Path.Split(".", &PackagePath, &AssetName);
+
+	const TSharedRef<IHttpRequest> NewRequest = HttpModule->CreateRequest();
+	NewRequest->SetURL("https://fortnitecentral.genxgames.gg/api/v1/export?raw=true&path=" + Path);
+	NewRequest->SetVerb(TEXT("GET"));
+
+	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
+	if (!NewResponse.IsValid()) return TSharedPtr<FJsonObject>();
+
+	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
+	TSharedPtr<FJsonObject> JsonObject;
+	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
+		return JsonObject;
+	}
+
+	return TSharedPtr<FJsonObject>();
 }

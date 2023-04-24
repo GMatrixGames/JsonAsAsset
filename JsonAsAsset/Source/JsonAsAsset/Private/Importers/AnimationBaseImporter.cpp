@@ -4,6 +4,7 @@
 
 #include "Dom/JsonObject.h"
 #include "Utilities/AssetUtilities.h"
+#include "Utilities/MathUtilities.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/AnimMontage.h"
 
@@ -84,7 +85,7 @@ bool UAnimationBaseImporter::ImportData() {
 			for (int32 key_index = 0; key_index < Keys.Num(); key_index++) {
 				TSharedPtr<FJsonObject> Key = Keys[key_index]->AsObject();
 
-				FRichCurveKey RichKey = FAssetUtilities::ObjectToRichCurveKey(Keys[key_index]->AsObject());
+				FRichCurveKey RichKey = FMathUtilities::ObjectToRichCurveKey(Keys[key_index]->AsObject());
 
 				// Unreal Engine 5 and Unreal Engine 4
 				// have different ways of adding curves

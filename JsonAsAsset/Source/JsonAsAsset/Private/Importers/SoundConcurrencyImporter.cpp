@@ -1,7 +1,6 @@
 ﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Importers/SoundConcurrencyImporter.h"
-
 #include "Sound/SoundConcurrency.h"
 
 bool USoundConcurrencyImporter::ImportData() {

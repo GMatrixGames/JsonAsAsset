@@ -6,7 +6,7 @@
 #include "Factories/CurveFactory.h"
 #include "Curves/CurveVector.h"
 
-#include "Utilities/AssetUtilities.h"
+#include "Utilities/MathUtilities.h"
 
 bool UCurveVectorImporter::ImportData() {
 	try {
@@ -24,7 +24,7 @@ bool UCurveVectorImporter::ImportData() {
 
 			// add keys to array
 			for (int j = 0; j < Keys.Num(); j++) {
-				CurveVectorAsset->FloatCurves[i].Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[j]->AsObject()));
+				CurveVectorAsset->FloatCurves[i].Keys.Add(FMathUtilities::ObjectToRichCurveKey(Keys[j]->AsObject()));
 			}
 		}
 

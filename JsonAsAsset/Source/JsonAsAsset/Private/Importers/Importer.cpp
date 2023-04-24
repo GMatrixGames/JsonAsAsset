@@ -4,7 +4,6 @@
 #include "Settings/JsonAsAssetSettings.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
-#include "RemoteAssetDownloader.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Json.h"
@@ -52,7 +51,6 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 	bool bRemoteDownload = Settings->bEnableRemoteDownload;
 
-	// Requests from FortniteCentral to download objects
 	if (bRemoteDownload && InObject == nullptr) {
 		const UObject* DefaultObject = T::StaticClass()->ClassDefaultObject;
 
@@ -60,7 +58,7 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 			bool bRemoteDownloadStatus = false;
 			bool bTriedDownload = false;
 
-			bTriedDownload = FRemoteAssetDownloader::DownloadAsset(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Type, InObject, bRemoteDownloadStatus);
+			bTriedDownload = FAssetUtilities::ConstructAsset(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Type, InObject, bRemoteDownloadStatus);
 
 			// Notification
 			if (bTriedDownload) {

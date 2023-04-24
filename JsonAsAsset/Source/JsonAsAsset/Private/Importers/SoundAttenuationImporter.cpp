@@ -1,9 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Importers/SoundAttenuationImporter.h"
-
 #include "Dom/JsonObject.h"
-#include "Utilities/AssetUtilities.h"
 #include "Utilities/MathUtilities.h"
 
 bool USoundAttenuationImporter::ImportData() {
@@ -245,7 +243,7 @@ bool USoundAttenuationImporter::ImportData() {
 			FRichCurve Curve;
 
 			for (int32 i = 0; i < Keys.Num(); i++) {
-				Curve.Keys.Add(FAssetUtilities::ObjectToRichCurveKey(Keys[i]->AsObject()));
+				Curve.Keys.Add(FMathUtilities::ObjectToRichCurveKey(Keys[i]->AsObject()));
 			}
 
 			SoundAttenuation->Attenuation.CustomAttenuationCurve.EditorCurveData = Curve;

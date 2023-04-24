@@ -15,4 +15,5 @@ public:
 	static FColor ObjectToColor(const FJsonObject* Object);
 	static FLightingChannels ObjectToLightingChannels(const FJsonObject* Object);
 	static FFloatInterval ObjectToFloatInterval(const FJsonObject* Object);
+	static FRichCurveKey ObjectToRichCurveKey(const TSharedPtr<FJsonObject>& Object);
 };
