@@ -11,6 +11,4 @@ public:
 	}
 
 	virtual bool ImportData() override;
-
-	UMaterialParameterCollection* OutCollection;
 };

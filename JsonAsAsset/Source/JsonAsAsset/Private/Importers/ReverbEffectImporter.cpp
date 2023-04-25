@@ -9,11 +9,7 @@
 bool UReverbEffectImporter::ImportData() {
 	try {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
-
 		UReverbEffect* ReverbEffect = NewObject<UReverbEffect>(Package, UReverbEffect::StaticClass(), *FileName, RF_Public | RF_Standalone);
-
-		// Handle edit changes, and add it to the content browser
-		if (!HandleAssetCreation(ReverbEffect)) return false;
 		
 		if (int64 AirAbsorptionGainHF; Properties->TryGetNumberField("AirAbsorptionGainHF", AirAbsorptionGainHF))
 			ReverbEffect->AirAbsorptionGainHF = Properties->GetNumberField("AirAbsorptionGainHF");
@@ -48,6 +44,9 @@ bool UReverbEffectImporter::ImportData() {
 			ReverbEffect->bBypassEarlyReflections = Properties->GetBoolField("bBypassEarlyReflections");
 		if (bool bBypassLateReflections;Properties->TryGetBoolField("bBypassLateReflections", bBypassLateReflections)) 
 			ReverbEffect->bBypassLateReflections = Properties->GetBoolField("bBypassLateReflections");
+
+		// Handle edit changes, and add it to the content browser
+		if (!HandleAssetCreation(ReverbEffect)) return false;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;

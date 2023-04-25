@@ -15,9 +15,9 @@ bool UCurveFloatImporter::ImportData() {
 		UCurveFloatFactory* CurveFactory = NewObject<UCurveFloatFactory>();
 		UCurveFloat* CurveAsset = Cast<UCurveFloat>(CurveFactory->FactoryCreateNew(UCurveFloat::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
 
-		// Add Keys
-		for (int32 i = 0; i < Keys.Num(); i++)
-			CurveAsset->FloatCurve.Keys.Add(FMathUtilities::ObjectToRichCurveKey(Keys[i]->AsObject()));
+		// Add Rich Keys
+		for (TSharedPtr<FJsonValue>& Key : Keys)
+			CurveAsset->FloatCurve.Keys.Add(FMathUtilities::ObjectToRichCurveKey(Key->AsObject()));
 
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(CurveAsset)) return false;

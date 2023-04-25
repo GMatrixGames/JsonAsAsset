@@ -11,55 +11,31 @@ bool USoundAttenuationImporter::ImportData() {
 		USoundAttenuation* SoundAttenuation = NewObject<USoundAttenuation>(Package, USoundAttenuation::StaticClass(), *FileName, RF_Public | RF_Standalone);
 		TSharedPtr<FJsonObject> Attenuation = Properties->GetObjectField("Attenuation");
 
-		bool bApplyNormalizationToStereoSounds;
-		bool bAttenuate;
-		bool bAttenuateWithLPF;
-		bool bEnableFocusInterpolation;
-		bool bEnableListenerFocus;
-		bool bEnableLogFrequencyScaling;
-		bool bEnableOcclusion;
-		bool bEnablePriorityAttenuation;
-		bool bEnableReverbSend;
-		bool bEnableSubmixSends;
-		bool bSpatialize;
-		bool bUseComplexCollisionForOcclusion;
-
-		if (Attenuation->TryGetBoolField("bApplyNormalizationToStereoSounds", bApplyNormalizationToStereoSounds)) {
+		// booleans
+		if (bool bApplyNormalizationToStereoSounds; Attenuation->TryGetBoolField("bApplyNormalizationToStereoSounds", bApplyNormalizationToStereoSounds))
 			SoundAttenuation->Attenuation.bApplyNormalizationToStereoSounds = Attenuation->GetBoolField("bApplyNormalizationToStereoSounds");
-		}
-		if (Attenuation->TryGetBoolField("bAttenuate", bAttenuate)) {
+		if (bool bAttenuate; Attenuation->TryGetBoolField("bAttenuate", bAttenuate))
 			SoundAttenuation->Attenuation.bAttenuate = Attenuation->GetBoolField("bAttenuate");
-		}
-		if (Attenuation->TryGetBoolField("bAttenuateWithLPF", bAttenuateWithLPF)) {
+		if (bool bAttenuateWithLPF; Attenuation->TryGetBoolField("bAttenuateWithLPF", bAttenuateWithLPF))
 			SoundAttenuation->Attenuation.bAttenuateWithLPF = Attenuation->GetBoolField("bAttenuateWithLPF");
-		}
-		if (Attenuation->TryGetBoolField("bEnableFocusInterpolation", bEnableFocusInterpolation)) {
+		if (bool bEnableFocusInterpolation; Attenuation->TryGetBoolField("bEnableFocusInterpolation", bEnableFocusInterpolation))
 			SoundAttenuation->Attenuation.bEnableFocusInterpolation = Attenuation->GetBoolField("bEnableFocusInterpolation");
-		}
-		if (Attenuation->TryGetBoolField("bEnableListenerFocus", bEnableListenerFocus)) {
+		if (bool bEnableListenerFocus; Attenuation->TryGetBoolField("bEnableListenerFocus", bEnableListenerFocus))
 			SoundAttenuation->Attenuation.bEnableListenerFocus = Attenuation->GetBoolField("bEnableListenerFocus");
-		}
-		if (Attenuation->TryGetBoolField("bEnableLogFrequencyScaling", bEnableLogFrequencyScaling)) {
+		if (bool bEnableLogFrequencyScaling; Attenuation->TryGetBoolField("bEnableLogFrequencyScaling", bEnableLogFrequencyScaling))
 			SoundAttenuation->Attenuation.bEnableLogFrequencyScaling = Attenuation->GetBoolField("bEnableLogFrequencyScaling");
-		}
-		if (Attenuation->TryGetBoolField("bEnableOcclusion", bEnableOcclusion)) {
+		if (bool bEnableOcclusion; Attenuation->TryGetBoolField("bEnableOcclusion", bEnableOcclusion))
 			SoundAttenuation->Attenuation.bEnableOcclusion = Attenuation->GetBoolField("bEnableOcclusion");
-		}
-		if (Attenuation->TryGetBoolField("bEnablePriorityAttenuation", bEnablePriorityAttenuation)) {
+		if (bool bEnablePriorityAttenuation; Attenuation->TryGetBoolField("bEnablePriorityAttenuation", bEnablePriorityAttenuation))
 			SoundAttenuation->Attenuation.bEnablePriorityAttenuation = Attenuation->GetBoolField("bEnablePriorityAttenuation");
-		}
-		if (Attenuation->TryGetBoolField("bEnableReverbSend", bEnableReverbSend)) {
+		if (bool bEnableReverbSend; Attenuation->TryGetBoolField("bEnableReverbSend", bEnableReverbSend))
 			SoundAttenuation->Attenuation.bEnableReverbSend = Attenuation->GetBoolField("bEnableReverbSend");
-		}
-		if (Attenuation->TryGetBoolField("bEnableSubmixSends", bEnableSubmixSends)) {
+		if (bool bEnableSubmixSends; Attenuation->TryGetBoolField("bEnableSubmixSends", bEnableSubmixSends))
 			SoundAttenuation->Attenuation.bEnableSubmixSends = Attenuation->GetBoolField("bEnableSubmixSends");
-		}
-		if (Attenuation->TryGetBoolField("bSpatialize", bSpatialize)) {
+		if (bool bSpatialize; Attenuation->TryGetBoolField("bSpatialize", bSpatialize))
 			SoundAttenuation->Attenuation.bSpatialize = Attenuation->GetBoolField("bSpatialize");
-		}
-		if (Attenuation->TryGetBoolField("bUseComplexCollisionForOcclusion", bUseComplexCollisionForOcclusion)) {
+		if (bool bUseComplexCollisionForOcclusion; Attenuation->TryGetBoolField("bUseComplexCollisionForOcclusion", bUseComplexCollisionForOcclusion))
 			SoundAttenuation->Attenuation.bUseComplexCollisionForOcclusion = Attenuation->GetBoolField("bUseComplexCollisionForOcclusion");
-		}
 
 		int64 BinauralRadius;
 		int64 FocusAttackInterpSpeed;

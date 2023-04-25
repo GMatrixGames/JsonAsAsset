@@ -14,8 +14,7 @@ bool UMaterialParameterCollectionImporter::ImportData() {
 		UMaterialParameterCollection* MaterialParameterCollection = NewObject<UMaterialParameterCollection>(Package, UMaterialParameterCollection::StaticClass(), *FileName, RF_Public | RF_Standalone);
 		MaterialParameterCollection->StateId = FGuid(Properties->GetStringField("StateId"));
 
-		const TArray<TSharedPtr<FJsonValue>>* ScalarParametersPtr;
-		if (Properties->TryGetArrayField("ScalarParameters", ScalarParametersPtr)) {
+		if (const TArray<TSharedPtr<FJsonValue>>* ScalarParametersPtr; Properties->TryGetArrayField("ScalarParameters", ScalarParametersPtr)) {
 			for (const TSharedPtr<FJsonValue> ScalarParameter : *ScalarParametersPtr) {
 				TSharedPtr<FJsonObject> _ScalarParameter = ScalarParameter->AsObject();
 				FCollectionScalarParameter ScalarParameter_Collection = FCollectionScalarParameter();
@@ -28,8 +27,7 @@ bool UMaterialParameterCollectionImporter::ImportData() {
 			}
 		}
 
-		const TArray<TSharedPtr<FJsonValue>>* VectorParametersPtr;
-		if (Properties->TryGetArrayField("VectorParameters", VectorParametersPtr)) {
+		if (const TArray<TSharedPtr<FJsonValue>>* VectorParametersPtr; Properties->TryGetArrayField("VectorParameters", VectorParametersPtr)) {
 			for (const TSharedPtr<FJsonValue> VectorParameter : *VectorParametersPtr) {
 				TSharedPtr<FJsonObject> _VectorParameter = VectorParameter->AsObject();
 				FCollectionVectorParameter VectorParameter_Collection = FCollectionVectorParameter();
@@ -44,8 +42,6 @@ bool UMaterialParameterCollectionImporter::ImportData() {
 
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(MaterialParameterCollection)) return false;
-
-		OutCollection = MaterialParameterCollection;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;

@@ -10,7 +10,6 @@
 
 bool UCurveVectorImporter::ImportData() {
 	try {
-
 		// Array of containers
 		TArray<TSharedPtr<FJsonValue>> FloatCurves = JsonObject->GetArrayField("FloatCurves");
 

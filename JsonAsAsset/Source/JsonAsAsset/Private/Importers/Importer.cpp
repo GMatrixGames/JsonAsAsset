@@ -72,8 +72,7 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 						false,
 						310.0f
 					);
-				}
-				else AppendNotification(
+				} else AppendNotification(
 					FText::FromString("Download Failed: " + Type),
 					FText::FromString(Name),
 					5.0f,
@@ -257,10 +256,7 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 					350.0f
 				);
 			}
-			else {
-				FText DialogText = FText::FromString("The \"" + Type + "\" cannot be imported!");
-				FMessageDialog::Open(EAppMsgType::Ok, DialogText);
-			}
+			else FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("The \"" + Type + "\" cannot be imported!"));
 		}
 	}
 
@@ -281,10 +277,7 @@ TArray<TSharedPtr<FJsonValue>> IImporter::FilterExportsByOuter(const FString& Ou
 	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
 		const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Value->AsObject());
 
-		FString ExOuter;
-		if (ValueObject->TryGetStringField("Outer", ExOuter) && ExOuter == Outer) {
-			ReturnValue.Add(TSharedPtr(Value));
-		}
+		if (FString ExOuter; ValueObject->TryGetStringField("Outer", ExOuter) && ExOuter == Outer) ReturnValue.Add(TSharedPtr(Value));
 	}
 
 	return ReturnValue;
