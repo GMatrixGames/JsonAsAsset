@@ -3,12 +3,31 @@
 #include "Importers/SkeletonImporter.h"
 
 #include "Animation/BlendProfile.h"
-#include "DerivedAssets/SkeletonAssetDerived.h"
 #include "Dom/JsonObject.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Factories/TextureFactory.h"
 #include "Utilities/AssetUtilities.h"
 #include "Utilities/MathUtilities.h"
+
+bool USkeletonAssetDerived::AddVirtualBone(const FName SourceBoneName, const FName TargetBoneName, const FName VirtualBoneRootName) {
+	for (const FVirtualBone& SSBone : VirtualBones) {
+		if (SSBone.SourceBoneName == SourceBoneName && SSBone.TargetBoneName == TargetBoneName) {
+			return false;
+		}
+	}
+
+	Modify();
+
+	FVirtualBone VirtualBone = FVirtualBone(SourceBoneName, TargetBoneName);
+	VirtualBone.VirtualBoneName = VirtualBoneRootName;
+
+	VirtualBones.Add(VirtualBone);
+
+	VirtualBoneGuid = FGuid::NewGuid();
+	check(VirtualBoneGuid.IsValid());
+
+	return true;
+}
 
 bool USkeletonImporter::ImportData() {
 	try {

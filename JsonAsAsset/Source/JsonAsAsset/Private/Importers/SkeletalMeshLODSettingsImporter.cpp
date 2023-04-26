@@ -3,10 +3,20 @@
 #include "Importers/SkeletalMeshLODSettingsImporter.h"
 
 #include "JsonGlobals.h"
-#include "AssetRegistry/AssetRegistryModule.h"
-#include "DerivedAssets/SkeletalMeshLODSettingsDerived.h"
 #include "Dom/JsonObject.h"
 #include "Factories/DataAssetFactory.h"
+
+void USkeletalMeshLODSettingsDerived::SetLODGroups(TArray<FSkeletalMeshLODGroupSettings> LODGroupsInput) {
+	this->LODGroups = LODGroupsInput;
+}
+
+void USkeletalMeshLODSettingsDerived::AddLODGroup(FSkeletalMeshLODGroupSettings LODGroupInput) {
+	this->LODGroups.Add(LODGroupInput);
+}
+
+void USkeletalMeshLODSettingsDerived::EmptyLODGroups() {
+	this->LODGroups.Empty();
+}
 
 bool USkeletalMeshLODSettingsImporter::ImportData() {
 	try {
