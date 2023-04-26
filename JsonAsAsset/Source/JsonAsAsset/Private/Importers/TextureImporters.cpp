@@ -5,6 +5,8 @@
 #include "Factories/TextureFactory.h"
 #include "Factories/TextureRenderTargetFactoryNew.h"
 #include "Utilities/MathUtilities.h"
+#include <IImageWrapper.h>
+#include "IImageWrapperModule.h"
 
 bool UTextureImporters::ImportData() {
 	try {
@@ -47,25 +49,49 @@ bool UTextureImporters::ImportTexture2D(UTexture*& OutTexture2D, const TArray<ui
 
 bool UTextureImporters::ImportTextureCube(UTexture*& OutTextureCube, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const
 {
-	UTextureFactory* TextureFactory = NewObject<UTextureFactory>();
-	TextureFactory->AddToRoot();
-	TextureFactory->SuppressImportOverwriteDialog();
+	// create the cube texture
+	UTextureCube* TextureCube = NewObject<UTextureCube>(Package, UTextureCube::StaticClass(), *FileName, RF_Public | RF_Standalone);
 
 	const uint8* ImageData = Data.GetData();
-	UTextureCube* TextureCube = Cast<UTextureCube>((UTexture*)TextureFactory->FactoryCreateBinary(UTexture2D::StaticClass(), Package, *FileName, RF_Standalone | RF_Public, nullptr,
-		*FPaths::GetExtension(FileName + ".png").ToLower(), ImageData, ImageData + Data.Num(), GWarn));
 
-	if (TextureCube == nullptr)
-		return false;
+	ImportTexture_Data(TextureCube, Properties->GetObjectField("Properties"));
 
-	ImportTexture_Data(TextureCube, Properties);
+	float InSizeX = Properties->GetNumberField("SizeX");
+	float InSizeY = Properties->GetNumberField("SizeY");
 
-	FTexturePlatformData* PlatformData = TextureCube->GetPlatformData();
+	EPixelFormat InFormat = static_cast<EPixelFormat>(StaticEnum<EPixelFormat>()->GetValueByNameString(Properties->GetStringField("PixelFormat")));
 
-	if (int SizeX; Properties->TryGetNumberField("SizeX", SizeX)) PlatformData->SizeX = SizeX;
-	if (int SizeY; Properties->TryGetNumberField("SizeY", SizeY)) PlatformData->SizeY = SizeY;
-	if (uint32 PackedData; Properties->TryGetNumberField("PackedData", PackedData)) PlatformData->PackedData = PackedData;
-	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat)) PlatformData->PixelFormat = static_cast<EPixelFormat>(TextureCube->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
+	TextureCube->SetPlatformData(new FTexturePlatformData());
+	TextureCube->GetPlatformData()->SizeX = InSizeX;
+	TextureCube->GetPlatformData()->SizeY = InSizeY;
+
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
+	const int64 Length = *ImageData + Data.Num();
+
+	TSharedPtr<IImageWrapper> HdrImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::HDR);
+	if (HdrImageWrapper->SetCompressed(ImageData, Length))
+	{
+		TArray64<uint8> UnCompressedData;
+		if (HdrImageWrapper->GetRaw(ERGBFormat::BGRE, 8, UnCompressedData))
+		{
+			if (TextureCube)
+			{
+				TextureCube->Source.Init(
+					HdrImageWrapper->GetWidth(),
+					HdrImageWrapper->GetHeight(),
+					/*NumSlices=*/ 1,
+					/*NumMips=*/ 1,
+					TSF_BGRE8,
+					UnCompressedData.GetData()
+				);
+
+				TextureCube->CompressionSettings = TC_HDR;
+				TextureCube->SRGB = false;
+
+				UE_LOG(LogEditorFactories, Display, TEXT("HDR Image imported as LongLat cube map."));
+			}
+		}
+	}
 
 	if (TextureCube) {
 		OutTextureCube = TextureCube;

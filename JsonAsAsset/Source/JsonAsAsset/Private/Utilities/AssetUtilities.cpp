@@ -221,7 +221,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 			Importer->ImportTexture2D(Texture, Data, FinalJsonObject->GetObjectField("Properties"));
 		// Texture Cube
 		if (FinalJsonObject->GetStringField("Type") == "TextureCube")
-			Importer->ImportTextureCube(Texture, Data, FinalJsonObject->GetObjectField("Properties"));
+			Importer->ImportTextureCube(Texture, Data, FinalJsonObject);
 		// Texture Render Target 2D
 		if (FinalJsonObject->GetStringField("Type") == "TextureRenderTarget2D")
 			Importer->ImportRenderTarget2D(Texture, FinalJsonObject->GetObjectField("Properties"));
