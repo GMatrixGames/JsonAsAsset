@@ -10,8 +10,11 @@
 */
 class IImporter {
 public:
-	IImporter() {
+	IImporter() :
+		Package(nullptr),
+		OutermostPkg(nullptr) {
 	}
+
 	IImporter(const FString& FileName, const FString& FilePath, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg, const TArray<TSharedPtr<FJsonValue>>& AllJsonObjects = {}) {
 		this->FileName = FileName;
 		this->FilePath = FilePath;
@@ -72,19 +75,20 @@ public:
 		return AcceptedTypes;
 	}
 
-	void ImportReference(FString File);
-	bool HandleReference(FString GamePath);
+	void ImportReference(const FString& File);
+	bool HandleReference(const FString& GamePath);
 
 	bool HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, bool bHideNotifications = false);
 
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, const FSlateBrush* SlateBrush, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
+
 protected:
 	template <class T = UObject>
 	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);
 	template <class T = UObject>
-	TArray<TObjectPtr<T>> LoadObject(const TArray<TSharedPtr<FJsonValue>> PackageArray, TArray<TObjectPtr<T>> Array);
-	bool HandleAssetCreation(UObject* Asset);
+	TArray<TObjectPtr<T>> LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array);
+	bool HandleAssetCreation(UObject* Asset) const;
 
 	// Wrapper for remote downloading
 	template <class T = UObject>

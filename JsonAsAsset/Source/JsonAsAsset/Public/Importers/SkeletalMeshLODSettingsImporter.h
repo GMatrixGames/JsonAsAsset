@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Importer.h"
+#include "Engine/SkeletalMeshLODSettings.h"
 
 // We use this to set variables
 // in the LOD asset

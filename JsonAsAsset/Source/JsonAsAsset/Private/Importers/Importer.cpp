@@ -1,12 +1,10 @@
-﻿// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Importers/Importer.h"
 #include "Settings/JsonAsAssetSettings.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "Engine/TextureRenderTarget2D.h"
-#include "Json.h"
 
 // ----> Importers
 #include "Importers/CurveFloatImporter.h"
@@ -29,25 +27,22 @@
 #include "Importers/PhysicalMaterialImporter.h"
 #include "Importers/TextureImporters.h"
 #include "Utilities/AssetUtilities.h"
-
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Styling/SlateIconFinder.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/FileHelper.h"
-
 #include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "IImporter"
 
 template <typename T>
-TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, FString Name, FString Path)
-{
+TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, FString Name, FString Path) {
 	// If the asset can be found locally
 	if (InObject == nullptr && HandleReference(Path)) {
-		TObjectPtr<T> _Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
+		TObjectPtr<T> Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
 
-		return _Object;
+		return Object;
 	}
 
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
@@ -78,8 +73,7 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 					);
 
 					MessageLogger.Message(EMessageSeverity::Info, FText::FromString("Downloaded asset: " + Name + " (" + Type + ")"));
-				}
-				else {
+				} else {
 					AppendNotification(
 						FText::FromString("Download Failed: " + Type),
 						FText::FromString(Name),
@@ -113,16 +107,16 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	Name = Name.Replace(TEXT("'"), TEXT(""));
 
 	// Define found object
-	TObjectPtr<T> _Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
+	TObjectPtr<T> Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
 
-	Object = DownloadWrapper(_Object, Type, Name, Path);
+	Object = DownloadWrapper(Obj, Type, Name, Path);
 }
 
 template <typename T>
-TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>> PackageArray, TArray<TObjectPtr<T>> Array) {
+TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array) {
 	// Go through each
 	for (const TSharedPtr<FJsonValue> ArrayElement : PackageArray) {
-		TSharedPtr<FJsonObject> Ptr = ArrayElement->AsObject();
+		const TSharedPtr<FJsonObject> Ptr = ArrayElement->AsObject();
 
 		FString Type;
 		FString Name;
@@ -139,19 +133,17 @@ TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>
 	return Array;
 }
 
-bool IImporter::HandleReference(FString GamePath) {
+bool IImporter::HandleReference(const FString& GamePath) {
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-	if (!Settings->bAutomateReferences)
-		return false;
+	if (!Settings->bAutomateReferences) return false;
 
 	FString UnSanitizedCodeName;
 	FilePath.Split(Settings->ExportDirectory.Path + "/", nullptr, &UnSanitizedCodeName);
 	UnSanitizedCodeName.Split("/", &UnSanitizedCodeName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 
 	// TODO: As of writing this, I don't know how to add Plugin support
-	FString UnSanitizedPath;
-	UnSanitizedPath = GamePath.Replace(TEXT("/Game/"), *(UnSanitizedCodeName + "/Content/"));
-	UnSanitizedPath = (Settings->ExportDirectory.Path + "/") + UnSanitizedPath + ".json";
+	FString UnSanitizedPath = GamePath.Replace(TEXT("/Game/"), *(UnSanitizedCodeName + "/Content/"));
+	UnSanitizedPath = Settings->ExportDirectory.Path + "/" + UnSanitizedPath + ".json";
 
 	FString ContentBefore;
 	if (FFileHelper::LoadFileToString(ContentBefore, *UnSanitizedPath)) {
@@ -159,11 +151,11 @@ bool IImporter::HandleReference(FString GamePath) {
 
 		return true;
 	}
-	
+
 	return false;
 }
 
-void IImporter::ImportReference(FString File) {
+void IImporter::ImportReference(const FString& File) {
 	/* ----  Parse JSON into UE JSON Reader ---- */
 	FString ContentBefore;
 	FFileHelper::LoadFileToString(ContentBefore, *File);
@@ -173,17 +165,17 @@ void IImporter::ImportReference(FString File) {
 	Content.Append(FString("}"));
 
 	TSharedPtr<FJsonObject> JsonParsed;
-	TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Content);
+	const TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Content);
 	/* ---------------------------------------- */
 
 	if (FJsonSerializer::Deserialize(JsonReader, JsonParsed)) {
-		TArray<TSharedPtr<FJsonValue>> DataObjects = JsonParsed->GetArrayField("data");
+		const TArray<TSharedPtr<FJsonValue>> DataObjects = JsonParsed->GetArrayField("data");
 
 		HandleExports(DataObjects, File);
 	}
 }
 
-bool IImporter::HandleAssetCreation(UObject* Asset) {
+bool IImporter::HandleAssetCreation(UObject* Asset) const {
 	FAssetRegistryModule::AssetCreated(Asset);
 	if (!Asset->MarkPackageDirty()) return false;
 	Package->SetDirtyFlag(true);
@@ -191,20 +183,19 @@ bool IImporter::HandleAssetCreation(UObject* Asset) {
 	Asset->AddToRoot();
 
 	// Browse to newly added Asset
-	const TArray<FAssetData>& Assets = { Asset };
+	const TArray<FAssetData>& Assets = {Asset};
 	const FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	ContentBrowserModule.Get().SyncBrowserToAssets(Assets);
 
 	return true;
 }
 
-bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, bool bHideNotifications)
-{
+bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, const bool bHideNotifications) {
 	TArray<FString> Types;
-	for (TSharedPtr<FJsonValue>& Obj : Exports) Types.Add(Obj->AsObject()->GetStringField("Type"));
+	for (const TSharedPtr<FJsonValue>& Obj : Exports) Types.Add(Obj->AsObject()->GetStringField("Type"));
 
 	// If type is not supported, decline
-	if (!IImporter::CanImportAny(Types)) {
+	if (!CanImportAny(Types)) {
 		const FText DialogText = FText::FromString("No exports from \"" + File + "\" can be imported!");
 		FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 	}
@@ -215,11 +206,10 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 		FString Type = DataObject->GetStringField("Type");
 		FString Name = DataObject->GetStringField("Name");
 
-		if (IImporter::CanImport(Type)) {
+		if (CanImport(Type)) {
 			// Convert from relative to full
 			// NOTE: Used for references
-			if (FPaths::IsRelative(File))
-				File = FPaths::ConvertRelativePathToFull(File);
+			if (FPaths::IsRelative(File)) File = FPaths::ConvertRelativePathToFull(File);
 
 			UPackage* LocalOutermostPkg;
 			UPackage* LocalPackage = FAssetUtilities::CreateAssetPackage(Name, File, LocalOutermostPkg);
@@ -274,8 +264,7 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 				);
 
 				MessageLogger.Message(EMessageSeverity::Info, FText::FromString("Imported Asset: " + Name + " (" + Type + ")"));
-			}
-			else FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("The \"" + Type + "\" cannot be imported!"));
+			} else FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("The \"" + Type + "\" cannot be imported!"));
 		}
 	}
 
@@ -319,7 +308,7 @@ void IImporter::AppendNotification(const FText& Text, const FText& SubText, floa
 	Info.WidthOverride = FOptionalSize(WidthOverride);
 	Info.SubText = SubText;
 
-	TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+	const TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 	NotificationPtr->SetCompletionState(CompletionState);
 }
 
@@ -332,7 +321,7 @@ void IImporter::AppendNotification(const FText& Text, const FText& SubText, floa
 	Info.SubText = SubText;
 	Info.Image = SlateBrush;
 
-	TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+	const TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 	NotificationPtr->SetCompletionState(CompletionState);
 }
 

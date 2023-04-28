@@ -6,6 +6,8 @@
 #include "Factories/TextureRenderTargetFactoryNew.h"
 #include "Utilities/MathUtilities.h"
 #include <IImageWrapper.h>
+
+#include "Factories.h"
 #include "IImageWrapperModule.h"
 
 bool UTextureImporters::ImportData() {
@@ -33,7 +35,7 @@ bool UTextureImporters::ImportTexture2D(UTexture*& OutTexture2D, const TArray<ui
 
 	const uint8* ImageData = Data.GetData();
 	UTexture2D* Texture2D = Cast<UTexture2D>(TextureFactory->FactoryCreateBinary(UTexture2D::StaticClass(), Package, *FileName, RF_Standalone | RF_Public, nullptr,
-	                                                                           *FPaths::GetExtension(FileName + ".png").ToLower(), ImageData, ImageData + Data.Num(), GWarn));
+	                                                                             *FPaths::GetExtension(FileName + ".png").ToLower(), ImageData, ImageData + Data.Num(), GWarn));
 	if (Texture2D == nullptr)
 		return false;
 
@@ -47,8 +49,7 @@ bool UTextureImporters::ImportTexture2D(UTexture*& OutTexture2D, const TArray<ui
 	return false;
 }
 
-bool UTextureImporters::ImportTextureCube(UTexture*& OutTextureCube, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const
-{
+bool UTextureImporters::ImportTextureCube(UTexture*& OutTextureCube, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
 	// create the cube texture
 	UTextureCube* TextureCube = NewObject<UTextureCube>(Package, UTextureCube::StaticClass(), *FileName, RF_Public | RF_Standalone);
 
@@ -69,13 +70,10 @@ bool UTextureImporters::ImportTextureCube(UTexture*& OutTextureCube, const TArra
 	const int64 Length = *ImageData + Data.Num();
 
 	TSharedPtr<IImageWrapper> HdrImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::HDR);
-	if (HdrImageWrapper->SetCompressed(ImageData, Length))
-	{
+	if (HdrImageWrapper->SetCompressed(ImageData, Length)) {
 		TArray64<uint8> UnCompressedData;
-		if (HdrImageWrapper->GetRaw(ERGBFormat::BGRE, 8, UnCompressedData))
-		{
-			if (TextureCube)
-			{
+		if (HdrImageWrapper->GetRaw(ERGBFormat::BGRE, 8, UnCompressedData)) {
+			if (TextureCube) {
 				TextureCube->Source.Init(
 					HdrImageWrapper->GetWidth(),
 					HdrImageWrapper->GetHeight(),
@@ -112,7 +110,7 @@ bool UTextureImporters::ImportRenderTarget2D(UTexture*& OutRenderTarget2D, const
 	if (Properties->TryGetNumberField("SizeX", SizeX)) RenderTarget2D->SizeX = SizeX;
 	int SizeY;
 	if (Properties->TryGetNumberField("SizeY", SizeY)) RenderTarget2D->SizeY = SizeY;
-	
+
 	FString AddressX;
 	if (Properties->TryGetStringField("AddressX", AddressX)) RenderTarget2D->AddressX = static_cast<TextureAddress>(StaticEnum<TextureAddress>()->GetValueByNameString(AddressX));
 	FString AddressY;
@@ -122,12 +120,14 @@ bool UTextureImporters::ImportRenderTarget2D(UTexture*& OutRenderTarget2D, const
 
 	bool bAutoGenerateMips;
 	if (Properties->TryGetBoolField("bAutoGenerateMips", bAutoGenerateMips)) RenderTarget2D->bAutoGenerateMips = bAutoGenerateMips;
-	if (bAutoGenerateMips)
-		if (FString MipsSamplerFilter; Properties->TryGetStringField("MipsSamplerFilter", MipsSamplerFilter)) RenderTarget2D->MipsSamplerFilter = static_cast<TextureFilter>(StaticEnum<TextureFilter>()->GetValueByNameString(MipsSamplerFilter));
-	
+	if (bAutoGenerateMips) {
+		if (FString MipsSamplerFilter; Properties->TryGetStringField("MipsSamplerFilter", MipsSamplerFilter))
+			RenderTarget2D->MipsSamplerFilter = static_cast<TextureFilter>(StaticEnum<TextureFilter>()->GetValueByNameString(MipsSamplerFilter));
+	}
+
 	const TSharedPtr<FJsonObject>* ClearColor;
 	if (Properties->TryGetObjectField("ClearColor", ClearColor)) RenderTarget2D->ClearColor = FMathUtilities::ObjectToLinearColor(ClearColor->Get());
-	
+
 	if (RenderTarget2D) {
 		OutRenderTarget2D = RenderTarget2D;
 		return true;
@@ -137,8 +137,7 @@ bool UTextureImporters::ImportRenderTarget2D(UTexture*& OutRenderTarget2D, const
 }
 
 // Handle UTexture2D
-bool UTextureImporters::ImportTexture2D_Data(UTexture2D* InTexture2D, const TSharedPtr<FJsonObject>& Properties) const
-{
+bool UTextureImporters::ImportTexture2D_Data(UTexture2D* InTexture2D, const TSharedPtr<FJsonObject>& Properties) const {
 	if (InTexture2D == nullptr) return false;
 
 	ImportTexture_Data(InTexture2D, Properties);
@@ -146,7 +145,7 @@ bool UTextureImporters::ImportTexture2D_Data(UTexture2D* InTexture2D, const TSha
 	if (FString AddressX; Properties->TryGetStringField("AddressX", AddressX)) InTexture2D->AddressX = static_cast<TextureAddress>(StaticEnum<TextureAddress>()->GetValueByNameString(AddressX));
 	if (FString AddressY; Properties->TryGetStringField("AddressY", AddressY)) InTexture2D->AddressY = static_cast<TextureAddress>(StaticEnum<TextureAddress>()->GetValueByNameString(AddressY));
 	if (bool bHasBeenPaintedInEditor; Properties->TryGetBoolField("bHasBeenPaintedInEditor", bHasBeenPaintedInEditor)) InTexture2D->bHasBeenPaintedInEditor = bHasBeenPaintedInEditor;
-	
+
 	// --------- Platform Data --------- //
 	FTexturePlatformData* PlatformData = InTexture2D->GetPlatformData();
 
@@ -162,8 +161,7 @@ bool UTextureImporters::ImportTexture2D_Data(UTexture2D* InTexture2D, const TSha
 }
 
 // Handle UTexture
-bool UTextureImporters::ImportTexture_Data(UTexture* InTexture, const TSharedPtr<FJsonObject>& Properties) const
-{
+bool UTextureImporters::ImportTexture_Data(UTexture* InTexture, const TSharedPtr<FJsonObject>& Properties) const {
 	if (InTexture == nullptr) return false;
 
 	// Adjust parameters
@@ -201,7 +199,7 @@ bool UTextureImporters::ImportTexture_Data(UTexture* InTexture, const TSharedPtr
 	if (FString Filter; Properties->TryGetStringField("Filter", Filter)) InTexture->Filter = static_cast<TextureFilter>(StaticEnum<TextureFilter>()->GetValueByNameString(Filter));
 
 	// TODO: Add LayerFormatSettings
-	
+
 	if (int LODBias; Properties->TryGetNumberField("LODBias", LODBias)) InTexture->LODBias = LODBias;
 	if (FString LODGroup; Properties->TryGetStringField("LODGroup", LODGroup)) InTexture->LODGroup = static_cast<TextureGroup>(StaticEnum<TextureGroup>()->GetValueByNameString(LODGroup));
 	if (FString LossyCompressionAmount; Properties->TryGetStringField("LossyCompressionAmount", LossyCompressionAmount)) InTexture->LossyCompressionAmount = static_cast<ETextureLossyCompressionAmount>(StaticEnum<ETextureLossyCompressionAmount>()->GetValueByNameString(LossyCompressionAmount));
@@ -209,7 +207,7 @@ bool UTextureImporters::ImportTexture_Data(UTexture* InTexture, const TSharedPtr
 	if (int MaxTextureSize; Properties->TryGetNumberField("MaxTextureSize", MaxTextureSize)) InTexture->MaxTextureSize = MaxTextureSize;
 	if (FString MipGenSettings; Properties->TryGetStringField("MipGenSettings", MipGenSettings)) InTexture->MipGenSettings = static_cast<TextureMipGenSettings>(StaticEnum<TextureMipGenSettings>()->GetValueByNameString(MipGenSettings));
 	if (FString MipLoadOptions; Properties->TryGetStringField("MipLoadOptions", MipLoadOptions)) InTexture->MipLoadOptions = static_cast<ETextureMipLoadOptions>(StaticEnum<ETextureMipLoadOptions>()->GetValueByNameString(MipLoadOptions));
-	
+
 	if (const TSharedPtr<FJsonObject>* PaddingColor; Properties->TryGetObjectField("PaddingColor", PaddingColor)) InTexture->PaddingColor = FMathUtilities::ObjectToColor(PaddingColor->Get());
 	if (FString PowerOfTwoMode; Properties->TryGetStringField("PowerOfTwoMode", PowerOfTwoMode)) InTexture->PowerOfTwoMode = static_cast<ETexturePowerOfTwoSetting::Type>(StaticEnum<ETexturePowerOfTwoSetting::Type>()->GetValueByNameString(PowerOfTwoMode));
 
