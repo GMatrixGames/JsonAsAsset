@@ -135,7 +135,6 @@ TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>
 
 bool IImporter::HandleReference(const FString& GamePath) {
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-	if (!Settings->bAutomateReferences) return false;
 
 	FString UnSanitizedCodeName;
 	FilePath.Split(Settings->ExportDirectory.Path + "/", nullptr, &UnSanitizedCodeName);

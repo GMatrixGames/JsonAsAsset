@@ -35,12 +35,16 @@ FName FJsonAsAssetStyle::GetStyleSetName() {
 const FVector2D Icon16x16(16.0f, 16.0f);
 const FVector2D Icon20x20(20.0f, 20.0f);
 const FVector2D Icon40x40(40.0f, 40.0f);
+const FVector2D IconFullScreen(720.0f, 300.0f);
 
 TSharedRef<FSlateStyleSet> FJsonAsAssetStyle::Create() {
 	TSharedRef<FSlateStyleSet> Style = MakeShareable(new FSlateStyleSet("JsonAsAssetStyle"));
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("JsonAsAsset")->GetBaseDir() / TEXT("Resources"));
 
 	Style->Set("JsonAsAsset.PluginAction", new IMAGE_BRUSH(TEXT("ButtonIcon_40x"), Icon40x40));
+	Style->Set("JsonAsAsset.FModelLogo", new IMAGE_BRUSH(TEXT("ButtonIcon_FModel"), Icon40x40));
+	Style->Set("JsonAsAsset.GithubLogo", new IMAGE_BRUSH(TEXT("ButtonIcon_Github"), Icon40x40));
+	Style->Set("JsonAsAsset.AboutScreen", new IMAGE_BRUSH(TEXT("Icon_FullScreen"), IconFullScreen));
 
 	return Style;
 }
