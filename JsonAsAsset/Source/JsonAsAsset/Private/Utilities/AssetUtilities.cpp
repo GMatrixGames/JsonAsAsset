@@ -183,6 +183,8 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
+	UE_LOG(LogTemp, Warning, TEXT("Test Path: %s"), *Path);
+
 	HttpRequest->SetURL("https://fortnitecentral.genxgames.gg/api/v1/export?path=" + Path);
 	HttpRequest->SetHeader("content-type", "image/png");
 	HttpRequest->SetVerb(TEXT("GET"));
@@ -212,8 +214,13 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 		Package->FullyLoad();
 
 		const UTextureImporters* Importer = new UTextureImporters(AssetName, Path, JsonObject, Package, OutermostPkg);
-		TSharedPtr<FJsonObject> FinalJsonObject = JsonObject->GetArrayField("jsonOutput")[0]->AsObject();
+		TArray<TSharedPtr<FJsonValue>> JsonArray = JsonObject->GetArrayField("jsonOutput");
 
+		if (JsonArray.IsEmpty())
+			// No valid entries
+			return false;
+
+		TSharedPtr<FJsonObject> FinalJsonObject = JsonArray[0]->AsObject();
 		UTexture* Texture = nullptr;
 
 		// Texture 2D
