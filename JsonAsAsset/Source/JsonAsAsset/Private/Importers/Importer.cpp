@@ -36,6 +36,8 @@
 #include "Misc/MessageDialog.h"
 #include "Misc/FileHelper.h"
 
+#include "Logging/MessageLog.h"
+
 #define LOCTEXT_NAMESPACE "IImporter"
 
 template <typename T>
@@ -50,6 +52,8 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 	bool bRemoteDownload = Settings->bEnableRemoteDownload;
+
+	FMessageLog MessageLogger = FMessageLog(FName("JsonAsAsset"));
 
 	if (bRemoteDownload && InObject == nullptr) {
 		const UObject* DefaultObject = T::StaticClass()->ClassDefaultObject;
@@ -72,18 +76,29 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 						false,
 						310.0f
 					);
-				} else AppendNotification(
-					FText::FromString("Download Failed: " + Type),
-					FText::FromString(Name),
-					5.0f,
-					FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
-					SNotificationItem::CS_Fail,
-					false,
-					310.0f
-				);
+
+					MessageLogger.Message(EMessageSeverity::Info, FText::FromString("Downloaded asset: " + Name + " (" + Type + ")"));
+				}
+				else {
+					AppendNotification(
+						FText::FromString("Download Failed: " + Type),
+						FText::FromString(Name),
+						5.0f,
+						FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
+						SNotificationItem::CS_Fail,
+						false,
+						310.0f
+					);
+
+					MessageLogger.Error(FText::FromString("Failed to download asset: " + Name + " (" + Type + ")"));
+				}
 			}
 		}
 	}
+
+	// Gotta let em know
+	if (InObject == nullptr)
+		MessageLogger.Error(FText::FromString("Object not found while importing: " + Name + " (" + Type + ")"));
 
 	return InObject;
 }
@@ -236,6 +251,8 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 			else if (Type == "TextureRenderTarget2D") Importer = new UTextureImporters(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 			else Importer = nullptr;
 
+			FMessageLog MessageLogger = FMessageLog(FName("JsonAsAsset"));
+
 			if (bHideNotifications) {
 				Importer->ImportData();
 
@@ -255,6 +272,8 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 					false,
 					350.0f
 				);
+
+				MessageLogger.Message(EMessageSeverity::Info, FText::FromString("Imported Asset: " + Name + " (" + Type + ")"));
 			}
 			else FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("The \"" + Type + "\" cannot be imported!"));
 		}

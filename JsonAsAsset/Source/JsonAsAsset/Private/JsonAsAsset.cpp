@@ -22,8 +22,13 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
 
+#include "IMessageLogListing.h"
+
 #include "Dialogs/Dialogs.h"
 #include "ISettingsModule.h"
+
+#include "MessageLog/Public/MessageLogInitializationOptions.h"
+#include "MessageLog/Public/MessageLogModule.h"
 
 #include "Importers/MaterialFunctionImporter.h"
 // ------------------------------------------------------ |
@@ -91,6 +96,16 @@ void FJsonAsAssetModule::StartupModule() {
 		ImportantNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 		ImportantNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
 	}
+
+	// Message Log
+	{
+		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+		FMessageLogInitializationOptions InitOptions;
+		InitOptions.bShowPages = true;
+		InitOptions.bAllowClear = true;
+		InitOptions.bShowFilters = true;
+		MessageLogModule.RegisterLogListing("JsonAsAsset", NSLOCTEXT("JsonAsAsset", "JsonAsAssetLogLabel", "JsonAsAsset"), InitOptions);
+	}
 }
 
 void FJsonAsAssetModule::ShutdownModule() {
@@ -98,6 +113,11 @@ void FJsonAsAssetModule::ShutdownModule() {
 	UToolMenus::UnregisterOwner(this);
 	FJsonAsAssetStyle::Shutdown();
 	FJsonAsAssetCommands::Unregister();
+
+	if (FModuleManager::Get().IsModuleLoaded("MessageLog")) {
+		FMessageLogModule& MessageLogModule = FModuleManager::GetModuleChecked<FMessageLogModule>("MessageLog");
+		MessageLogModule.UnregisterLogListing("JsonAsAsset");
+	}
 }
 
 void FJsonAsAssetModule::PluginButtonClicked() {
@@ -112,6 +132,14 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 	}
 
 	for (FString& File : OutFileNames) {
+		FMessageLog MessageLogger = FMessageLog(FName("JsonAsAsset"));
+		MessageLogger.Open(EMessageSeverity::Info, true);
+
+		// Clear Message Log
+		FMessageLogModule& MessageLogModule = FModuleManager::GetModuleChecked<FMessageLogModule>("MessageLog");
+		TSharedRef<IMessageLogListing> LogListing = (MessageLogModule.GetLogListing("JsonAsAsset"));
+		LogListing->ClearMessages();
+
 		// Import asset by IImporter
 		IImporter* Importer = new IImporter();
 		Importer->ImportReference(File);
