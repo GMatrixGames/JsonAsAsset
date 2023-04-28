@@ -5,6 +5,7 @@
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Json.h"
 
 // ----> Importers
 #include "Importers/CurveFloatImporter.h"
@@ -180,6 +181,7 @@ bool IImporter::HandleAssetCreation(UObject* Asset) const {
 	Package->SetDirtyFlag(true);
 	Asset->PostEditChange();
 	Asset->AddToRoot();
+	Package->FullyLoad();
 
 	// Browse to newly added Asset
 	const TArray<FAssetData>& Assets = {Asset};

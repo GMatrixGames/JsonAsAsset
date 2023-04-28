@@ -73,6 +73,9 @@ bool UMaterialImporter::ImportData() {
 		UMaterial* Material = Cast<UMaterial>(MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
+		// Handle edit changes, and add it to the content browser
+		if (!HandleAssetCreation(Material)) return false;
+
 		if (const TSharedPtr<FJsonObject>* PhysMaterial; Properties->TryGetObjectField("PhysMaterial", PhysMaterial)) LoadObject(PhysMaterial, Material->PhysMaterial);
 
 		Material->StateId = FGuid(Properties->GetStringField("StateId"));
@@ -468,8 +471,8 @@ bool UMaterialImporter::ImportData() {
 		PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
 		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);
 
-		// Handle edit changes, and add it to the content browser
-		if (!HandleAssetCreation(Material)) return false;
+		Material->PreEditChange(NULL);
+		Material->PostEditChange();
 
 		bool bEditorGraphOpen = false;
 		FMaterialEditor* AssetEditorInstance = nullptr;
@@ -626,8 +629,6 @@ bool UMaterialImporter::ImportData() {
 				AssetEditorInstance->UpdateMaterialAfterGraphChange();
 			}
 		}
-
-		Material->PostEditChange();
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;

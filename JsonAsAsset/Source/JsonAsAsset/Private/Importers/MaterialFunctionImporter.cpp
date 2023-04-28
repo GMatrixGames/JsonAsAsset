@@ -10,6 +10,9 @@ bool UMaterialFunctionImporter::ImportData() {
 		UMaterialFunction* MaterialFunction = Cast<UMaterialFunction>(MaterialFunctionFactory->FactoryCreateNew(UMaterialFunction::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
 		MaterialFunction->GetExpressionCollection().Empty();
 
+		// Handle edit changes, and add it to the content browser
+		if (!HandleAssetCreation(MaterialFunction)) return false;
+
 		MaterialFunction->StateId = FGuid(JsonObject->GetObjectField("Properties")->GetStringField("StateId"));
 		
 		// Misc properties
@@ -30,8 +33,8 @@ bool UMaterialFunctionImporter::ImportData() {
 		PropagateExpressions(MaterialFunction, ExpressionNames, Exports, CreatedExpressionMap);
 		MaterialGraphNode_ConstructComments(MaterialFunction, StringExpressionCollection, Exports);
 
-		// Handle edit changes, and add it to the content browser
-		if (!HandleAssetCreation(MaterialFunction)) return false;
+		MaterialFunction->PreEditChange(NULL);
+		MaterialFunction->PostEditChange();
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception))
 		return false;
