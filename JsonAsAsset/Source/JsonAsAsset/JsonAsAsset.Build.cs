@@ -46,7 +46,8 @@ public class JsonAsAsset : ModuleRules
 				"InterchangeFactoryNodes",
 				"InterchangeImport",
 				"InterchangePipelines",
-				"MessageLog"
+				"MessageLog",
+				"ToolWidgets"
 			}
 		);
 

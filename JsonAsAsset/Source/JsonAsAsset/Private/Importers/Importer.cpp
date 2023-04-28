@@ -141,8 +141,6 @@ TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>
 
 bool IImporter::HandleReference(FString GamePath) {
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-	if (!Settings->bAutomateReferences)
-		return false;
 
 	FString UnSanitizedCodeName;
 	FilePath.Split(Settings->ExportDirectory.Path + "/", nullptr, &UnSanitizedCodeName);
@@ -198,8 +196,7 @@ bool IImporter::HandleAssetCreation(UObject* Asset) {
 	return true;
 }
 
-bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, bool bHideNotifications)
-{
+bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, bool bHideNotifications) {
 	TArray<FString> Types;
 	for (TSharedPtr<FJsonValue>& Obj : Exports) Types.Add(Obj->AsObject()->GetStringField("Type"));
 

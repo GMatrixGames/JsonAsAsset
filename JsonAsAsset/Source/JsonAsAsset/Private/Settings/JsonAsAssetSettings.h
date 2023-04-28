@@ -16,20 +16,15 @@ public:
 #if WITH_EDITOR
 	virtual FText GetSectionText() const override;
 #endif
-
 	// FModel Exports Folder
 	UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
 	FDirectoryPath ExportDirectory;
-
-	// Automate importing references
-	UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
-	bool bAutomateReferences;
 
 	// Downloads assets from FortniteCentral and automatically
 	// imports them into your project, without having them locally
 	// (only supports: Fortnite)
 	//
 	// NOTE: Please use the file selector, do not manually paste it 
-	UPROPERTY(config, EditAnywhere, Category = "Asset")
+	UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
 	bool bEnableRemoteDownload;
 };
