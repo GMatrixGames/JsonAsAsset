@@ -257,4 +257,6 @@ protected:
 	FFunctionExpressionInput PopulateFuncExpressionInput(const TSharedPtr<FJsonObject>& JsonProperties, TMap<FName, UMaterialExpression*>& CreatedExpressionMap);
 
 	FName GetExpressionName(const FJsonObject* JsonProperties, FString OverrideParameterName = "Expression");
+
+	FExpressionInput CreateExpressionInput(TSharedPtr<FJsonObject> JsonProperties, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, FString PropertyName);
 };

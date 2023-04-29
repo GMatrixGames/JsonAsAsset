@@ -176,6 +176,23 @@ TMap<FName, UMaterialExpression*> UMaterialGraph_Interface::ConstructExpressions
 	return CreatedExpressionMap;
 }
 
+FExpressionInput UMaterialGraph_Interface::CreateExpressionInput(TSharedPtr<FJsonObject> JsonProperties, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, FString PropertyName) {
+	// Find Expression Input by PropertyName
+	if (const TSharedPtr<FJsonObject>* Ptr; JsonProperties->TryGetObjectField(PropertyName, Ptr)) {
+		FJsonObject* AsObject = Ptr->Get();
+		FName ExpressionName = GetExpressionName(AsObject);
+
+		// If Expression Found
+		if (CreatedExpressionMap.Contains(ExpressionName)) {
+			FExpressionInput Input = PopulateExpressionInput(AsObject, *CreatedExpressionMap.Find(ExpressionName));
+
+			return Input;
+		}
+	}
+
+	return FExpressionInput();
+}
+
 void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter, bool bSubgraph) {
 	for (FName Name : ExpressionNames) {
 		FImportData* Type = Exports.Find(Name);
@@ -195,105 +212,54 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		if (Type->Type == "MaterialExpressionFunctionOutput") {
 			UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(Expression);
 
-			FString OutputName;
-			if (Properties->TryGetStringField("OutputName", OutputName)) FunctionOutput->OutputName = FName(OutputName);
-			FString FuncDescription;
-			if (Properties->TryGetStringField("Description", FuncDescription)) FunctionOutput->Description = FuncDescription;
-			int SortPriority;
-			if (Properties->TryGetNumberField("SortPriority", SortPriority)) FunctionOutput->SortPriority = SortPriority;
+			if (FString OutputName; Properties->TryGetStringField("OutputName", OutputName)) 
+				FunctionOutput->OutputName = FName(OutputName);
+			if (FString FuncDescription; Properties->TryGetStringField("Description", FuncDescription)) 
+				FunctionOutput->Description = FuncDescription;
+			if (int SortPriority; Properties->TryGetNumberField("SortPriority", SortPriority)) 
+				FunctionOutput->SortPriority = SortPriority;
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					FunctionOutput->A = A;
-				}
-			}
-
-			bool bLastPreviewed;
-			if (Properties->TryGetBoolField("bLastPreviewed", bLastPreviewed)) FunctionOutput->bLastPreviewed = bLastPreviewed;
+			FunctionOutput->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			if (bool bLastPreviewed; Properties->TryGetBoolField("bLastPreviewed", bLastPreviewed)) 
+				FunctionOutput->bLastPreviewed = bLastPreviewed;
 			FunctionOutput->Id = FGuid(Properties->GetStringField("ID"));
 
 			Expression = FunctionOutput;
 		} else if (Type->Type == "MaterialExpressionStaticSwitchParameter") {
 			UMaterialExpressionStaticSwitchParameter* StaticSwitchParameter = Cast<UMaterialExpressionStaticSwitchParameter>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					StaticSwitchParameter->A = A;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					StaticSwitchParameter->B = B;
-				}
-			}
-
-			bool DefaultValue;
-			if (Properties->TryGetBoolField("DefaultValue", DefaultValue)) StaticSwitchParameter->DefaultValue = DefaultValue;
+			StaticSwitchParameter->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			StaticSwitchParameter->B = CreateExpressionInput(Properties, CreatedExpressionMap, "B");
+			
+			if (bool DefaultValue; Properties->TryGetBoolField("DefaultValue", DefaultValue)) 
+				StaticSwitchParameter->DefaultValue = DefaultValue;
 
 			Expression = StaticSwitchParameter;
 		} else if (Type->Type == "MaterialExpressionFunctionInput") {
 			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>(Expression);
 
-			const TSharedPtr<FJsonObject>* PreviewPtr = nullptr;
-			if (Properties->TryGetObjectField("Preview", PreviewPtr) && PreviewPtr != nullptr) {
-				FJsonObject* PreviewObject = PreviewPtr->Get();
-				FName PreviewExpressionName = GetExpressionName(PreviewObject);
-
-				if (CreatedExpressionMap.Contains(PreviewExpressionName)) {
-					FExpressionInput Preview = PopulateExpressionInput(PreviewObject, *CreatedExpressionMap.Find(PreviewExpressionName));
-					FunctionInput->Preview = Preview;
-				}
-			}
-
-			FString InputName;
-			if (Properties->TryGetStringField("InputName", InputName)) FunctionInput->InputName = FName(InputName);
-			FString FuncDescription;
-			if (Properties->TryGetStringField("Description", FuncDescription)) FunctionInput->Description = FuncDescription;
+			FunctionInput->Preview = CreateExpressionInput(Properties, CreatedExpressionMap, "Preview");
+			if (FString InputName; Properties->TryGetStringField("InputName", InputName)) 
+				FunctionInput->InputName = FName(InputName);
+			if (FString FuncDescription; Properties->TryGetStringField("Description", FuncDescription)) 
+				FunctionInput->Description = FuncDescription;
 			FunctionInput->Id = FGuid(Properties->GetStringField("ID"));
-
-			FString InputType;
-			if (Properties->TryGetStringField("InputType", InputType)) {
+			
+			if (FString InputType; Properties->TryGetStringField("InputType", InputType))
 				FunctionInput->InputType = static_cast<EFunctionInputType>(StaticEnum<EFunctionInputType>()->GetValueByNameString(InputType));
-			}
 
-			const TSharedPtr<FJsonObject>* PreviewValue;
-			if (Properties->TryGetObjectField("PreviewValue", PreviewValue)) FunctionInput->PreviewValue = FMathUtilities::ObjectToVector4f(PreviewValue->Get());
-			bool bUsePreviewValueAsDefault;
-			if (Properties->TryGetBoolField("bUsePreviewValueAsDefault", bUsePreviewValueAsDefault)) FunctionInput->bUsePreviewValueAsDefault = bUsePreviewValueAsDefault;
-			int SortPriority;
-			if (Properties->TryGetNumberField("SortPriority", SortPriority)) FunctionInput->SortPriority = SortPriority;
+			if (const TSharedPtr<FJsonObject>* PreviewValue; Properties->TryGetObjectField("PreviewValue", PreviewValue)) 
+				FunctionInput->PreviewValue = FMathUtilities::ObjectToVector4f(PreviewValue->Get());
+			if (bool bUsePreviewValueAsDefault; Properties->TryGetBoolField("bUsePreviewValueAsDefault", bUsePreviewValueAsDefault)) 
+				FunctionInput->bUsePreviewValueAsDefault = bUsePreviewValueAsDefault;
+			if (int SortPriority; Properties->TryGetNumberField("SortPriority", SortPriority)) 
+				FunctionInput->SortPriority = SortPriority;
 
 			Expression = FunctionInput;
 		} else if (Type->Type == "MaterialExpressionAbs") {
 			UMaterialExpressionAbs* Abs = Cast<UMaterialExpressionAbs>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					Abs->Input = Input;
-				}
-			}
-
+			Abs->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 			Expression = Abs;
 		}/* else if (Type->Type == "MaterialExpressionLength") {
 			UMaterialExpressionLength* Length = Cast<UMaterialExpressionLength>(Expression);
@@ -313,303 +279,137 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		} */else if (Type->Type == "MaterialExpressionFrac") {
 			UMaterialExpressionFrac* Frac = Cast<UMaterialExpressionFrac>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					Frac->Input = Input;
-				}
-			}
-
+			Frac->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 			Expression = Frac;
 		} else if (Type->Type == "MaterialExpressionArcsine") {
 			UMaterialExpressionArcsine* Arcsine = Cast<UMaterialExpressionArcsine>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					Arcsine->Input = Input;
-				}
-			}
-
+			Arcsine->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 			Expression = Arcsine;
 		} else if (Type->Type == "MaterialExpressionSign") {
 			UMaterialExpressionSign* Sign = static_cast<UMaterialExpressionSign*>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					Sign->Input = Input;
-				}
-			}
-
+			Sign->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 			Expression = Sign;
 		} else if (Type->Type == "MaterialExpressionArcsineFast") {
 			UMaterialExpressionArcsineFast* ArcsineFast = static_cast<UMaterialExpressionArcsineFast*>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					ArcsineFast->Input = Input;
-				}
-			}
-
+			ArcsineFast->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 			Expression = ArcsineFast;
 		} else if (Type->Type == "MaterialExpressionConstant") {
 			UMaterialExpressionConstant* Constant = Cast<UMaterialExpressionConstant>(Expression);
 
-			float R;
-			if (Properties->TryGetNumberField("R", R)) Constant->R = R;
-
+			if (float R; Properties->TryGetNumberField("R", R))
+				Constant->R = R;
 			Expression = Constant;
 		} else if (Type->Type == "MaterialExpressionAdd") {
 			UMaterialExpressionAdd* Add = Cast<UMaterialExpressionAdd>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
+			Add->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			Add->B = CreateExpressionInput(Properties, CreatedExpressionMap, "B");
 
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					Add->A = A;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					Add->B = B;
-				}
-			}
-
-			float ConstA;
-			if (Properties->TryGetNumberField("ConstA", ConstA)) Add->ConstA = ConstA;
-			float ConstB;
-			if (Properties->TryGetNumberField("ConstB", ConstB)) Add->ConstB = ConstB;
+			if (float ConstA; Properties->TryGetNumberField("ConstA", ConstA)) 
+				Add->ConstA = ConstA;
+			if (float ConstB; Properties->TryGetNumberField("ConstB", ConstB)) 
+				Add->ConstB = ConstB;
 
 			Expression = Add;
 		} else if (Type->Type == "MaterialExpressionLinearInterpolate") {
 			UMaterialExpressionLinearInterpolate* LinearInterpolate = Cast<UMaterialExpressionLinearInterpolate>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					LinearInterpolate->A = A;
-				}
-			}
+			// Create Expression Inputs
+			LinearInterpolate->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			LinearInterpolate->B = CreateExpressionInput(Properties, CreatedExpressionMap, "B");
+			LinearInterpolate->Alpha = CreateExpressionInput(Properties, CreatedExpressionMap, "Alpha");
 
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					LinearInterpolate->B = B;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* AlphaPtr = nullptr;
-			if (Properties->TryGetObjectField("Alpha", AlphaPtr) && AlphaPtr != nullptr) {
-				FJsonObject* AlphaObject = AlphaPtr->Get();
-				FName AlphaExpressionName = GetExpressionName(AlphaObject);
-				if (CreatedExpressionMap.Contains(AlphaExpressionName)) {
-					FExpressionInput Alpha = PopulateExpressionInput(AlphaObject, *CreatedExpressionMap.Find(AlphaExpressionName));
-					LinearInterpolate->Alpha = Alpha;
-				}
-			}
-
-			float ConstA;
-			if (Properties->TryGetNumberField("ConstA", ConstA)) LinearInterpolate->ConstA = ConstA;
-			float ConstB;
-			if (Properties->TryGetNumberField("ConstB", ConstB)) LinearInterpolate->ConstB = ConstB;
-			float ConstAlpha;
-			if (Properties->TryGetNumberField("ConstAlpha", ConstAlpha)) LinearInterpolate->ConstAlpha = ConstAlpha;
+			if (float ConstA; Properties->TryGetNumberField("ConstA", ConstA)) 
+				LinearInterpolate->ConstA = ConstA;
+			if (float ConstB; Properties->TryGetNumberField("ConstB", ConstB)) 
+				LinearInterpolate->ConstB = ConstB;
+			if (float ConstAlpha; Properties->TryGetNumberField("ConstAlpha", ConstAlpha)) 
+				LinearInterpolate->ConstAlpha = ConstAlpha;
 
 			Expression = LinearInterpolate;
 		} else if (Type->Type == "MaterialExpressionAbsorptionMediumMaterialOutput") {
 			UMaterialExpressionAbsorptionMediumMaterialOutput* AbsorptionMediumMaterialOutput = Cast<UMaterialExpressionAbsorptionMediumMaterialOutput>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("TransmittanceColor", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					AbsorptionMediumMaterialOutput->TransmittanceColor = A;
-				}
-			}
-
+			AbsorptionMediumMaterialOutput->TransmittanceColor = CreateExpressionInput(Properties, CreatedExpressionMap, "TransmittanceColor");
 			Expression = AbsorptionMediumMaterialOutput;
 		} else if (Type->Type == "MaterialExpressionComponentMask") {
 			UMaterialExpressionComponentMask* ComponentMask = Cast<UMaterialExpressionComponentMask>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
+			ComponentMask->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					ComponentMask->Input = Input;
-				}
-			}
-
-			bool R;
-			if (Properties->TryGetBoolField("R", R)) ComponentMask->R = R;
-			bool G;
-			if (Properties->TryGetBoolField("G", G)) ComponentMask->G = G;
-			bool B;
-			if (Properties->TryGetBoolField("B", B)) ComponentMask->B = B;
-			bool A;
-			if (Properties->TryGetBoolField("A", A)) ComponentMask->A = A;
+			if (bool R; Properties->TryGetBoolField("R", R)) 
+				ComponentMask->R = R;
+			if (bool G; Properties->TryGetBoolField("G", G)) 
+				ComponentMask->G = G;
+			if (bool B; Properties->TryGetBoolField("B", B)) 
+				ComponentMask->B = B;
+			if (bool A; Properties->TryGetBoolField("A", A)) 
+				ComponentMask->A = A;
 
 			Expression = ComponentMask;
 		} else if (Type->Type == "MaterialExpressionConstant2Vector") {
 			UMaterialExpressionConstant2Vector* Vector2 = Cast<UMaterialExpressionConstant2Vector>(Expression);
 
-			float R;
-			if (Properties->TryGetNumberField("R", R)) Vector2->R = R;
-			float G;
-			if (Properties->TryGetNumberField("G", G)) Vector2->G = G;
+			if (float R; Properties->TryGetNumberField("R", R)) 
+				Vector2->R = R;
+			if (float G; Properties->TryGetNumberField("G", G)) 
+				Vector2->G = G;
 
 			Expression = Vector2;
 		} else if (Type->Type == "MaterialExpressionConstant3Vector") {
 			UMaterialExpressionConstant3Vector* Vector3 = Cast<UMaterialExpressionConstant3Vector>(Expression);
 
-			const TSharedPtr<FJsonObject>* Constant;
-			if (Properties->TryGetObjectField("Constant", Constant)) Vector3->Constant = FMathUtilities::ObjectToLinearColor(Constant->Get());
+			if (const TSharedPtr<FJsonObject>* Constant; Properties->TryGetObjectField("Constant", Constant))
+				Vector3->Constant = FMathUtilities::ObjectToLinearColor(Constant->Get());
 
 			Expression = Vector3;
 		} else if (Type->Type == "MaterialExpressionConstant4Vector") {
 			UMaterialExpressionConstant4Vector* Vector4 = Cast<UMaterialExpressionConstant4Vector>(Expression);
 
-			const TSharedPtr<FJsonObject>* Constant;
-			if (Properties->TryGetObjectField("Constant", Constant)) Vector4->Constant = FMathUtilities::ObjectToLinearColor(Constant->Get());
+			if (const TSharedPtr<FJsonObject>* Constant; Properties->TryGetObjectField("Constant", Constant))
+				Vector4->Constant = FMathUtilities::ObjectToLinearColor(Constant->Get());
 
 			Expression = Vector4;
 		} else if (Type->Type == "MaterialExpressionConstantBiasScale") {
 			UMaterialExpressionConstantBiasScale* ConstantBiasScale = Cast<UMaterialExpressionConstantBiasScale>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					ConstantBiasScale->Input = Input;
-				}
-			}
-
-			float Bias;
-			if (Properties->TryGetNumberField("Bias", Bias)) ConstantBiasScale->Bias = Bias;
-			float Scale;
-			if (Properties->TryGetNumberField("Scale", Scale)) ConstantBiasScale->Scale = Scale;
+			ConstantBiasScale->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
+			if (float Bias; Properties->TryGetNumberField("Bias", Bias)) 
+				ConstantBiasScale->Bias = Bias;
+			if (float Scale; Properties->TryGetNumberField("Scale", Scale)) 
+				ConstantBiasScale->Scale = Scale;
 
 			Expression = ConstantBiasScale;
 		} else if (Type->Type == "MaterialExpressionOneMinus") {
 			UMaterialExpressionOneMinus* OneMinus = Cast<UMaterialExpressionOneMinus>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					OneMinus->Input = Input;
-				}
-			}
+			OneMinus->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 
 			Expression = OneMinus;
 		} else if (Type->Type == "MaterialExpressionMultiply") {
 			UMaterialExpressionMultiply* Multiply = Cast<UMaterialExpressionMultiply>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					Multiply->A = A;
-				}
-			}
+			Multiply->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			Multiply->B = CreateExpressionInput(Properties, CreatedExpressionMap, "B");
 
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					Multiply->B = B;
-				}
-			}
-
-			float ConstA;
-			if (Properties->TryGetNumberField("ConstA", ConstA)) Multiply->ConstA = ConstA;
-			float ConstB;
-			if (Properties->TryGetNumberField("ConstB", ConstB)) Multiply->ConstB = ConstB;
+			if (float ConstA; Properties->TryGetNumberField("ConstA", ConstA)) 
+				Multiply->ConstA = ConstA;
+			if (float ConstB; Properties->TryGetNumberField("ConstB", ConstB)) 
+				Multiply->ConstB = ConstB;
 
 			Expression = Multiply;
 		}
 		if (Type->Type == "MaterialExpressionRuntimeVirtualTextureSample" || Type->Type == "MaterialExpressionRuntimeVirtualTextureSampleParameter") {
 			UMaterialExpressionRuntimeVirtualTextureSample* RuntimeVirtualTextureSample = Cast<UMaterialExpressionRuntimeVirtualTextureSample>(Expression);
 
-			const TSharedPtr<FJsonObject>* CoordinatesPtr = nullptr;
-			if (Properties->TryGetObjectField("Coordinates", CoordinatesPtr) && CoordinatesPtr != nullptr) {
-				FJsonObject* CoordinatesObject = CoordinatesPtr->Get();
-				FName CoordinatesExpressionName = GetExpressionName(CoordinatesObject);
-				if (CreatedExpressionMap.Contains(CoordinatesExpressionName)) {
-					FExpressionInput Coordinates = PopulateExpressionInput(CoordinatesObject, *CreatedExpressionMap.Find(CoordinatesExpressionName));
-					RuntimeVirtualTextureSample->Coordinates = Coordinates;
-				}
-			}
+			RuntimeVirtualTextureSample->Coordinates = CreateExpressionInput(Properties, CreatedExpressionMap, "Coordinates");
+			RuntimeVirtualTextureSample->WorldPosition = CreateExpressionInput(Properties, CreatedExpressionMap, "WorldPosition");
+			RuntimeVirtualTextureSample->MipValue = CreateExpressionInput(Properties, CreatedExpressionMap, "MipValue");
 
-			const TSharedPtr<FJsonObject>* WorldPositionPtr = nullptr;
-			if (Properties->TryGetObjectField("WorldPosition", WorldPositionPtr) && WorldPositionPtr != nullptr) {
-				FJsonObject* WorldPositionObject = WorldPositionPtr->Get();
-				FName WorldPositionExpressionName = GetExpressionName(WorldPositionObject);
-				if (CreatedExpressionMap.Contains(WorldPositionExpressionName)) {
-					FExpressionInput WorldPosition = PopulateExpressionInput(WorldPositionObject, *CreatedExpressionMap.Find(WorldPositionExpressionName));
-					RuntimeVirtualTextureSample->WorldPosition = WorldPosition;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* MipValuePtr = nullptr;
-			if (Properties->TryGetObjectField("MipValue", MipValuePtr) && MipValuePtr != nullptr) {
-				FJsonObject* MipValueObject = MipValuePtr->Get();
-				FName MipValueExpressionName = GetExpressionName(MipValueObject);
-				if (CreatedExpressionMap.Contains(MipValueExpressionName)) {
-					FExpressionInput MipValue = PopulateExpressionInput(MipValueObject, *CreatedExpressionMap.Find(MipValueExpressionName));
-					RuntimeVirtualTextureSample->MipValue = MipValue;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* VirtualTexture = nullptr;
-			if (Properties->TryGetObjectField("VirtualTexture", VirtualTexture) && VirtualTexture != nullptr) {
+			if (const TSharedPtr<FJsonObject>* VirtualTexture; Properties->TryGetObjectField("VirtualTexture", VirtualTexture)) {
 				LoadObject(VirtualTexture, RuntimeVirtualTextureSample->VirtualTexture);
 
 				if (RuntimeVirtualTextureSample->VirtualTexture == nullptr) {
@@ -619,79 +419,58 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 					AppendNotification(FText::FromString("Virtual Texture Sample Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
 				}
 			}
-
-			FString MaterialType;
-			if (Properties->TryGetStringField("MaterialType", MaterialType)) {
+			
+			if (FString MaterialType; Properties->TryGetStringField("MaterialType", MaterialType))
 				RuntimeVirtualTextureSample->MaterialType = static_cast<ERuntimeVirtualTextureMaterialType>(StaticEnum<ERuntimeVirtualTextureMaterialType>()->GetValueByNameString(MaterialType));
-			}
-
-			bool bSinglePhysicalSpace;
-			if (Properties->TryGetBoolField("bSinglePhysicalSpace", bSinglePhysicalSpace)) RuntimeVirtualTextureSample->bSinglePhysicalSpace = bSinglePhysicalSpace;
-			bool bAdaptive;
-			if (Properties->TryGetBoolField("bAdaptive", bAdaptive)) RuntimeVirtualTextureSample->bAdaptive = bAdaptive;
-
-			FString MipValueMode;
-			if (Properties->TryGetStringField("MipValueMode", MipValueMode)) {
+			if (bool bSinglePhysicalSpace; Properties->TryGetBoolField("bSinglePhysicalSpace", bSinglePhysicalSpace)) RuntimeVirtualTextureSample->bSinglePhysicalSpace = bSinglePhysicalSpace;
+			if (bool bAdaptive; Properties->TryGetBoolField("bAdaptive", bAdaptive)) RuntimeVirtualTextureSample->bAdaptive = bAdaptive;
+			if (FString MipValueMode; Properties->TryGetStringField("MipValueMode", MipValueMode))
 				RuntimeVirtualTextureSample->MipValueMode = static_cast<ERuntimeVirtualTextureMipValueMode>(StaticEnum<ERuntimeVirtualTextureMipValueMode>()->GetValueByNameString(MipValueMode));
-			}
-
-			FString TextureAddressMode;
-			if (Properties->TryGetStringField("TextureAddressMode", TextureAddressMode)) {
+			if (FString TextureAddressMode; Properties->TryGetStringField("TextureAddressMode", TextureAddressMode))
 				RuntimeVirtualTextureSample->TextureAddressMode = static_cast<ERuntimeVirtualTextureTextureAddressMode>(StaticEnum<ERuntimeVirtualTextureTextureAddressMode>()->GetValueByNameString(TextureAddressMode));
-			}
 
 			Expression = RuntimeVirtualTextureSample;
 		}
 		if (Type->Type == "MaterialExpressionRuntimeVirtualTextureSampleParameter") {
 			UMaterialExpressionRuntimeVirtualTextureSampleParameter* RuntimeVirtualTextureSampleParameter = Cast<UMaterialExpressionRuntimeVirtualTextureSampleParameter>(Expression);
 
-			FString ExpressionGUID;
-			if (Properties->TryGetStringField("ExpressionGUID", ExpressionGUID)) RuntimeVirtualTextureSampleParameter->ExpressionGUID = FGuid(ExpressionGUID);
-			FString ParameterName;
-			if (Properties->TryGetStringField("ParameterName", ParameterName)) RuntimeVirtualTextureSampleParameter->ParameterName = FName(ParameterName);
-			FString Group;
-			if (Properties->TryGetStringField("Group", Group)) RuntimeVirtualTextureSampleParameter->Group = FName(Group);
-			int SortPriority;
-			if (Properties->TryGetNumberField("SortPriority", SortPriority)) RuntimeVirtualTextureSampleParameter->SortPriority = SortPriority;
+			if (FString ExpressionGUID; Properties->TryGetStringField("ExpressionGUID", ExpressionGUID)) 
+				RuntimeVirtualTextureSampleParameter->ExpressionGUID = FGuid(ExpressionGUID);
+			if (FString ParameterName; Properties->TryGetStringField("ParameterName", ParameterName)) 
+				RuntimeVirtualTextureSampleParameter->ParameterName = FName(ParameterName);
+			if (FString Group; Properties->TryGetStringField("Group", Group)) 
+				RuntimeVirtualTextureSampleParameter->Group = FName(Group);
+			if (int SortPriority; Properties->TryGetNumberField("SortPriority", SortPriority)) 
+				RuntimeVirtualTextureSampleParameter->SortPriority = SortPriority;
 
 			Expression = RuntimeVirtualTextureSampleParameter;
 		}
 		if (Type->Type == "MaterialExpressionVectorParameter" || Type->Type == "MaterialExpressionChannelMaskParameter") {
 			UMaterialExpressionVectorParameter* VectorParameter = Cast<UMaterialExpressionVectorParameter>(Expression);
 
-			const TSharedPtr<FJsonObject>* DefaultValue;
-			if (Properties->TryGetObjectField("DefaultValue", DefaultValue)) VectorParameter->DefaultValue = FMathUtilities::ObjectToLinearColor(DefaultValue->Get());
-			bool bUseCustomPrimitiveData;
-			if (Properties->TryGetBoolField("bUseCustomPrimitiveData", bUseCustomPrimitiveData)) VectorParameter->bUseCustomPrimitiveData = bUseCustomPrimitiveData;
-			uint8 PrimitiveDataIndex;
-			if (Properties->TryGetNumberField("PrimitiveDataIndex", PrimitiveDataIndex)) VectorParameter->PrimitiveDataIndex = PrimitiveDataIndex;
+			if (const TSharedPtr<FJsonObject>* DefaultValue; Properties->TryGetObjectField("DefaultValue", DefaultValue)) 
+				VectorParameter->DefaultValue = FMathUtilities::ObjectToLinearColor(DefaultValue->Get());
+			if (bool bUseCustomPrimitiveData; Properties->TryGetBoolField("bUseCustomPrimitiveData", bUseCustomPrimitiveData)) 
+				VectorParameter->bUseCustomPrimitiveData = bUseCustomPrimitiveData;
+			if (uint8 PrimitiveDataIndex; Properties->TryGetNumberField("PrimitiveDataIndex", PrimitiveDataIndex)) 
+				VectorParameter->PrimitiveDataIndex = PrimitiveDataIndex;
 
-			const TSharedPtr<FJsonObject>* ChannelNames;
-			if (Properties->TryGetObjectField("ChannelNames", ChannelNames)) {
-				const TSharedPtr<FJsonObject>* R;
-				if (ChannelNames->Get()->TryGetObjectField("R", R)) {
+			if (const TSharedPtr<FJsonObject>* ChannelNames; Properties->TryGetObjectField("ChannelNames", ChannelNames)) {
+				if (const TSharedPtr<FJsonObject>* R; ChannelNames->Get()->TryGetObjectField("R", R))
 					VectorParameter->ChannelNames.R = FText::FromString(R->Get()->GetStringField("SourceString"));
-				}
-				const TSharedPtr<FJsonObject>* G;
-				if (ChannelNames->Get()->TryGetObjectField("G", G)) {
+				if (const TSharedPtr<FJsonObject>* G; ChannelNames->Get()->TryGetObjectField("G", G))
 					VectorParameter->ChannelNames.G = FText::FromString(G->Get()->GetStringField("SourceString"));
-				}
-				const TSharedPtr<FJsonObject>* B;
-				if (ChannelNames->Get()->TryGetObjectField("B", B)) {
+				if (const TSharedPtr<FJsonObject>* B; ChannelNames->Get()->TryGetObjectField("B", B))
 					VectorParameter->ChannelNames.B = FText::FromString(B->Get()->GetStringField("SourceString"));
-				}
-				const TSharedPtr<FJsonObject>* A;
-				if (ChannelNames->Get()->TryGetObjectField("A", A)) {
+				if (const TSharedPtr<FJsonObject>* A; ChannelNames->Get()->TryGetObjectField("A", A))
 					VectorParameter->ChannelNames.A = FText::FromString(A->Get()->GetStringField("SourceString"));
-				}
 			}
 
 			Expression = VectorParameter;
 		} else if (Type->Type == "MaterialExpressionMaterialFunctionCall") {
 			UMaterialExpressionMaterialFunctionCall* MaterialFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression);
 
-			const TSharedPtr<FJsonObject>* MaterialFunctionPtr = nullptr;
-			if (Properties->TryGetObjectField("MaterialFunction", MaterialFunctionPtr) && MaterialFunctionPtr != nullptr) {
+			if (const TSharedPtr<FJsonObject>* MaterialFunctionPtr; Properties->TryGetObjectField("MaterialFunction", MaterialFunctionPtr)) {
 				LoadObject(MaterialFunctionPtr, MaterialFunctionCall->MaterialFunction);
 
 				// Notify material function is missing
@@ -703,8 +482,7 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 				}
 			}
 
-			const TArray<TSharedPtr<FJsonValue>>* FunctionInputsPtr;
-			if (Properties->TryGetArrayField("FunctionInputs", FunctionInputsPtr)) {
+			if (const TArray<TSharedPtr<FJsonValue>>* FunctionInputsPtr; Properties->TryGetArrayField("FunctionInputs", FunctionInputsPtr)) {
 				TArray<FFunctionExpressionInput> FunctionInputs;
 				for (const TSharedPtr<FJsonValue> FunctionInputValue : *FunctionInputsPtr) {
 					TSharedPtr<FJsonObject> FunctionInputObject = FunctionInputValue->AsObject();
@@ -715,8 +493,7 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 				MaterialFunctionCall->FunctionInputs = FunctionInputs;
 			}
 
-			const TArray<TSharedPtr<FJsonValue>>* FunctionOutputsPtr;
-			if (Properties->TryGetArrayField("FunctionOutputs", FunctionOutputsPtr)) {
+			if (const TArray<TSharedPtr<FJsonValue>>* FunctionOutputsPtr; Properties->TryGetArrayField("FunctionOutputs", FunctionOutputsPtr)) {
 				TArray<FFunctionExpressionOutput> FunctionOutputs;
 				for (const TSharedPtr<FJsonValue> FunctionOutputValue : *FunctionOutputsPtr) {
 					TSharedPtr<FJsonObject> FunctionOutputObject = FunctionOutputValue->AsObject();
@@ -730,346 +507,172 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		} else if (Type->Type == "MaterialExpressionMax") {
 			UMaterialExpressionMax* Max = Cast<UMaterialExpressionMax>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					Max->A = A;
-				}
-			}
+			Max->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			Max->B = CreateExpressionInput(Properties, CreatedExpressionMap, "B");
 
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					Max->B = B;
-				}
-			}
-
-			float ConstA;
-			if (Properties->TryGetNumberField("ConstA", ConstA)) Max->ConstA = ConstA;
-			float ConstB;
-			if (Properties->TryGetNumberField("ConstB", ConstB)) Max->ConstB = ConstB;
+			if (float ConstA; Properties->TryGetNumberField("ConstA", ConstA)) 
+				Max->ConstA = ConstA;
+			if (float ConstB; Properties->TryGetNumberField("ConstB", ConstB)) 
+				Max->ConstB = ConstB;
 
 			Expression = Max;
 		} else if (Type->Type == "MaterialExpressionTextureCoordinate") {
 			UMaterialExpressionTextureCoordinate* TextureCoordinate = Cast<UMaterialExpressionTextureCoordinate>(Expression);
 
-			int CoordinateIndex;
-			if (Properties->TryGetNumberField("CoordinateIndex", CoordinateIndex)) TextureCoordinate->CoordinateIndex = CoordinateIndex;
-			float UTiling;
-			if (Properties->TryGetNumberField("UTiling", UTiling)) TextureCoordinate->UTiling = UTiling;
-			float VTiling;
-			if (Properties->TryGetNumberField("VTiling", VTiling)) TextureCoordinate->VTiling = VTiling;
+			if (int CoordinateIndex; Properties->TryGetNumberField("CoordinateIndex", CoordinateIndex)) 
+				TextureCoordinate->CoordinateIndex = CoordinateIndex;
+			if (float UTiling; Properties->TryGetNumberField("UTiling", UTiling)) 
+				TextureCoordinate->UTiling = UTiling;
+			if (float VTiling; Properties->TryGetNumberField("VTiling", VTiling)) 
+				TextureCoordinate->VTiling = VTiling;
 
-			bool UnMirrorU;
-			if (Properties->TryGetBoolField("UnMirrorU", UnMirrorU)) TextureCoordinate->UnMirrorU = UnMirrorU;
-			bool UnMirrorV;
-			if (Properties->TryGetBoolField("UnMirrorV", UnMirrorV)) TextureCoordinate->UnMirrorV = UnMirrorV;
+			if (bool UnMirrorU; Properties->TryGetBoolField("UnMirrorU", UnMirrorU)) 
+				TextureCoordinate->UnMirrorU = UnMirrorU;
+			if (bool UnMirrorV; Properties->TryGetBoolField("UnMirrorV", UnMirrorV)) 
+				TextureCoordinate->UnMirrorV = UnMirrorV;
 
 			Expression = TextureCoordinate;
 		} else if (Type->Type == "MaterialExpressionTime") {
 			UMaterialExpressionTime* Time = Cast<UMaterialExpressionTime>(Expression);
 
-			bool bIgnorePause;
-			if (Properties->TryGetBoolField("bIgnorePause", bIgnorePause)) Time->bIgnorePause = bIgnorePause;
-			bool bOverride_Period;
-			if (Properties->TryGetBoolField("bOverride_Period", bOverride_Period)) Time->bOverride_Period = bOverride_Period;
-
-			float Period;
-			if (Properties->TryGetNumberField("Period", Period)) Time->Period = Period;
+			if (bool bIgnorePause; Properties->TryGetBoolField("bIgnorePause", bIgnorePause)) 
+				Time->bIgnorePause = bIgnorePause;
+			if (bool bOverride_Period; Properties->TryGetBoolField("bOverride_Period", bOverride_Period)) 
+				Time->bOverride_Period = bOverride_Period;
+			if (float Period; Properties->TryGetNumberField("Period", Period)) 
+				Time->Period = Period;
 
 			Expression = Time;
 		} else if (Type->Type == "MaterialExpressionScalarParameter") {
 			UMaterialExpressionScalarParameter* ScalarParameter = Cast<UMaterialExpressionScalarParameter>(Expression);
 
-			float DefaultValue;
-			if (Properties->TryGetNumberField("DefaultValue", DefaultValue)) ScalarParameter->DefaultValue = DefaultValue;
-
-			bool bUseCustomPrimitiveData;
-			if (Properties->TryGetBoolField("bUseCustomPrimitiveData", bUseCustomPrimitiveData)) ScalarParameter->bUseCustomPrimitiveData = bUseCustomPrimitiveData;
-			uint8 PrimitiveDataIndex;
-			if (Properties->TryGetNumberField("PrimitiveDataIndex", PrimitiveDataIndex)) ScalarParameter->PrimitiveDataIndex = PrimitiveDataIndex;
-
-			float SliderMin;
-			if (Properties->TryGetNumberField("SliderMin", SliderMin)) ScalarParameter->SliderMin = SliderMin;
-			float SliderMax;
-			if (Properties->TryGetNumberField("SliderMax", SliderMax)) ScalarParameter->SliderMax = SliderMax;
+			if (float DefaultValue; Properties->TryGetNumberField("DefaultValue", DefaultValue)) ScalarParameter->DefaultValue = DefaultValue;
+			
+			if (bool bUseCustomPrimitiveData; Properties->TryGetBoolField("bUseCustomPrimitiveData", bUseCustomPrimitiveData)) 
+				ScalarParameter->bUseCustomPrimitiveData = bUseCustomPrimitiveData;
+			if (uint8 PrimitiveDataIndex; Properties->TryGetNumberField("PrimitiveDataIndex", PrimitiveDataIndex)) 
+				ScalarParameter->PrimitiveDataIndex = PrimitiveDataIndex;
+			
+			if (float SliderMin; Properties->TryGetNumberField("SliderMin", SliderMin)) 
+				ScalarParameter->SliderMin = SliderMin;
+			if (float SliderMax; Properties->TryGetNumberField("SliderMax", SliderMax)) 
+				ScalarParameter->SliderMax = SliderMax;
 
 			Expression = ScalarParameter;
 		} else if (Type->Type == "MaterialExpressionPanner") {
 			UMaterialExpressionPanner* Panner = Cast<UMaterialExpressionPanner>(Expression);
 
-			const TSharedPtr<FJsonObject>* CoordinatePtr = nullptr;
-			if (Properties->TryGetObjectField("Coordinate", CoordinatePtr) && CoordinatePtr != nullptr) {
-				FJsonObject* CoordinateObject = CoordinatePtr->Get();
-				FName CoordinateExpressionName = GetExpressionName(CoordinateObject);
-				if (CreatedExpressionMap.Contains(CoordinateExpressionName)) {
-					FExpressionInput Coordinate = PopulateExpressionInput(CoordinateObject, *CreatedExpressionMap.Find(CoordinateExpressionName));
-					Panner->Coordinate = Coordinate;
-				}
-			}
+			Panner->Coordinate = CreateExpressionInput(Properties, CreatedExpressionMap, "Coordinate");
+			Panner->Time = CreateExpressionInput(Properties, CreatedExpressionMap, "Time");
+			Panner->Speed = CreateExpressionInput(Properties, CreatedExpressionMap, "Speed");
 
-			const TSharedPtr<FJsonObject>* TimePtr = nullptr;
-			if (Properties->TryGetObjectField("Time", TimePtr) && TimePtr != nullptr) {
-				FJsonObject* TimeObject = TimePtr->Get();
-				FName TimeExpressionName = GetExpressionName(TimeObject);
-				if (CreatedExpressionMap.Contains(TimeExpressionName)) {
-					FExpressionInput Time = PopulateExpressionInput(TimeObject, *CreatedExpressionMap.Find(TimeExpressionName));
-					Panner->Time = Time;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* SpeedPtr = nullptr;
-			if (Properties->TryGetObjectField("Speed", SpeedPtr) && SpeedPtr != nullptr) {
-				FJsonObject* SpeedObject = SpeedPtr->Get();
-				FName SpeedExpressionName = GetExpressionName(SpeedObject);
-				if (CreatedExpressionMap.Contains(SpeedExpressionName)) {
-					FExpressionInput Speed = PopulateExpressionInput(SpeedObject, *CreatedExpressionMap.Find(SpeedExpressionName));
-					Panner->Speed = Speed;
-				}
-			}
-
-			float SpeedX;
-			if (Properties->TryGetNumberField("SpeedX", SpeedX)) Panner->SpeedX = SpeedX;
-			float SpeedY;
-			if (Properties->TryGetNumberField("SpeedY", SpeedY)) Panner->SpeedY = SpeedY;
-			int ConstCoordinate;
-			if (Properties->TryGetNumberField("ConstCoordinate", ConstCoordinate)) Panner->ConstCoordinate = ConstCoordinate;
-
-			bool bFractionalPart;
-			if (Properties->TryGetBoolField("bFractionalPart", bFractionalPart)) Panner->bFractionalPart = bFractionalPart;
+			if (float SpeedX; Properties->TryGetNumberField("SpeedX", SpeedX)) 
+				Panner->SpeedX = SpeedX;
+			if (float SpeedY; Properties->TryGetNumberField("SpeedY", SpeedY)) 
+				Panner->SpeedY = SpeedY;
+			if (int ConstCoordinate; Properties->TryGetNumberField("ConstCoordinate", ConstCoordinate)) 
+				Panner->ConstCoordinate = ConstCoordinate;
+			if (bool bFractionalPart; Properties->TryGetBoolField("bFractionalPart", bFractionalPart)) 
+				Panner->bFractionalPart = bFractionalPart;
 
 			Expression = Panner;
 		} else if (Type->Type == "MaterialExpressionNamedRerouteDeclaration") {
 			UMaterialExpressionNamedRerouteDeclaration* NamedRerouteDeclaration = Cast<UMaterialExpressionNamedRerouteDeclaration>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					NamedRerouteDeclaration->Input = Input;
-				}
-			}
+			NamedRerouteDeclaration->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 
-			FString VarName;
-			if (Properties->TryGetStringField("Name", VarName)) NamedRerouteDeclaration->Name = FName(VarName);
-			const TSharedPtr<FJsonObject>* NodeColor;
-			if (Properties->TryGetObjectField("NodeColor", NodeColor)) NamedRerouteDeclaration->NodeColor = FMathUtilities::ObjectToLinearColor(NodeColor->Get());
-			FString VariableGuid;
-			if (Properties->TryGetStringField("VariableGuid", VariableGuid)) NamedRerouteDeclaration->VariableGuid = FGuid(VariableGuid);
+			if (FString VarName; Properties->TryGetStringField("Name", VarName))
+				NamedRerouteDeclaration->Name = FName(VarName);
+			if (const TSharedPtr<FJsonObject>* NodeColor; Properties->TryGetObjectField("NodeColor", NodeColor))
+				NamedRerouteDeclaration->NodeColor = FMathUtilities::ObjectToLinearColor(NodeColor->Get());
+			if (FString VariableGuid; Properties->TryGetStringField("VariableGuid", VariableGuid)) 
+				NamedRerouteDeclaration->VariableGuid = FGuid(VariableGuid);
 
 			Expression = NamedRerouteDeclaration;
 		} else if (Type->Type == "MaterialExpressionSceneTexture") {
 			UMaterialExpressionSceneTexture* SceneTexture = static_cast<UMaterialExpressionSceneTexture*>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Coordinates", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					SceneTexture->Coordinates = Input;
-				}
-			}
+			SceneTexture->Coordinates = CreateExpressionInput(Properties, CreatedExpressionMap, "Coordinates");
+			if (bool bFiltered; Properties->TryGetBoolField("bFiltered", bFiltered)) 
+				SceneTexture->bFiltered = bFiltered;
 
-			bool bFiltered;
-			if (Properties->TryGetBoolField("bFiltered", bFiltered)) SceneTexture->bFiltered = bFiltered;
-
-			FString SceneTextureId;
-			if (Properties->TryGetStringField("SceneTextureId", SceneTextureId)) {
+			if (FString SceneTextureId; Properties->TryGetStringField("SceneTextureId", SceneTextureId))
 				SceneTexture->SceneTextureId = static_cast<ESceneTextureId>(StaticEnum<ESceneTextureId>()->GetValueByNameString(SceneTextureId));
-			}
 
 			Expression = SceneTexture;
 		} else if (Type->Type == "MaterialExpressionReroute") {
 			UMaterialExpressionReroute* Reroute = Cast<UMaterialExpressionReroute>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					Reroute->Input = Input;
-				}
-			}
-
+			Reroute->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 			Expression = Reroute;
 		} else if (Type->Type == "MaterialExpressionDDX") {
 			UMaterialExpressionDDX* ExpressionDDX = Cast<UMaterialExpressionDDX>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Value", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					ExpressionDDX->Value = Input;
-				}
-			}
-
+			ExpressionDDX->Value = CreateExpressionInput(Properties, CreatedExpressionMap, "Value");
 			Expression = ExpressionDDX;
 		} else if (Type->Type == "MaterialExpressionDDY") {
 			UMaterialExpressionDDY* ExpressionDDY = Cast<UMaterialExpressionDDY>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Value", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					ExpressionDDY->Value = Input;
-				}
-			}
-
+			ExpressionDDY->Value = CreateExpressionInput(Properties, CreatedExpressionMap, "Value");
 			Expression = ExpressionDDY;
 		} else if (Type->Type == "MaterialExpressionSubtract") {
 			UMaterialExpressionSubtract* Subtract = Cast<UMaterialExpressionSubtract>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					Subtract->A = A;
-				}
-			}
+			Subtract->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			Subtract->B = CreateExpressionInput(Properties, CreatedExpressionMap, "B");
 
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					Subtract->B = B;
-				}
-			}
-
-			float ConstA;
-			if (Properties->TryGetNumberField("ConstA", ConstA)) Subtract->ConstA = ConstA;
-			float ConstB;
-			if (Properties->TryGetNumberField("ConstB", ConstB)) Subtract->ConstB = ConstB;
+			if (float ConstA; Properties->TryGetNumberField("ConstA", ConstA)) Subtract->ConstA = ConstA;
+			if (float ConstB; Properties->TryGetNumberField("ConstB", ConstB)) Subtract->ConstB = ConstB;
 
 			Expression = Subtract;
 		} else if (Type->Type == "MaterialExpressionSaturate") {
 			UMaterialExpressionSaturate* Saturate = Cast<UMaterialExpressionSaturate>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					Saturate->Input = Input;
-				}
-			}
-
+			Saturate->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 			Expression = Saturate;
 		} else if (Type->Type == "MaterialExpressionRotator") {
 			UMaterialExpressionRotator* Rotator = static_cast<UMaterialExpressionRotator*>(Expression);
 
-			const TSharedPtr<FJsonObject>* CoordinatePtr = nullptr;
-			if (Properties->TryGetObjectField("Coordinate", CoordinatePtr) && CoordinatePtr != nullptr) {
-				FJsonObject* CoordinateObject = CoordinatePtr->Get();
-				FName CoordinateExpressionName = GetExpressionName(CoordinateObject);
-				if (CreatedExpressionMap.Contains(CoordinateExpressionName)) {
-					FExpressionInput Coordinate = PopulateExpressionInput(CoordinateObject, *CreatedExpressionMap.Find(CoordinateExpressionName));
-					Rotator->Coordinate = Coordinate;
-				}
-			}
+			Rotator->Coordinate = CreateExpressionInput(Properties, CreatedExpressionMap, "Coordinate");
+			Rotator->Time = CreateExpressionInput(Properties, CreatedExpressionMap, "Time");
 
-			const TSharedPtr<FJsonObject>* TimePtr = nullptr;
-			if (Properties->TryGetObjectField("Time", TimePtr) && TimePtr != nullptr) {
-				FJsonObject* TimeObject = TimePtr->Get();
-				FName TimeExpressionName = GetExpressionName(TimeObject);
-				if (CreatedExpressionMap.Contains(TimeExpressionName)) {
-					FExpressionInput Time = PopulateExpressionInput(TimeObject, *CreatedExpressionMap.Find(TimeExpressionName));
-					Rotator->Time = Time;
-				}
-			}
-
-			float CenterX;
-			if (Properties->TryGetNumberField("CenterX", CenterX)) Rotator->CenterX = CenterX;
-			float CenterY;
-			if (Properties->TryGetNumberField("CenterY", CenterY)) Rotator->CenterY = CenterY;
-			float Speed;
-			if (Properties->TryGetNumberField("Speed", Speed)) Rotator->Speed = Speed;
-
-			int ConstCoordinate;
-			if (Properties->TryGetNumberField("ConstCoordinate", ConstCoordinate)) Rotator->ConstCoordinate = ConstCoordinate;
+			if (float CenterX; Properties->TryGetNumberField("CenterX", CenterX)) 
+				Rotator->CenterX = CenterX;
+			if (float CenterY; Properties->TryGetNumberField("CenterY", CenterY)) 
+				Rotator->CenterY = CenterY;
+			if (float Speed; Properties->TryGetNumberField("Speed", Speed)) 
+				Rotator->Speed = Speed;
+			if (int ConstCoordinate; Properties->TryGetNumberField("ConstCoordinate", ConstCoordinate)) 
+				Rotator->ConstCoordinate = ConstCoordinate;
 
 			Expression = Rotator;
 		} else if (Type->Type == "MaterialExpressionMin") {
 			UMaterialExpressionMin* Min = Cast<UMaterialExpressionMin>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					Min->A = A;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					Min->B = B;
-				}
-			}
-
-			float ConstA;
-			if (Properties->TryGetNumberField("ConstA", ConstA)) Min->ConstA = ConstA;
-			float ConstB;
-			if (Properties->TryGetNumberField("ConstB", ConstB)) Min->ConstB = ConstB;
+			Min->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			Min->B = CreateExpressionInput(Properties, CreatedExpressionMap, "B");
+			
+			if (float ConstA; Properties->TryGetNumberField("ConstA", ConstA)) 
+				Min->ConstA = ConstA;
+			if (float ConstB; Properties->TryGetNumberField("ConstB", ConstB)) 
+				Min->ConstB = ConstB;
 
 			Expression = Min;
 		} else if (Type->Type == "MaterialExpressionNaniteReplace") {
 			UMaterialExpressionNaniteReplace* NaniteReplace = static_cast<UMaterialExpressionNaniteReplace*>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("Default", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					NaniteReplace->Default = A;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("Nanite", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					NaniteReplace->Nanite = B;
-				}
-			}
-
+			NaniteReplace->Default = CreateExpressionInput(Properties, CreatedExpressionMap, "Default");
+			NaniteReplace->Nanite = CreateExpressionInput(Properties, CreatedExpressionMap, "Nanite");
 			Expression = NaniteReplace;
 		} else if (Type->Type == "MaterialExpressionNamedRerouteUsage") {
 			UMaterialExpressionNamedRerouteUsage* NamedRerouteUsage = Cast<UMaterialExpressionNamedRerouteUsage>(Expression);
 
-			const TSharedPtr<FJsonObject>* DeclarationPtr = nullptr;
-			if (Properties->TryGetObjectField("Declaration", DeclarationPtr) && DeclarationPtr != nullptr) {
+			if (const TSharedPtr<FJsonObject>* DeclarationPtr; Properties->TryGetObjectField("Declaration", DeclarationPtr)) {
 				LoadObject(DeclarationPtr, NamedRerouteUsage->Declaration);
 			}
 
-			FString DeclarationGuid;
-			if (Properties->TryGetStringField("DeclarationGuid", DeclarationGuid)) NamedRerouteUsage->DeclarationGuid = FGuid(DeclarationGuid);
+			if (FString DeclarationGuid; Properties->TryGetStringField("DeclarationGuid", DeclarationGuid)) 
+				NamedRerouteUsage->DeclarationGuid = FGuid(DeclarationGuid);
 
 			Expression = NamedRerouteUsage;
 		} else if (Type->Type == "MaterialExpressionCollectionParameter") {
@@ -1088,300 +691,135 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 				}
 			}
 
-			FString ParameterName;
-			if (Properties->TryGetStringField("ParameterName", ParameterName)) CollectionParameter->ParameterName = FName(ParameterName);
-			FString ParameterId;
-			if (Properties->TryGetStringField("ParameterId", ParameterId)) CollectionParameter->ParameterId = FGuid(ParameterId);
+			if (FString ParameterName; Properties->TryGetStringField("ParameterName", ParameterName)) 
+				CollectionParameter->ParameterName = FName(ParameterName);
+			if (FString ParameterId; Properties->TryGetStringField("ParameterId", ParameterId)) 
+				CollectionParameter->ParameterId = FGuid(ParameterId);
 
 			Expression = CollectionParameter;
 		} else if (Type->Type == "MaterialExpressionLandscapeVisibilityMask") {
 			UMaterialExpressionLandscapeVisibilityMask* LandscapeVisibilityMask = Cast<UMaterialExpressionLandscapeVisibilityMask>(Expression);
-
-			FString ParameterName;
-			if (Properties->TryGetStringField("ParameterName", ParameterName)) LandscapeVisibilityMask->ParameterName = FName(ParameterName);
+			
+			if (FString ParameterName; Properties->TryGetStringField("ParameterName", ParameterName)) 
+				LandscapeVisibilityMask->ParameterName = FName(ParameterName);
 
 			Expression = LandscapeVisibilityMask;
 		} else if (Type->Type == "MaterialExpressionSine") {
 			UMaterialExpressionSine* Sine = Cast<UMaterialExpressionSine>(Expression);
 
-			const TSharedPtr<FJsonObject>* InputPtr = nullptr;
-			if (Properties->TryGetObjectField("Input", InputPtr) && InputPtr != nullptr) {
-				FJsonObject* InputObject = InputPtr->Get();
-				FName InputExpressionName = GetExpressionName(InputObject);
-				if (CreatedExpressionMap.Contains(InputExpressionName)) {
-					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
-					Sine->Input = Input;
-				}
-			}
-
-			float Period;
-			if (Properties->TryGetNumberField("Period", Period)) Sine->Period = Period;
+			Sine->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
+			if (float Period; Properties->TryGetNumberField("Period", Period)) 
+				Sine->Period = Period;
 
 			Expression = Sine;
 		} else if (Type->Type == "MaterialExpressionSmoothStep") {
 			UMaterialExpressionSmoothStep* SmoothStep = Cast<UMaterialExpressionSmoothStep>(Expression);
 
-			const TSharedPtr<FJsonObject>* MinPtr = nullptr;
-			if ((Properties->TryGetObjectField("min", MinPtr) || Properties->TryGetObjectField("Min", MinPtr)) && MinPtr != nullptr) {
-				FJsonObject* MinObject = MinPtr->Get();
-				FName MinExpressionName = GetExpressionName(MinObject);
-				if (CreatedExpressionMap.Contains(MinExpressionName)) {
-					FExpressionInput Min = PopulateExpressionInput(MinObject, *CreatedExpressionMap.Find(MinExpressionName));
-					SmoothStep->Min = Min;
-				}
-			}
+			SmoothStep->Min = CreateExpressionInput(Properties, CreatedExpressionMap, "Min");
+			if (SmoothStep->Min.Expression == nullptr)
+				SmoothStep->Min = CreateExpressionInput(Properties, CreatedExpressionMap, "min");
 
-			const TSharedPtr<FJsonObject>* MaxPtr = nullptr;
-			if ((Properties->TryGetObjectField("max", MaxPtr) || Properties->TryGetObjectField("Max", MaxPtr)) && MaxPtr != nullptr) {
-				FJsonObject* MaxObject = MaxPtr->Get();
-				FName MaxExpressionName = GetExpressionName(MaxObject);
-				if (CreatedExpressionMap.Contains(MaxExpressionName)) {
-					FExpressionInput Max = PopulateExpressionInput(MaxObject, *CreatedExpressionMap.Find(MaxExpressionName));
-					SmoothStep->Max = Max;
-				}
-			}
+			SmoothStep->Max = CreateExpressionInput(Properties, CreatedExpressionMap, "Max");
+			if (SmoothStep->Max.Expression == nullptr)
+				SmoothStep->Max = CreateExpressionInput(Properties, CreatedExpressionMap, "max");
 
-			const TSharedPtr<FJsonObject>* ValuePtr = nullptr;
-			if (Properties->TryGetObjectField("Value", ValuePtr) && ValuePtr != nullptr) {
-				FJsonObject* ValueObject = ValuePtr->Get();
-				FName ValueExpressionName = GetExpressionName(ValueObject);
-				if (CreatedExpressionMap.Contains(ValueExpressionName)) {
-					FExpressionInput Value = PopulateExpressionInput(ValueObject, *CreatedExpressionMap.Find(ValueExpressionName));
-					SmoothStep->Value = Value;
-				}
-			}
+			SmoothStep->Value = CreateExpressionInput(Properties, CreatedExpressionMap, "Value");
 
-			float ConstMin;
-			if (Properties->TryGetNumberField("ConstMin", ConstMin)) SmoothStep->ConstMin = ConstMin;
-			float ConstMax;
-			if (Properties->TryGetNumberField("ConstMax", ConstMax)) SmoothStep->ConstMax = ConstMax;
-			float ConstValue;
-			if (Properties->TryGetNumberField("ConstValue", ConstValue)) SmoothStep->ConstValue = ConstValue;
+			if (float ConstMin; Properties->TryGetNumberField("ConstMin", ConstMin)) 
+				SmoothStep->ConstMin = ConstMin;
+			if (float ConstMax; Properties->TryGetNumberField("ConstMax", ConstMax)) 
+				SmoothStep->ConstMax = ConstMax;
+			if (float ConstValue; Properties->TryGetNumberField("ConstValue", ConstValue)) 
+				SmoothStep->ConstValue = ConstValue;
 
 			Expression = SmoothStep;
 		} else if (Type->Type == "MaterialExpressionAppendVector") {
 			UMaterialExpressionAppendVector* AppendVector = Cast<UMaterialExpressionAppendVector>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					AppendVector->A = A;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					AppendVector->B = B;
-				}
-			}
-
+			AppendVector->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			AppendVector->B = CreateExpressionInput(Properties, CreatedExpressionMap, "B");
 			Expression = AppendVector;
 		} else if (Type->Type == "MaterialExpressionDivide") {
 			UMaterialExpressionDivide* Divide = Cast<UMaterialExpressionDivide>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					Divide->A = A;
-				}
-			}
+			Divide->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			Divide->B = CreateExpressionInput(Properties, CreatedExpressionMap, "B");
 
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					Divide->B = B;
-				}
-			}
-
-			float ConstA;
-			if (Properties->TryGetNumberField("ConstA", ConstA)) Divide->ConstA = ConstA;
-			float ConstB;
-			if (Properties->TryGetNumberField("ConstB", ConstB)) Divide->ConstB = ConstB;
+			if (float ConstA; Properties->TryGetNumberField("ConstA", ConstA)) 
+				Divide->ConstA = ConstA;
+			if (float ConstB; Properties->TryGetNumberField("ConstB", ConstB)) 
+				Divide->ConstB = ConstB;
 
 			Expression = Divide;
 		} else if (Type->Type == "MaterialExpressionDistance") {
 			UMaterialExpressionDistance* Distance = Cast<UMaterialExpressionDistance>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					Distance->A = A;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					Distance->B = B;
-				}
-			}
-
+			Distance->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			Distance->B = CreateExpressionInput(Properties, CreatedExpressionMap, "B");
 			Expression = Distance;
 		} else if (Type->Type == "MaterialExpressionVectorNoise") {
 			UMaterialExpressionVectorNoise* VectorNoise = Cast<UMaterialExpressionVectorNoise>(Expression);
 
-			if (const TSharedPtr<FJsonObject>* APtr; Properties->TryGetObjectField("Position", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					VectorNoise->Position = A;
-				}
-			}
-
-			if (FString NoiseFunction; Properties->TryGetStringField("NoiseFunction", NoiseFunction)) VectorNoise->NoiseFunction = static_cast<EVectorNoiseFunction>(StaticEnum<EVectorNoiseFunction>()->GetValueByNameString(NoiseFunction));
-
-			if (int Quality; Properties->TryGetNumberField("Quality", Quality)) VectorNoise->Quality = Quality;
-			if (bool bTiling; Properties->TryGetBoolField("bTiling", bTiling)) VectorNoise->bTiling = bTiling;
-			if (int TileSize; Properties->TryGetNumberField("TileSize", TileSize)) VectorNoise->TileSize = TileSize;
+			VectorNoise->Position = CreateExpressionInput(Properties, CreatedExpressionMap, "Position");
+			if (FString NoiseFunction; Properties->TryGetStringField("NoiseFunction", NoiseFunction)) 
+				VectorNoise->NoiseFunction = static_cast<EVectorNoiseFunction>(StaticEnum<EVectorNoiseFunction>()->GetValueByNameString(NoiseFunction));
+			if (int Quality; Properties->TryGetNumberField("Quality", Quality)) 
+				VectorNoise->Quality = Quality;
+			if (bool bTiling; Properties->TryGetBoolField("bTiling", bTiling)) 
+				VectorNoise->bTiling = bTiling;
+			if (int TileSize; Properties->TryGetNumberField("TileSize", TileSize)) 
+				VectorNoise->TileSize = TileSize;
 
 			Expression = VectorNoise;
 		} else if (Type->Type == "MaterialExpressionCrossProduct") {
 			UMaterialExpressionCrossProduct* CrossProduct = Cast<UMaterialExpressionCrossProduct>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("A", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					CrossProduct->A = A;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("B", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					CrossProduct->B = B;
-				}
-			}
+			CrossProduct->A = CreateExpressionInput(Properties, CreatedExpressionMap, "A");
+			CrossProduct->B = CreateExpressionInput(Properties, CreatedExpressionMap, "B");
 
 			Expression = CrossProduct;
 		} else if (Type->Type == "MaterialExpressionTransform") {
-			// DIDNT ADD WORLD SPACE BS
 			UMaterialExpressionTransform* Transform = Cast<UMaterialExpressionTransform>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("Input", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					Transform->Input = A;
-				}
-			}
+			if (FString TransformSourceType; Properties->TryGetStringField("TransformSourceType", TransformSourceType))
+				Transform->TransformSourceType = static_cast<EMaterialVectorCoordTransformSource>(StaticEnum<EMaterialVectorCoordTransformSource>()->GetValueByNameString(TransformSourceType));
+			if (FString TransformType; Properties->TryGetStringField("TransformType", TransformType))
+				Transform->TransformType = static_cast<EMaterialVectorCoordTransform>(StaticEnum<EMaterialVectorCoordTransform>()->GetValueByNameString(TransformType));
 
+			Transform->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 			Expression = Transform;
 		} else if (Type->Type == "MaterialExpressionVertexInterpolator") {
 			UMaterialExpressionVertexInterpolator* VertexInterpolator = Cast<UMaterialExpressionVertexInterpolator>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("Input", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					VertexInterpolator->Input = A;
-				}
-			}
-
+			VertexInterpolator->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
 			Expression = VertexInterpolator;
 		} else if (Type->Type == "MaterialExpressionDepthFade") {
 			UMaterialExpressionDepthFade* DepthFade = static_cast<UMaterialExpressionDepthFade*>(Expression);
 
-			const TSharedPtr<FJsonObject>* InOpacityPtr = nullptr;
-			if (Properties->TryGetObjectField("InOpacity", InOpacityPtr) && InOpacityPtr != nullptr) {
-				FJsonObject* InOpacityObject = InOpacityPtr->Get();
-				FName InOpacityExpressionName = GetExpressionName(InOpacityObject);
-				if (CreatedExpressionMap.Contains(InOpacityExpressionName)) {
-					FExpressionInput InOpacity = PopulateExpressionInput(InOpacityObject, *CreatedExpressionMap.Find(InOpacityExpressionName));
-					DepthFade->InOpacity = InOpacity;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* FadeDistancePtr = nullptr;
-			if (Properties->TryGetObjectField("FadeDistance", FadeDistancePtr) && FadeDistancePtr != nullptr) {
-				FJsonObject* FadeDistanceObject = FadeDistancePtr->Get();
-				FName FadeDistanceExpressionName = GetExpressionName(FadeDistanceObject);
-				if (CreatedExpressionMap.Contains(FadeDistanceExpressionName)) {
-					FExpressionInput FadeDistance = PopulateExpressionInput(FadeDistanceObject, *CreatedExpressionMap.Find(FadeDistanceExpressionName));
-					DepthFade->FadeDistance = FadeDistance;
-				}
-			}
-
+			DepthFade->InOpacity = CreateExpressionInput(Properties, CreatedExpressionMap, "InOpacity");
+			DepthFade->FadeDistance = CreateExpressionInput(Properties, CreatedExpressionMap, "FadeDistance");
 			Expression = DepthFade;
 		} else if (Type->Type == "MaterialExpressionSceneDepth") {
 			UMaterialExpressionSceneDepth* SceneDepth = static_cast<UMaterialExpressionSceneDepth*>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("Input", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					SceneDepth->Input = A;
-				}
-			}
-
-			FString InputMode;
-			if (Properties->TryGetStringField("InputMode", InputMode)) {
+			SceneDepth->Input = CreateExpressionInput(Properties, CreatedExpressionMap, "Input");
+			if (FString InputMode; Properties->TryGetStringField("InputMode", InputMode))
 				SceneDepth->InputMode = static_cast<EMaterialSceneAttributeInputMode::Type>(StaticEnum<EMaterialSceneAttributeInputMode::Type>()->GetValueByNameString(InputMode));
-			}
 
-			const TSharedPtr<FJsonObject>* ConstInput;
-			if (Properties->TryGetObjectField("ConstInput", ConstInput)) SceneDepth->ConstInput = FVector2D(ConstInput->Get()->GetNumberField("X"), ConstInput->Get()->GetNumberField("Y"));
+			if (const TSharedPtr<FJsonObject>* ConstInput; Properties->TryGetObjectField("ConstInput", ConstInput))
+				SceneDepth->ConstInput = FVector2D(ConstInput->Get()->GetNumberField("X"), ConstInput->Get()->GetNumberField("Y"));
 
 			Expression = SceneDepth;
 		} else if (Type->Type == "MaterialExpressionDeriveNormalZ") {
 			UMaterialExpressionDeriveNormalZ* DeriveNormalZ = static_cast<UMaterialExpressionDeriveNormalZ*>(Expression);
 
-			const TSharedPtr<FJsonObject>* InXYPtr = nullptr;
-			if (Properties->TryGetObjectField("InXY", InXYPtr) && InXYPtr != nullptr) {
-				FJsonObject* InXYObject = InXYPtr->Get();
-				FName InXYExpressionName = GetExpressionName(InXYObject);
-				if (CreatedExpressionMap.Contains(InXYExpressionName)) {
-					FExpressionInput InXY = PopulateExpressionInput(InXYObject, *CreatedExpressionMap.Find(InXYExpressionName));
-					DeriveNormalZ->InXY = InXY;
-				}
-			}
-
+			DeriveNormalZ->InXY = CreateExpressionInput(Properties, CreatedExpressionMap, "InXY");
 			Expression = DeriveNormalZ;
 		} else if (Type->Type == "MaterialExpressionQualitySwitch") {
 			// TODO: Add different qualities
 			UMaterialExpressionQualitySwitch* QualitySwitch = Cast<UMaterialExpressionQualitySwitch>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("Default", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					QualitySwitch->Default = A;
-				}
-			}
-
+			QualitySwitch->Default = CreateExpressionInput(Properties, CreatedExpressionMap, "Default");
 			const TArray<TSharedPtr<FJsonValue>>* InputsPtr;
 			if (Properties->TryGetArrayField("Inputs", InputsPtr)) {
 				int i = 0;
@@ -1400,26 +838,8 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		} else if (Type->Type == "MaterialExpressionReflectionCapturePassSwitch") {
 			UMaterialExpressionReflectionCapturePassSwitch* ReflectionCapturePassSwitch = static_cast<UMaterialExpressionReflectionCapturePassSwitch*>(Expression);
 
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (Properties->TryGetObjectField("Default", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput A = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					ReflectionCapturePassSwitch->Default = A;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* BPtr = nullptr;
-			if (Properties->TryGetObjectField("Reflection", BPtr) && BPtr != nullptr) {
-				FJsonObject* BObject = BPtr->Get();
-				FName BExpressionName = GetExpressionName(BObject);
-				if (CreatedExpressionMap.Contains(BExpressionName)) {
-					FExpressionInput B = PopulateExpressionInput(BObject, *CreatedExpressionMap.Find(BExpressionName));
-					ReflectionCapturePassSwitch->Reflection = B;
-				}
-			}
-
+			ReflectionCapturePassSwitch->Default = CreateExpressionInput(Properties, CreatedExpressionMap, "Default");
+			ReflectionCapturePassSwitch->Reflection = CreateExpressionInput(Properties, CreatedExpressionMap, "Reflection");
 			Expression = ReflectionCapturePassSwitch;
 		} else if (Type->Type == "MaterialExpressionRotateAboutAxis") {
 			UMaterialExpressionRotateAboutAxis* RotateAboutAxis = Cast<UMaterialExpressionRotateAboutAxis>(Expression);
