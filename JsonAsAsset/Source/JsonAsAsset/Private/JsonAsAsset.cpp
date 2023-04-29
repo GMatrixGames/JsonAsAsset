@@ -217,6 +217,7 @@ TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) 
 TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 {
 	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("JsonAsAsset");
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
 	FMenuBuilder MenuBuilder(false, nullptr);
 	MenuBuilder.BeginSection("JsonAsAssetSection", FText::FromString("JSON Tools v" + Plugin->GetDescriptor().VersionName));
@@ -264,6 +265,46 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 			FSlateIcon(FAppStyle::Get().GetStyleSetName(), "LevelEditor.Tabs.Viewports")
 		);
 
+		if (Settings->bEnableLocalFetch) {
+			MenuBuilder.AddSubMenu(
+				LOCTEXT("JsonAsAssetMenu", "Local Fetch Types"),
+				LOCTEXT("JsonAsAssetMenuToolTip", "List of supported classes that can be locally fetched using the API"),
+				FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
+					InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Asset Classes"));
+					{
+						TArray<FString> AcceptedTypes;
+						const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+						if (Settings->bEnableLocalFetch) {
+							AcceptedTypes.Add("Texture2D");
+							AcceptedTypes.Add("TextureCube");
+							AcceptedTypes.Add("TextureRenderTarget2D");
+							AcceptedTypes.Add("CurveFloat");
+							AcceptedTypes.Add("CurveLinearColor");
+							AcceptedTypes.Add("CurveLinearColorAtlas");
+
+							AcceptedTypes.Add("SubsurfaceProfile");
+							AcceptedTypes.Add("PhysicalMaterial");
+
+							AcceptedTypes.Add("MaterialParameterCollection");
+						}
+
+						for (FString& Asset : AcceptedTypes) {
+							InnerMenuBuilder.AddMenuEntry(
+								FText::FromString(Asset),
+								FText::FromString(Asset),
+								FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail")),
+								FUIAction()
+							);
+						}
+					}
+					InnerMenuBuilder.EndSection();
+				}),
+				false,
+				FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Audit")
+			);
+		}
+
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("JsonAsAssetButton", "Documentation"),
 			LOCTEXT("JsonAsAssetButtonTooltip", "Documentation for JsonAsAsset"),
@@ -292,9 +333,9 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 			NAME_None
 		);
 	}
+
 	MenuBuilder.EndSection();
 
-	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 	bool bActionRequired =
 		Settings->ExportDirectory.Path.IsEmpty() //||..
 		;
@@ -318,49 +359,6 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 					NAME_None
 				);
 		}
-		MenuBuilder.EndSection();
-	}
-
-	if (Settings->bEnableRemoteDownload) {
-		MenuBuilder.BeginSection("JsonAsAssetRemoteDownload", FText::FromString("Remote Download"));
-		MenuBuilder.AddSubMenu(
-			LOCTEXT("JsonAsAssetMenu", "Remote Download Types"),
-			LOCTEXT("JsonAsAssetMenuToolTip", "List of supported classes that can be downloaded using the API (only supports Fortnite)\n| Uses Fortnite Central's API"),
-			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
-				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Asset Classes"));
-				{
-					TArray<FString> AcceptedTypes;
-
-					const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
-					if (Settings->bEnableRemoteDownload) {
-						AcceptedTypes.Add("Texture2D");
-						AcceptedTypes.Add("TextureCube");
-						AcceptedTypes.Add("TextureRenderTarget2D");
-						AcceptedTypes.Add("CurveFloat");
-						AcceptedTypes.Add("CurveLinearColor");
-						AcceptedTypes.Add("CurveLinearColorAtlas");
-
-						AcceptedTypes.Add("SubsurfaceProfile");
-						AcceptedTypes.Add("PhysicalMaterial");
-
-						AcceptedTypes.Add("MaterialParameterCollection");
-					}
-
-					for (FString& Asset : AcceptedTypes) {
-						InnerMenuBuilder.AddMenuEntry(
-							FText::FromString(Asset),
-							FText::FromString(Asset),
-							FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail")),
-							FUIAction()
-						);
-					}
-				}
-				InnerMenuBuilder.EndSection();
-			}),
-			false,
-			FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Audit")
-		);
 		MenuBuilder.EndSection();
 	}
 
