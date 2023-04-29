@@ -2849,10 +2849,7 @@ UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Pa
 
 	// Try to find using Engine
 	UClass* ExpressionClass = FindObject<UClass>(nullptr, *Engine_Class);
-
-	// If failed, try to use Landscape
 	if (ExpressionClass == nullptr) ExpressionClass = FindObject<UClass>(nullptr, *Landscape_Class);
-	// If failed, try to use InterchangeImport
 	if (ExpressionClass == nullptr) ExpressionClass = FindObject<UClass>(nullptr, *InterchangeImport_Class);
 
 	// Return a new expression
