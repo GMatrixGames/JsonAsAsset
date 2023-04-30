@@ -128,6 +128,8 @@
 #include "Materials/MaterialExpressionTruncate.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialExpressionNoise.h"
+#include <MaterialEditingLibrary.h>
+#include <Editor/UnrealEd/Public/FileHelpers.h>
 //#include <Import/Private/MaterialX/MaterialExpressions/MaterialExpressionLength.h>
 
 TSharedPtr<FJsonObject> UMaterialGraph_Interface::FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames, bool bFilterByOuter) {
@@ -2735,11 +2737,14 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 			}
 		}
 
-		MaterialGraphNode_ExpressionWrapper(Parent, Expression, Properties);
 		if (!bSubgraph) {
+			if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetEditorOnlyData()->ExpressionCollection.Expressions.Add(Expression);
+
 			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddExpression(Expression);
-			else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddExpression(Expression);
+			//else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddExpression(Expression);
 		}
+
+		MaterialGraphNode_ExpressionWrapper(Parent, Expression, Properties);
 	}
 }
 
@@ -2815,18 +2820,37 @@ void UMaterialGraph_Interface::MaterialGraphNode_ExpressionWrapper(UObject* Pare
 	}
 
 	if (UMaterialExpressionTextureBase* TextureBase = Cast<UMaterialExpressionTextureBase>(Expression)) {
-		const TSharedPtr<FJsonObject>* TexturePtr = nullptr;
-		if (Json->TryGetObjectField("Texture", TexturePtr) && TexturePtr != nullptr) {
-			LoadObject(TexturePtr, TextureBase->Texture);
-		}
-
 		FString SamplerType;
 		if (Json->TryGetStringField("SamplerType", SamplerType)) {
+			FPropertyChangedEvent SamplerTypeChangeEvent(UMaterialExpressionTextureBase::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UMaterialExpressionTextureBase, SamplerType)));
+
 			TextureBase->SamplerType = static_cast<EMaterialSamplerType>(StaticEnum<EMaterialSamplerType>()->GetValueByNameString(SamplerType));
+
+			Expression->Modify();
+			Expression->PostEditChangeProperty(SamplerTypeChangeEvent);
+		}
+
+		if (const TSharedPtr<FJsonObject>* TexturePtr; Json->TryGetObjectField("Texture", TexturePtr)) {
+			FPropertyChangedEvent TextureChangeEvent(UMaterialExpressionTextureBase::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UMaterialExpressionTextureBase, Texture)));
+
+			LoadObject(TexturePtr, TextureBase->Texture);
+
+			if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) {
+				UMaterialEditingLibrary::RecompileMaterial(MatCasted);
+				FEditorFileUtils::PromptForCheckoutAndSave({ MatCasted->GetOutermost() }, false, false);
+			}
+
+			Expression->Modify();
+			Expression->PostEditChangeProperty(TextureChangeEvent);
 		}
 
 		bool IsDefaultMeshpaintTexture;
 		if (Json->TryGetBoolField("IsDefaultMeshpaintTexture", IsDefaultMeshpaintTexture)) TextureBase->IsDefaultMeshpaintTexture = IsDefaultMeshpaintTexture;
+
+		if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) {
+			MatCasted->RecacheUniformExpressions(true);
+			MatCasted->UpdateCachedExpressionData();
+		}
 	}
 }
 
