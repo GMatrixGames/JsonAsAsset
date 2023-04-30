@@ -211,6 +211,8 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 				continue;
 		}
 
+		MaterialGraphNode_ExpressionWrapper(Parent, Expression, Properties);
+
 		if (Type->Type == "MaterialExpressionFunctionOutput") {
 			UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(Expression);
 
@@ -2743,8 +2745,6 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddExpression(Expression);
 			//else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddExpression(Expression);
 		}
-
-		MaterialGraphNode_ExpressionWrapper(Parent, Expression, Properties);
 	}
 }
 
@@ -2834,11 +2834,6 @@ void UMaterialGraph_Interface::MaterialGraphNode_ExpressionWrapper(UObject* Pare
 			FPropertyChangedEvent TextureChangeEvent(UMaterialExpressionTextureBase::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UMaterialExpressionTextureBase, Texture)));
 
 			LoadObject(TexturePtr, TextureBase->Texture);
-
-			if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) {
-				UMaterialEditingLibrary::RecompileMaterial(MatCasted);
-				FEditorFileUtils::PromptForCheckoutAndSave({ MatCasted->GetOutermost() }, false, false);
-			}
 
 			Expression->Modify();
 			Expression->PostEditChangeProperty(TextureChangeEvent);

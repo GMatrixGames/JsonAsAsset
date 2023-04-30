@@ -37,24 +37,39 @@ private:
 		"CurveLinearColor",
 		"CurveLinearColorAtlas",
 
+		// separator
+
 		"SkeletalMeshLODSettings",
 		"Skeleton",
 
+		// separator
+
 		"AnimSequence",
 		"AnimMontage",
+
+		// separator
 
 		"Material",
 		"MaterialFunction",
 		"MaterialInstanceConstant",
 		"MaterialParameterCollection",
+		"NiagaraParameterCollection",
+
+		// separator
 
 		"LandscapeGrassType",
-		"NiagaraParameterCollection",
+
+		// separator
 
 		"ReverbEffect",
 		"SoundAttenuation",
 		"SoundConcurrency",
+
+		// separator
+
 		"SubsurfaceProfile",
+
+		// separator
 
 		"TextureRenderTarget2D",
 		"PhysicalMaterial",

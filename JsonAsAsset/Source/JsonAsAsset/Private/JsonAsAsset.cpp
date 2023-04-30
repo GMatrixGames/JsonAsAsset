@@ -250,13 +250,16 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 								false,
 								FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail"))
 							);
-						}
-						else InnerMenuBuilder.AddMenuEntry(
+						} else InnerMenuBuilder.AddMenuEntry(
 							FText::FromString(Asset),
 							FText::FromString(Asset),
 							FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail")),
 							FUIAction()
 						);
+
+						if (Asset == "CurveLinearColorAtlas" || Asset == "Skeleton" || Asset == "AnimMontage" || Asset == "NiagaraParameterCollection" || Asset == "LandscapeGrassType" || Asset == "SoundConcurrency" || Asset == "SubsurfaceProfile") {
+							InnerMenuBuilder.AddSeparator();
+						}
 					}
 				}
 				InnerMenuBuilder.EndSection();
@@ -342,8 +345,8 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 						AcceptedTypes.Add("CurveLinearColorAtlas");
 
 						AcceptedTypes.Add("SubsurfaceProfile");
-						AcceptedTypes.Add("PhysicalMaterial");
 
+						AcceptedTypes.Add("PhysicalMaterial");
 						AcceptedTypes.Add("MaterialParameterCollection");
 					}
 
@@ -354,6 +357,10 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 							FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail")),
 							FUIAction()
 						);
+
+						if (Asset == "TextureRenderTarget2D" || Asset == "CurveLinearColorAtlas" || Asset == "SubsurfaceProfile") {
+							InnerMenuBuilder.AddSeparator();
+						}
 					}
 				}
 				InnerMenuBuilder.EndSection();
