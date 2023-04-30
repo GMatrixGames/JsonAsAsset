@@ -12,6 +12,7 @@
 #include "Dom/JsonObject.h"
 #include "Factories/MaterialFactoryNew.h"
 #include "Utilities/MathUtilities.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "MaterialEditor/Private/MaterialEditor.h"
 #include "MaterialGraph/MaterialGraph.h"
 #include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphNode_Composite.h>
@@ -469,10 +470,7 @@ bool UMaterialImporter::ImportData() {
 		PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
 		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);
 
-		// Handle edit changes, and add it to the content browser
-		if (!HandleAssetCreation(Material)) return false;
-
-		Material->PostEditChange();
+		FAssetRegistryModule::AssetCreated(Material);
 
 		bool bEditorGraphOpen = false;
 		FMaterialEditor* AssetEditorInstance = nullptr;
