@@ -467,11 +467,7 @@ bool UMaterialImporter::ImportData() {
 
 		// Iterate through all the expression names
 		PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
-		Material->MarkPackageDirty();
-		Material->UpdateCachedExpressionData();
-
 		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);
-		Material->UpdateCachedExpressionData();
 
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(Material)) return false;
@@ -480,9 +476,6 @@ bool UMaterialImporter::ImportData() {
 
 		bool bEditorGraphOpen = false;
 		FMaterialEditor* AssetEditorInstance = nullptr;
-
-		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
-		AssetEditorInstance = reinterpret_cast<FMaterialEditor*>(AssetEditorSubsystem->OpenEditorForAsset(Material) ? AssetEditorSubsystem->FindEditorForAsset(Material, true) : nullptr);
 
 		// Handle Material Graphs
 		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
@@ -499,7 +492,8 @@ bool UMaterialImporter::ImportData() {
 
 				if (!bEditorGraphOpen) {
 					// Create Editor
-
+					UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+					AssetEditorInstance = reinterpret_cast<FMaterialEditor*>(AssetEditorSubsystem->OpenEditorForAsset(Material) ? AssetEditorSubsystem->FindEditorForAsset(Material, true) : nullptr);
 					bEditorGraphOpen = true;
 				}
 

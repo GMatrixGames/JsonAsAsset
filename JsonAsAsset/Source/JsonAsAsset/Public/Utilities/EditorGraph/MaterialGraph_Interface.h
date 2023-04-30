@@ -259,4 +259,5 @@ protected:
 	FName GetExpressionName(const FJsonObject* JsonProperties, FString OverrideParameterName = "Expression");
 
 	FExpressionInput CreateExpressionInput(TSharedPtr<FJsonObject> JsonProperties, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, FString PropertyName);
+	FMaterialAttributesInput CreateMaterialAttributesInput(TSharedPtr<FJsonObject> JsonProperties, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, FString PropertyName);
 };
