@@ -49,6 +49,7 @@ private:
 		"MaterialParameterCollection",
 
 		"LandscapeGrassType",
+		"NiagaraParameterCollection",
 
 		"ReverbEffect",
 		"SoundAttenuation",

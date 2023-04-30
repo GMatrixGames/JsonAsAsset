@@ -24,6 +24,7 @@
 #include "Importers/MaterialFunctionImporter.h"
 #include "Importers/MaterialImporter.h"
 #include "Importers/MaterialParameterCollectionImporter.h"
+#include "Importers/NiagaraParameterCollectionImporter.h"
 #include "Importers/MaterialInstanceConstantImporter.h"
 #include "Importers/PhysicalMaterialImporter.h"
 #include "Importers/TextureImporters.h"
@@ -236,6 +237,7 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 			else if (Type == "PhysicalMaterial") Importer = new UPhysicalMaterialImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
 			else if (Type == "LandscapeGrassType") Importer = new ULandscapeGrassTypeImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+			else if (Type == "NiagaraParameterCollection") Importer = new UNiagaraParameterCollectionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
 			else if (Type == "DataTable") Importer = new UDataTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 			else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);

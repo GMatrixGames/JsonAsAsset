@@ -18,7 +18,8 @@ public class JsonAsAsset : ModuleRules
 				"UMG",
 				"RenderCore",
 				"HTTP",
-				"DeveloperSettings"
+				"DeveloperSettings",
+				"Niagara"
 			}
 		);
 

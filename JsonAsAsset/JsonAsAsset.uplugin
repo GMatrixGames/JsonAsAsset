@@ -26,6 +26,10 @@
 		{
 			"Name": "Interchange",
 			"Enabled": true
+		},
+		{
+			"Name": "Niagara",
+			"Enabled": true
 		}
 	]
 }
