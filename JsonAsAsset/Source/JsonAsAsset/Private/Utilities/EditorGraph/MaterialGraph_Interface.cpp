@@ -146,6 +146,12 @@ TSharedPtr<FJsonObject> UMaterialGraph_Interface::FindEditorOnlyData(const FStri
 			continue;
 		}
 
+		// For older versions, the "editor" data is in the main UMaterial/UMaterialFunction export
+		if (ExType == Type) {
+			EditorOnlyData = Object;
+			continue;
+		}
+
 		ExpressionNames.Add(FName(Name));
 		OutExports.Add(FName(Name), FImportData(ExType, Outer, Object));
 	}
