@@ -1710,7 +1710,11 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		}
 
 		if (!bSubgraph) {
-			if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetEditorOnlyData()->ExpressionCollection.Expressions.Add(Expression);
+			if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) {
+				MatCasted->GetEditorOnlyData()->ExpressionCollection.Expressions.Add(Expression);
+				Expression->UpdateMaterialExpressionGuid(true, false);
+				MatCasted->AddExpressionParameter(Expression, MatCasted->EditorParameters);
+			}
 
 			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddExpression(Expression);
 			//else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddExpression(Expression);
@@ -1797,6 +1801,8 @@ void UMaterialGraph_Interface::MaterialGraphNode_ExpressionWrapper(UObject* Pare
 
 		if (const TSharedPtr<FJsonObject>* TexturePtr; Json->TryGetObjectField("Texture", TexturePtr)) {
 			LoadObject(TexturePtr, TextureBase->Texture);
+
+			Expression->UpdateParameterGuid(true, false);
 		}
 
 		bool IsDefaultMeshpaintTexture;

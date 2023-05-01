@@ -17,6 +17,7 @@
 #include "MaterialGraph/MaterialGraph.h"
 #include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphNode_Composite.h>
 #include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphSchema.h>
+#include <MaterialEditorUtilities.h>
 
 void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, const TSharedPtr<FJsonObject>& _JsonObject, TMap<FName, FImportData>& Exports) {
 	FJsonObject* Expression = (Exports.Find(GetExportNameOfSubobject(_JsonObject->GetStringField("ObjectName")))->Json)->GetObjectField("Properties").Get();
@@ -69,15 +70,43 @@ void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin
 
 bool UMaterialImporter::ImportData() {
 	try {
-		// Create Material Factory (factory automatically creates the M)
-		UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
-		UMaterial* Material = Cast<UMaterial>(MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
-		if (const TSharedPtr<FJsonObject>* PhysMaterial; Properties->TryGetObjectField("PhysMaterial", PhysMaterial)) LoadObject(PhysMaterial, Material->PhysMaterial);
+		// Create the Material using a Factory
+		UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
+		UMaterial* Material = Cast<UMaterial>(MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
 		Material->StateId = FGuid(Properties->GetStringField("StateId"));
 
+		// Pre-edit Modifications
 		Material->PreEditChange(NULL);
+		Material->GetExpressionCollection().Empty();
+		FAssetRegistryModule::AssetCreated(Material);
+
+		// Open Material Editor
+		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+		FMaterialEditor* AssetEditorInstance = reinterpret_cast<FMaterialEditor*>(AssetEditorSubsystem->OpenEditorForAsset(Material) ? AssetEditorSubsystem->FindEditorForAsset(Material, true) : nullptr);
+
+		// Material Graph
+		UMaterialGraph* MaterialGraph = AssetEditorInstance->Material->MaterialGraph;
+		MaterialGraph->Modify();
+
+		TMap<FName, FImportData> Exports;
+		TArray<FName> ExpressionNames;
+		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Material->GetName(), Exports, ExpressionNames, false)->GetObjectField("Properties");
+		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
+
+		// Pre-construct expressions for use
+		TMap<FName, UMaterialExpression*> CreatedExpressionMap = ConstructExpressions(Material, Material->GetName(), ExpressionNames, Exports);
+
+		// Loop through each created expression and
+		// create a material graph node.
+		for (TTuple<FName, UMaterialExpression*>& Tuple : CreatedExpressionMap) {
+			UMaterialExpression* Expression = FMaterialEditorUtilities::CreateNewMaterialExpression(MaterialGraph, Tuple.Value->GetClass(), FVector2D(), false, true);
+
+			Tuple.Value = Expression;
+		}
+
+		PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
 
 		FString MaterialDomain;
 		if (Properties->TryGetStringField("MaterialDomain", MaterialDomain)) {
@@ -255,18 +284,6 @@ bool UMaterialImporter::ImportData() {
 
 		const TSharedPtr<FJsonObject>* TranslucentMultipleScatteringExtinction;
 		if (JsonObject->TryGetObjectField("TranslucentMultipleScatteringExtinction", TranslucentMultipleScatteringExtinction)) Material->TranslucentMultipleScatteringExtinction = FMathUtilities::ObjectToLinearColor(TranslucentMultipleScatteringExtinction->Get());
-
-		// Clear any default expressions the engine adds (ex: Result)
-		Material->GetExpressionCollection().Empty();
-
-		// Define editor only data from the JSON
-		TMap<FName, FImportData> Exports;
-		TArray<FName> ExpressionNames;
-		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Material->GetName(), Exports, ExpressionNames, false)->GetObjectField("Properties");
-		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
-
-		// Map out each expression for easier access
-		TMap<FName, UMaterialExpression*> CreatedExpressionMap = ConstructExpressions(Material, Material->GetName(), ExpressionNames, Exports);
 
 		const TSharedPtr<FJsonObject>* APtr = nullptr;
 		if (EdProps->TryGetObjectField("MaterialAttributes", APtr) && APtr != nullptr) {
@@ -466,14 +483,11 @@ bool UMaterialImporter::ImportData() {
 			Material->GetEditorOnlyData()->ParameterGroupData = ParameterGroupData;
 		}
 
-		// Iterate through all the expression names
-		PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
-		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);
+		// Material Rebuild
+		MaterialGraph->RebuildGraph();
+		AssetEditorInstance->UpdateMaterialAfterGraphChange();
 
-		FAssetRegistryModule::AssetCreated(Material);
-
-		bool bEditorGraphOpen = false;
-		FMaterialEditor* AssetEditorInstance = nullptr;
+		Material->PostEditChange();
 
 		// Handle Material Graphs
 		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
@@ -488,13 +502,6 @@ bool UMaterialImporter::ImportData() {
 
 				FString SubgraphExpressionName;
 
-				if (!bEditorGraphOpen) {
-					// Create Editor
-					UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
-					AssetEditorInstance = reinterpret_cast<FMaterialEditor*>(AssetEditorSubsystem->OpenEditorForAsset(Material) ? AssetEditorSubsystem->FindEditorForAsset(Material, true) : nullptr);
-					bEditorGraphOpen = true;
-				}
-
 				// Set SubgraphExpression
 				const TSharedPtr<FJsonObject>* SubgraphExpressionPtr = nullptr;
 				if (GraphProperties->TryGetObjectField("SubgraphExpression", SubgraphExpressionPtr) && SubgraphExpressionPtr != nullptr) {
@@ -507,7 +514,6 @@ bool UMaterialImporter::ImportData() {
 				}
 
 				// Find Material Graph
-				UMaterialGraph* MaterialGraph = AssetEditorInstance->Material->MaterialGraph;
 				if (MaterialGraph == nullptr) {
 					UE_LOG(LogJson, Log, TEXT("The material graph is not valid!"));
 				}
