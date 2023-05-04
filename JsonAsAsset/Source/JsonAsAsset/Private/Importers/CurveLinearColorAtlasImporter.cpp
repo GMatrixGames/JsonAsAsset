@@ -28,11 +28,8 @@ bool UCurveLinearColorAtlasImporter::ImportData() {
 		Object->SrcData.AddUninitialized(TextureDataSize);
 		uint32* TextureData = (uint32*)Object->Source.LockMip(0);
 		FFloat16Color InitColor(FLinearColor::White);
-		for (uint32 y = 0; y < Object->TextureSize; y++)
-		{
-			// Create base mip for the texture we created.
-			for (uint32 x = 0; x < Object->TextureSize; x++)
-			{
+		for (uint32 y = 0; y < Object->TextureSize; y++) {
+			for (uint32 x = 0; x < Object->TextureSize; x++) {
 				Object->SrcData[x * Object->TextureSize + y] = InitColor;
 			}
 		}

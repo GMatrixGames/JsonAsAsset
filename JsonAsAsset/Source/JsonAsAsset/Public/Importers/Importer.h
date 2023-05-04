@@ -3,6 +3,8 @@
 #pragma once
 
 #include "Dom/JsonObject.h"
+#include "Utilities/ObjectUtilities.h"
+#include "Utilities/PropertyUtilities.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
 /*
@@ -22,6 +24,9 @@ public:
 		this->Package = Package;
 		this->OutermostPkg = OutermostPkg;
 		this->AllJsonObjects = AllJsonObjects;
+		this->PropertySerializer = NewObject<UPropertySerializer>();
+		this->GObjectSerializer = NewObject<UObjectSerializer>();
+		this->GObjectSerializer->SetPropertySerializer(PropertySerializer);
 	}
 
 	virtual ~IImporter() {
@@ -31,6 +36,11 @@ public:
 	virtual bool ImportData() { return false; }
 
 private:
+	UPROPERTY()
+		UObjectSerializer* GObjectSerializer;
+	UPROPERTY()
+		UPropertySerializer* PropertySerializer;
+
 	inline static TArray<FString> AcceptedTypes = {
 		"CurveFloat",
 		"CurveVector",
@@ -114,6 +124,7 @@ protected:
 	TArray<TSharedPtr<FJsonValue>> FilterExportsByOuter(const FString& Outer);
 	TSharedPtr<FJsonValue> GetExportByObjectPath(const TSharedPtr<FJsonObject>& Object);
 
+	FORCEINLINE UObjectSerializer* GetObjectSerializer() const { return GObjectSerializer; }
 	FString FileName;
 	FString FilePath;
 	TSharedPtr<FJsonObject> JsonObject;
