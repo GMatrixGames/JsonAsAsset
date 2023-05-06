@@ -1,7 +1,6 @@
+# JsonAsAsset
 
-<p align="center">
-<img width="200" height="200" src="https://raw.githubusercontent.com/Tectors/JsonAsAsset/main/JsonAsAsset/Resources/JAA_Logo.png?raw=true">
-</p>
+<img align="right" width="200" height="200" src="https://raw.githubusercontent.com/Tectors/JsonAsAsset/main/JsonAsAsset/Resources/JAA_Logo.png?raw=true">
 
 ![GitHub Repo stars](https://img.shields.io/github/stars/Tectors/JsonAsAsset?style=for-the-badge&logo=&color=lightgrey)
 ![Repo size](https://img.shields.io/github/repo-size/Tectors/JsonAsAsset?label=total%20size&style=for-the-badge&logo=&color=lightgrey&logoColor=lightgrey)
@@ -12,11 +11,8 @@
 **Editor Only Data**:
 <br> In Unreal Engine 5.2 and above, editor only data has been introduced to Unreal Engine. Allowing us to import materials and material functions into our own project from the pak files of a game.
 
-<br>
-
 **Contributors**:
 <br> [Tector](https://github.com/Tectors), [TajGames](https://github.com/), [GMatrix](https://github.com/GMatrixGames), and [Zylox](https://github.com/0xZylox)
-
 
 **Artwork**:
 
@@ -43,7 +39,7 @@ However the version of your FModel application may affect the plugin's processin
 
    -----------
 
-### What's supported?
+## What's supported?
 *Asset types are still being added to this plugin, contribute if you like*
 
 - Material
