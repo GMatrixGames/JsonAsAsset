@@ -201,9 +201,9 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 		// Need to serialize full UObject for object property
 		TObjectPtr<UObject> Object = NULL;
 
+		// Use IImporter to import the object
 		IImporter* Importer = new IImporter();
 		Importer->LoadObject(&JsonValue->AsObject(), Object);
-
 		ObjectProperty->SetObjectPropertyValue(Value, Object);
 	}
 	else if (const FStructProperty* StructProperty = CastField<const FStructProperty>(Property)) {

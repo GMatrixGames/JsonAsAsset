@@ -1817,11 +1817,6 @@ void UMaterialGraph_Interface::MaterialGraphNode_ExpressionWrapper(UObject* Pare
 UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Parent, const FName Name, const FName Type) const {
 	if (IgnoredExpressions.Contains(Type.ToString())) return nullptr;
 
-	// Handle different module expressions
-	const FString Engine_Class = "/Script/Engine." + Type.ToString();
-	const FString Landscape_Class = "/Script/Landscape." + Type.ToString();
-	const FString InterchangeImport_Class = "/Script/InterchangeImport." + Type.ToString();
-
 	// Let user know that a expression is not added yet
 	if (!Expressions.Contains(Type.ToString())) {
 		UE_LOG(LogJson, Warning, TEXT("Missing support for expression type: \"%s\""), *Type.ToString());
@@ -1831,18 +1826,7 @@ UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Pa
 		}
 	}
 
-	/*
-	* Maybe?
-	* UClass* ExpressionClass = FindObjectChecked<UClass>(ANY_PACKAGE, *Type.ToString());
-	*/
-
-	// Try to find using Engine
-	UClass* ExpressionClass = FindObject<UClass>(nullptr, *Engine_Class);
-	if (ExpressionClass == nullptr) ExpressionClass = FindObject<UClass>(nullptr, *Landscape_Class);
-	if (ExpressionClass == nullptr) ExpressionClass = FindObject<UClass>(nullptr, *InterchangeImport_Class);
-
-	// Return a new expression
-	return NewObject<UMaterialExpression>(Parent, ExpressionClass, Name, RF_Transactional);
+	return NewObject<UMaterialExpression>(Parent, FindObjectChecked<UClass>(ANY_PACKAGE, *Type.ToString()), Name, RF_Transactional);
 }
 
 FExpressionInput UMaterialGraph_Interface::PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression, const FString& Type) {
