@@ -1,6 +1,4 @@
-# JsonAsAsset
-
-<img align="right" width="200" height="200" src="https://raw.githubusercontent.com/Tectors/JsonAsAsset/main/JsonAsAsset/Resources/JAA_Logo.png?raw=true">
+<img align="left" width="200" height="200" src="https://raw.githubusercontent.com/Tectors/JsonAsAsset/main/JsonAsAsset/Resources/JAA_Logo.png?raw=true">
 
 ![GitHub Repo stars](https://img.shields.io/github/stars/Tectors/JsonAsAsset?style=for-the-badge&logo=&color=lightgrey)
 ![Repo size](https://img.shields.io/github/repo-size/Tectors/JsonAsAsset?label=total%20size&style=for-the-badge&logo=&color=lightgrey&logoColor=lightgrey)
@@ -10,6 +8,8 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 
 **Editor Only Data**:
 <br> In Unreal Engine 5.2 and above, editor only data has been introduced to Unreal Engine. Allowing us to import materials and material functions into our own project from the pak files of a game.
+
+<br><br>
 
 **Contributors**:
 <br> [Tector](https://github.com/Tectors), [TajGames](https://github.com/), [GMatrix](https://github.com/GMatrixGames), and [Zylox](https://github.com/0xZylox)
@@ -21,7 +21,7 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 - *JsonAsAsset Logo*: *[@Tevtongermany](https://github.com/Tevtongermany)*
 
 ## What's the file format?
-<img align="right" width="150" height="150" src="https://raw.githubusercontent.com/4sval/FModel/master/FModel/FModel.ico">
+<img align="left" width="150" height="150" src="https://github.com/Tectors/JsonAsAsset/blob/main/JsonAsAsset/Resources/ButtonIcon_FModel.png?raw=true">
 The JSON format/file has to be from a program that fits the format of FModel's JSON export files:
 <br><br>
 
