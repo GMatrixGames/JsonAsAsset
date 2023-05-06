@@ -837,7 +837,7 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 			UMaterialExpressionQualitySwitch* QualitySwitch = Cast<UMaterialExpressionQualitySwitch>(Expression);
 
 			QualitySwitch->Default = CreateExpressionInput(Properties, CreatedExpressionMap, "Default");
-			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; Properties->TryGetArrayField("Inputs", InputsPtr)) {
+			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
 				int i = 0;
 				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
 					FJsonObject* InputObject = InputValue->AsObject().Get();
@@ -1449,7 +1449,7 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 
 			FeatureLevelSwitch->Default = CreateExpressionInput(Properties, CreatedExpressionMap, "Default");
 
-			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; Properties->TryGetArrayField("Inputs", InputsPtr)) {
+			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
 				int i = 0;
 				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
 					FJsonObject* InputObject = InputValue->AsObject().Get();
@@ -1467,9 +1467,7 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 			UMaterialExpressionShadingPathSwitch* ShadingPathSwitch = Cast<UMaterialExpressionShadingPathSwitch>(Expression);
 
 			ShadingPathSwitch->Default = CreateExpressionInput(Properties, CreatedExpressionMap, "Default");
-
-			const TArray<TSharedPtr<FJsonValue>>* InputsPtr;
-			if (Properties->TryGetArrayField("Inputs", InputsPtr)) {
+			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
 				int i = 0;
 				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
 					FJsonObject* InputObject = InputValue->AsObject().Get();

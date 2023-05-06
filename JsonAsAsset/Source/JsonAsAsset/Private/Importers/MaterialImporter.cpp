@@ -443,6 +443,20 @@ bool UMaterialImporter::ImportData() {
 			}
 		}
 
+		if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; EdProps->TryGetArrayField("CustomizedUVs", InputsPtr)) {
+			int i = 0;
+			for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
+				FJsonObject* InputObject = InputValue->AsObject().Get();
+				FName InputExpressionName = GetExpressionName(InputObject);
+
+				if (CreatedExpressionMap.Contains(InputExpressionName)) {
+					FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+					Material->GetEditorOnlyData()->CustomizedUVs[i] = *reinterpret_cast<FVector2MaterialInput*>(&Input);
+				}
+				i++;
+			}
+		}
+
 		const TArray<TSharedPtr<FJsonValue>>* StringParameterGroupData;
 		if (EdProps->TryGetArrayField("ParameterGroupData", StringParameterGroupData)) {
 			TArray<FParameterGroupData> ParameterGroupData;
