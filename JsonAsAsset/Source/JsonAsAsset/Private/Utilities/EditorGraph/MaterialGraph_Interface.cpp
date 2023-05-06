@@ -1831,6 +1831,11 @@ UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Pa
 		}
 	}
 
+	/*
+	* Maybe?
+	* UClass* ExpressionClass = FindObjectChecked<UClass>(ANY_PACKAGE, *Type.ToString());
+	*/
+
 	// Try to find using Engine
 	UClass* ExpressionClass = FindObject<UClass>(nullptr, *Engine_Class);
 	if (ExpressionClass == nullptr) ExpressionClass = FindObject<UClass>(nullptr, *Landscape_Class);

@@ -44,6 +44,7 @@ However the version of your FModel application may affect the plugin's processin
 - CurveVector
 - CurveLinearColor
 - CurveLinearColorAtlas
+- DataTable
 - SubsurfaceProfile
 - SkeletalMeshLODSettings
 - Animation (curves, sync markers)

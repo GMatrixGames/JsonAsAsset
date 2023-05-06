@@ -267,7 +267,15 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 				);
 
 				MessageLogger.Message(EMessageSeverity::Info, FText::FromString("Imported Asset: " + Name + " (" + Type + ")"));
-			} else FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("The \"" + Type + "\" cannot be imported!"));
+			} else AppendNotification(
+				FText::FromString("Import Failed: " + Type),
+				FText::FromString(Name),
+				2.0f,
+				FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
+				SNotificationItem::CS_Fail,
+				false,
+				350.0f
+			);
 		}
 	}
 

@@ -67,6 +67,7 @@ private:
 
 		// separator
 
+		"DataTable",
 		"LandscapeGrassType",
 
 		// separator
@@ -86,6 +87,11 @@ private:
 	};
 
 public:
+	template <class T = UObject>
+	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);
+	template <class T = UObject>
+	TArray<TObjectPtr<T>> LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array);
+
 	static bool CanImport(const FString& ImporterType) { return AcceptedTypes.Contains(ImporterType); }
 
 	static bool CanImportAny(TArray<FString>& Types) {
@@ -110,10 +116,6 @@ public:
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, const FSlateBrush* SlateBrush, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
 
 protected:
-	template <class T = UObject>
-	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);
-	template <class T = UObject>
-	TArray<TObjectPtr<T>> LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array);
 	bool HandleAssetCreation(UObject* Asset) const;
 
 	// Wrapper for remote downloading
