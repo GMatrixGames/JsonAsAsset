@@ -1,6 +1,6 @@
 # JsonAsAsset
 
-<img align="right" width="200" height="200" src="https://raw.githubusercontent.com/Tectors/JsonAsAsset/main/JsonAsAsset/Resources/JAA_Logo.png">
+<img align="right" width="200" height="200" src="https://raw.githubusercontent.com/Tectors/JsonAsAsset/main/JsonAsAsset/Resources/JAA_Logo.png?raw=true">
 
 ![GitHub Repo stars](https://img.shields.io/github/stars/Tectors/JsonAsAsset?style=for-the-badge&logo=&color=lightgrey)
 ![Repo size](https://img.shields.io/github/repo-size/Tectors/JsonAsAsset?label=total%20size&style=for-the-badge&logo=&color=lightgrey&logoColor=lightgrey)
@@ -13,6 +13,12 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 
 **Contributors**:
 <br> [Tector](https://github.com/Tectors), [TajGames](https://github.com/), [GMatrix](https://github.com/GMatrixGames), and [Zylox](https://github.com/0xZylox)
+
+
+**Artwork**:
+
+- *Thumbnail*: [*JSON.org*](https://www.json.org/json-en.html)
+- *JsonAsAsset Logo*: *[@Tevtongermany](https://github.com/Tevtongermany)*
 
 ## What's the file format?
 <img align="right" width="150" height="150" src="https://raw.githubusercontent.com/4sval/FModel/master/FModel/FModel.ico">
@@ -53,6 +59,3 @@ However the version of your FModel application may affect the plugin's processin
 - SoundAttenuation
 - SoundConcurrency
 - ReverbEffect
-
-### JSON Logo
-The logo used in this plugin is from: [JSON.org](https://www.json.org/json-en.html)
