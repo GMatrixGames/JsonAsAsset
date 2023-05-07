@@ -109,6 +109,17 @@ public:
 
 	bool HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, bool bHideNotifications = false);
 
+	/*
+	* Gets a reference from AllJsonObjects
+	* 
+	* Example (PackageIndex):
+	* {
+          "ObjectName": "Class'Asset:ExportName'",
+          "ObjectPath": "/Game/Asset.Index"
+    * }
+	*/
+	TSharedPtr<FJsonObject> GetExport(FJsonObject* PackageIndex);
+
 	// Easier way to add notifications to Editor
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, const FSlateBrush* SlateBrush, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);

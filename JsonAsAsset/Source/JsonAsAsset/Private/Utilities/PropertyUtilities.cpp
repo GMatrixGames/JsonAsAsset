@@ -124,11 +124,13 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 	const FSetProperty* SetProperty = CastField<const FSetProperty>(Property);
 	const FArrayProperty* ArrayProperty = CastField<const FArrayProperty>(Property);
 
+	TSharedRef<FJsonValue> NewJsonValue = JsonValue;
+
 	if (MapProperty) {
 		FProperty* KeyProperty = MapProperty->KeyProp;
 		FProperty* ValueProperty = MapProperty->ValueProp;
 		FScriptMapHelper MapHelper(MapProperty, Value);
-		const TArray<TSharedPtr<FJsonValue>>& PairArray = JsonValue->AsArray();
+		const TArray<TSharedPtr<FJsonValue>>& PairArray = NewJsonValue->AsArray();
 
 		for (int32 i = 0; i < PairArray.Num(); i++) {
 			const TSharedPtr<FJsonObject>& Pair = PairArray[i]->AsObject();
@@ -146,7 +148,7 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 	} else if (SetProperty) {
 		FProperty* ElementProperty = SetProperty->ElementProp;
 		FScriptSetHelper SetHelper(SetProperty, Value);
-		const TArray<TSharedPtr<FJsonValue>>& SetArray = JsonValue->AsArray();
+		const TArray<TSharedPtr<FJsonValue>>& SetArray = NewJsonValue->AsArray();
 		SetHelper.EmptyElements();
 		uint8* TempElementStorage = static_cast<uint8*>(FMemory::Malloc(ElementProperty->ElementSize));
 		ElementProperty->InitializeValue(TempElementStorage);
@@ -168,7 +170,7 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 	} else if (ArrayProperty) {
 		FProperty* ElementProperty = ArrayProperty->Inner;
 		FScriptArrayHelper ArrayHelper(ArrayProperty, Value);
-		const TArray<TSharedPtr<FJsonValue>>& SetArray = JsonValue->AsArray();
+		const TArray<TSharedPtr<FJsonValue>>& SetArray = NewJsonValue->AsArray();
 		ArrayHelper.EmptyValues();
 
 		for (int32 i = 0; i < SetArray.Num(); i++) {
@@ -183,7 +185,7 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 	} else if (const FInterfaceProperty* InterfaceProperty = CastField<const FInterfaceProperty>(Property)) {
 		// UObject is enough to re-create value, since we known property on deserialization
 		FScriptInterface* Interface = static_cast<FScriptInterface*>(Value);
-		UObject* Object = ObjectSerializer ? ObjectSerializer->DeserializeObject((int32)JsonValue->AsNumber()) : NULL;
+		UObject* Object = ObjectSerializer ? ObjectSerializer->DeserializeObject((int32)NewJsonValue->AsNumber()) : NULL;
 		if (Object != nullptr) {
 			void* InterfacePtr = Object->GetInterfaceAddress(InterfaceProperty->InterfaceClass);
 			check(InterfacePtr != nullptr);
@@ -193,7 +195,7 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 	}
 	else if (Property->IsA<FSoftObjectProperty>()) {
 		// For soft object reference, path is enough too for deserialization.
-		const FString PathString = JsonValue->AsString();
+		const FString PathString = NewJsonValue->AsString();
 		FSoftObjectPtr* ObjectPtr = static_cast<FSoftObjectPtr*>(Value);
 		*ObjectPtr = FSoftObjectPath(PathString);
 	}
@@ -203,44 +205,50 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 
 		// Use IImporter to import the object
 		IImporter* Importer = new IImporter();
-		Importer->LoadObject(&JsonValue->AsObject(), Object);
+		Importer->LoadObject(&NewJsonValue->AsObject(), Object);
 		ObjectProperty->SetObjectPropertyValue(Value, Object);
 	}
 	else if (const FStructProperty* StructProperty = CastField<const FStructProperty>(Property)) {
+		FString OutString;
+
+		if (JsonValue->TryGetString(OutString)) {
+			// idk how to fix guids -.-
+		}
+
 		// To serialize struct, we need it's type and value pointer, because struct value doesn't contain type information
-		DeserializeStruct(StructProperty->Struct, JsonValue->AsObject().ToSharedRef(), Value);
+		DeserializeStruct(StructProperty->Struct, NewJsonValue->AsObject().ToSharedRef(), Value);
 	}
 	else if (const FByteProperty* ByteProperty = CastField<const FByteProperty>(Property)) {
 		// If we have a string provided, make sure Enum is not null
 		if (JsonValue->Type == EJson::String) {
 			check(ByteProperty->Enum);
-			const int64 EnumerationValue = ByteProperty->Enum->GetValueByNameString(JsonValue->AsString());
+			const int64 EnumerationValue = ByteProperty->Enum->GetValueByNameString(NewJsonValue->AsString());
 			ByteProperty->SetIntPropertyValue(Value, EnumerationValue);
 		}
 		else {
 			// Should be a number, set property value accordingly
-			const int64 NumberValue = (int64)JsonValue->AsNumber();
+			const int64 NumberValue = (int64)NewJsonValue->AsNumber();
 			ByteProperty->SetIntPropertyValue(Value, NumberValue);
 		}
 		// Primitives below, they are serialized as plain json values
 	}
 	else if (const FNumericProperty* NumberProperty = CastField<const FNumericProperty>(Property)) {
-		const double NumberValue = JsonValue->AsNumber();
+		const double NumberValue = NewJsonValue->AsNumber();
 		if (NumberProperty->IsFloatingPoint())
 			NumberProperty->SetFloatingPointPropertyValue(Value, NumberValue);
 		else NumberProperty->SetIntPropertyValue(Value, static_cast<int64>(NumberValue));
 	}
 	else if (const FBoolProperty* BoolProperty = CastField<const FBoolProperty>(Property)) {
-		const bool bBooleanValue = JsonValue->AsBool();
+		const bool bBooleanValue = NewJsonValue->AsBool();
 		BoolProperty->SetPropertyValue(Value, bBooleanValue);
 	}
 	else if (Property->IsA<FStrProperty>()) {
-		const FString StringValue = JsonValue->AsString();
+		const FString StringValue = NewJsonValue->AsString();
 		*static_cast<FString*>(Value) = StringValue;
 	}
 	else if (const FEnumProperty* EnumProperty = CastField<const FEnumProperty>(Property)) {
 		// Prefer readable enum names in result json to raw numbers
-		const FString EnumName = JsonValue->AsString();
+		const FString EnumName = NewJsonValue->AsString();
 		const int64 UnderlyingValue = EnumProperty->GetEnum()->GetValueByNameString(EnumName);
 		if (ensure(UnderlyingValue != INDEX_NONE)) {
 			EnumProperty->GetUnderlyingProperty()->SetIntPropertyValue(Value, UnderlyingValue);
@@ -248,24 +256,24 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 	}
 	else if (Property->IsA<FNameProperty>()) {
 		// Name is perfectly representable as string
-		const FString NameString = JsonValue->AsString();
+		const FString NameString = NewJsonValue->AsString();
 		*static_cast<FName*>(Value) = *NameString;
 	}
 	else if (const FTextProperty* TextProperty = CastField<const FTextProperty>(Property)) {
 		// For FText, standard ExportTextItem is okay to use, because it's serialization is quite complex
-		const FString SerializedValue = JsonValue->AsString();
+		const FString SerializedValue = NewJsonValue->AsString();
 		if (!SerializedValue.IsEmpty()) {
 			FTextStringHelper::ReadFromBuffer(*SerializedValue, *static_cast<FText*>(Value));
 		} else {
 			// TODO: Somehow add other needed things like Namespace, Key, and LocalizedString 
-			TSharedPtr<FJsonObject> Object = JsonValue->AsObject().ToSharedRef();
+			TSharedPtr<FJsonObject> Object = NewJsonValue->AsObject().ToSharedRef();
 
 			TextProperty->SetPropertyValue(Value, FText::FromString(Object->GetStringField("SourceString")));
 		}
 	}
 	else if (const FFieldPathProperty* FieldPathProperty = CastField<const FFieldPathProperty>(Property)) {
 		FFieldPath FieldPath;
-		FieldPath.Generate(*JsonValue->AsString());
+		FieldPath.Generate(*NewJsonValue->AsString());
 		*static_cast<FFieldPath*>(Value) = FieldPath;
 	}
 	else {

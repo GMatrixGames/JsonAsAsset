@@ -282,6 +282,33 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 	return true;
 }
 
+TSharedPtr<FJsonObject> IImporter::GetExport(FJsonObject* PackageIndex) {
+	FString ObjectName = PackageIndex->GetStringField("ObjectName"); // Class'Asset:ExportName'
+	FString ObjectPath = PackageIndex->GetStringField("ObjectPath"); // Path/Asset.Index
+
+	// Class'Asset:ExportName' --> Asset:ExportName
+	ObjectName.Split("'", nullptr, &ObjectName);
+	ObjectName.Split("'", &ObjectName, nullptr);
+
+	// Asset:ExportName --> ExportName
+	if (ObjectName.Contains(":"))
+		ObjectName.Split(":", nullptr, &ObjectName);
+
+	// Path/Asset.Index --> Index
+	ObjectPath.Split(".", nullptr, &ObjectPath);
+
+	int ExportIndex = FCString::Atoi(*ObjectPath);
+
+	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
+		const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Value->AsObject());
+
+		if (FString Name; ValueObject->TryGetStringField("Name", Name) && Name == ObjectName)
+			return ValueObject;
+	}
+
+	return nullptr;
+}
+
 FName IImporter::GetExportNameOfSubobject(const FString& PackageIndex) {
 	FString Name;
 	PackageIndex.Split("'", nullptr, &Name);
