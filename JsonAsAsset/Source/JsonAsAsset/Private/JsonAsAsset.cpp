@@ -344,6 +344,11 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 						AcceptedTypes.Add("CurveLinearColor");
 						AcceptedTypes.Add("CurveLinearColorAtlas");
 
+						AcceptedTypes.Add("ReverbEffect");
+						AcceptedTypes.Add("SoundAttenuation");
+						AcceptedTypes.Add("SoundConcurrency");
+
+						AcceptedTypes.Add("DataTable");
 						AcceptedTypes.Add("SubsurfaceProfile");
 
 						AcceptedTypes.Add("PhysicalMaterial");

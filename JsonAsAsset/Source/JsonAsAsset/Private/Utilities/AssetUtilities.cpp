@@ -132,7 +132,12 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 		Type == "PhysicalMaterial" ||
 		Type == "SubsurfaceProfile" ||
 		Type == "LandscapeGrassType" ||
-		Type == "MaterialInstanceConstant"
+		Type == "MaterialInstanceConstant" ||
+		Type == "ReverbEffect" ||
+		Type == "SoundAttenuation" ||
+		Type == "SoundConcurrency" ||
+		Type == "DataTable" ||
+		Type == "SubsurfaceProfile"
 		) {
 		//		Manually supported asset types
 		// (ex: textures have to be handled differently)

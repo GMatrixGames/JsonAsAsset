@@ -24,7 +24,7 @@ bool UDataTableImporter::ImportData() {
 		// Find Table Row Struct
 		UScriptStruct* TableRowStruct = FindObject<UScriptStruct>(ANY_PACKAGE, *TableStruct); {
 			if (TableRowStruct == NULL) {
-				AppendNotification(FText::FromString("DataTable Struct Missing: " + TableStruct), FText::FromString("DataTable"), 2.0f, SNotificationItem::CS_Fail, true, 350.0f);
+				AppendNotification(FText::FromString("DataTable Missing: " + TableStruct), FText::FromString(FileName), 2.0f, SNotificationItem::CS_Fail, true, 350.0f);
 
 				return false;
 			} else DataTable->RowStruct = TableRowStruct;

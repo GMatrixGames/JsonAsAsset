@@ -7,9 +7,7 @@
 #include "Utilities/PropertyUtilities.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
-/*
-* Global handler for converting JSON to assets
-*/
+// Global handler for converting JSON to assets
 class IImporter {
 public:
 	IImporter() :
@@ -32,9 +30,8 @@ public:
 	virtual ~IImporter() {
 	}
 
-	/** Import the data of the supported type, return if successful or not */
+	// Import the data of the supported type, return if successful or not
 	virtual bool ImportData() { return false; }
-
 private:
 	UPROPERTY()
 		UObjectSerializer* GObjectSerializer;
@@ -85,15 +82,16 @@ private:
 		"TextureRenderTarget2D",
 		"PhysicalMaterial",
 	};
-
 public:
 	template <class T = UObject>
-	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);
+		// Loads a reference to a object	
+		void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);
 	template <class T = UObject>
-	TArray<TObjectPtr<T>> LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array);
-
+		// Loads a array of references
+		TArray<TObjectPtr<T>> LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array);
+	
+	// Refers to AcceptedTypes to see if type is valid ------------------
 	static bool CanImport(const FString& ImporterType) { return AcceptedTypes.Contains(ImporterType); }
-
 	static bool CanImportAny(TArray<FString>& Types) {
 		for (FString& Type : Types) {
 			if (!CanImport(Type)) continue;
@@ -103,18 +101,17 @@ public:
 		return false;
 	}
 
-	static TArray<FString> GetAcceptedTypes() {
-		return AcceptedTypes;
-	}
+	static TArray<FString> GetAcceptedTypes() { return AcceptedTypes; }
+	// ------------------------------------------------------------------------
 
 	void ImportReference(const FString& File);
 	bool HandleReference(const FString& GamePath);
 
 	bool HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, bool bHideNotifications = false);
 
+	// Easier way to add notifications to Editor
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, const FSlateBrush* SlateBrush, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
-
 protected:
 	bool HandleAssetCreation(UObject* Asset) const;
 
