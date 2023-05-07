@@ -229,28 +229,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Asset Classes"));
 				{
 					for (FString& Asset : IImporter::GetAcceptedTypes()) {
-						if (Asset == "Material" || Asset == "MaterialFunction") {
-							InnerMenuBuilder.AddSubMenu(
-								FText::FromString(Asset),
-								FText::FromString(Asset),
-								FNewMenuDelegate::CreateLambda([this](FMenuBuilder& MaterialMenuBuilder) {
-									MaterialMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Material Nodes"));
-									{
-										for (FString& Asset : UMaterialFunctionImporter::GetAcceptedTypes()) {
-											MaterialMenuBuilder.AddMenuEntry(
-												FText::FromString(Asset),
-												FText::FromString(Asset),
-												FSlateIcon(),
-												FUIAction()
-											);
-										}
-									}
-									MaterialMenuBuilder.EndSection();
-								}),
-								false,
-								FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail"))
-							);
-						} else InnerMenuBuilder.AddMenuEntry(
+						InnerMenuBuilder.AddMenuEntry(
 							FText::FromString(Asset),
 							FText::FromString(Asset),
 							FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail")),
