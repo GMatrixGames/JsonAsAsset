@@ -104,6 +104,7 @@ UPropertySerializer::UPropertySerializer() {
 void UPropertySerializer::DeserializePropertyValue(FProperty* Property, const TSharedRef<FJsonValue>& JsonValue, void* Value) {
 	// Handle statically sized array properties
 	Property->ArrayDim = 1;
+
 	if (Property->ArrayDim != 1) {
 		const TArray<TSharedPtr<FJsonValue>>& ArrayElements = JsonValue->AsArray();
 		check(ArrayElements.Num() == Property->ArrayDim);
@@ -209,14 +210,13 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 		ObjectProperty->SetObjectPropertyValue(Value, Object);
 	}
 	else if (const FStructProperty* StructProperty = CastField<const FStructProperty>(Property)) {
-		FString OutString;
-
-		if (JsonValue->TryGetString(OutString)) {
-			// idk how to fix guids -.-
+		// JSON for FGuids are FStrings
+		if (FString OutString; JsonValue->TryGetString(OutString)) {
 		}
 
+		else 
 		// To serialize struct, we need it's type and value pointer, because struct value doesn't contain type information
-		DeserializeStruct(StructProperty->Struct, NewJsonValue->AsObject().ToSharedRef(), Value);
+			DeserializeStruct(StructProperty->Struct, NewJsonValue->AsObject().ToSharedRef(), Value);
 	}
 	else if (const FByteProperty* ByteProperty = CastField<const FByteProperty>(Property)) {
 		// If we have a string provided, make sure Enum is not null

@@ -12,6 +12,11 @@
 #include "Materials/MaterialExpressionQualitySwitch.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
+#include "Materials/MaterialExpressionMakeMaterialAttributes.h"
+#include "Materials/MaterialExpressionGetMaterialAttributes.h"
+#include "Materials/MaterialExpressionBreakMaterialAttributes.h"
+#include "Materials/MaterialExpressionBlendMaterialAttributes.h"
+#include "Materials/MaterialExpressionSetMaterialAttributes.h"
 
 #include <MaterialEditingLibrary.h>
 #include <Editor/UnrealEd/Public/FileHelpers.h>
@@ -111,6 +116,7 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 				continue;
 		}
 
+		// ------------ Manually check for Material Function Calls ------------ 
 		if (Type->Type == "MaterialExpressionMaterialFunctionCall") {
 			UMaterialExpressionMaterialFunctionCall* MaterialFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression);
 
@@ -127,9 +133,62 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 			}
 		}
 
+		// Sets 99% of properties for nodes
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, Expression);
+
+		// ------------ Material Attributes have GUIDs, unsupported for property serializer ------------ 
+		if (Type->Type == "MaterialExpressionGetMaterialAttributes") {
+			UMaterialExpressionGetMaterialAttributes* GetMaterialAttributes = Cast<UMaterialExpressionGetMaterialAttributes>(Expression);
+
+			GetMaterialAttributes->AttributeGetTypes.Empty();
+			if (const TArray<TSharedPtr<FJsonValue>>* AttributeGetTypesPtr; Properties->TryGetArrayField("AttributeGetTypes", AttributeGetTypesPtr)) {
+				int i = 0;
+				for (const TSharedPtr<FJsonValue> AttributeGetTypeValue : *AttributeGetTypesPtr) {
+					FString AttributeGetType = AttributeGetTypeValue->AsString();
+					GetMaterialAttributes->AttributeGetTypes.Add(FGuid(AttributeGetType));
+					i++;
+				}
+			}
+
+			if (const TArray<TSharedPtr<FJsonValue>>* OutputsPtr; Properties->TryGetArrayField("Outputs", OutputsPtr)) {
+				TArray<FExpressionOutput> Outputs;
+				for (const TSharedPtr<FJsonValue> FunctionOutputValue : *OutputsPtr) {
+					Outputs.Add(PopulateExpressionOutput(FunctionOutputValue->AsObject().Get()));
+				}
+
+				GetMaterialAttributes->Outputs = Outputs;
+			}
+		} else if (Type->Type == "MaterialExpressionSetMaterialAttributes") {
+			UMaterialExpressionSetMaterialAttributes* SetMaterialAttributes = Cast<UMaterialExpressionSetMaterialAttributes>(Expression);
+
+			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; Properties->TryGetArrayField("Inputs", InputsPtr)) {
+				int i = 0;
+				SetMaterialAttributes->Inputs.Empty();
+				SetMaterialAttributes->Inputs.SetNumZeroed(InputsPtr->Num());
+				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
+					FJsonObject* InputObject = InputValue->AsObject().Get();
+					FName InputExpressionName = GetExpressionName(InputObject);
+					if (CreatedExpressionMap.Contains(InputExpressionName)) {
+						FExpressionInput Input = PopulateExpressionInput(InputObject, *CreatedExpressionMap.Find(InputExpressionName));
+						SetMaterialAttributes->Inputs[i] = Input;
+					}
+					i++;
+				}
+			}
+
+			if (const TArray<TSharedPtr<FJsonValue>>* AttributeSetTypesPtr; Properties->TryGetArrayField("AttributeSetTypes", AttributeSetTypesPtr)) {
+				int i = 0;
+				SetMaterialAttributes->AttributeSetTypes.Empty();
+				SetMaterialAttributes->AttributeSetTypes.SetNumZeroed(AttributeSetTypesPtr->Num());
+				for (const TSharedPtr<FJsonValue> AttributeSetTypeValue : *AttributeSetTypesPtr) {
+					FString AttributeSetType = AttributeSetTypeValue->AsString();
+					SetMaterialAttributes->AttributeSetTypes[i] = FGuid(AttributeSetType);
+					i++;
+				}
+			}
+		}
 		
-		// Properties with incorrect letter cases
+		// Properties with incorrect letter cases (and GUID problems)
 		if (Type->Type == "MaterialExpressionFunctionOutput") {
 			UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(Expression);
 				FunctionOutput->Id = FGuid(Properties->GetStringField("ID"));
@@ -138,6 +197,7 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 				FunctionInput->Id = FGuid(Properties->GetStringField("ID"));
 		}
 
+		// Material Function Manually: To define function inputs correctly?
 		if (Type->Type == "MaterialExpressionMaterialFunctionCall") {
 			UMaterialExpressionMaterialFunctionCall* MaterialFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression);
 
@@ -158,10 +218,9 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 
 				MaterialFunctionCall->FunctionOutputs = FunctionOutputs;
 			}
-
-			Expression = MaterialFunctionCall;
 		}
 
+		// Material Nodes with edited properties (ex: 9 objects with the same name ---> array of objects)
 		if (Type->Type == "MaterialExpressionQualitySwitch") {
 			UMaterialExpressionQualitySwitch* QualitySwitch = Cast<UMaterialExpressionQualitySwitch>(Expression);
 
@@ -177,12 +236,9 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 					i++;
 				}
 			}
-
-			Expression = QualitySwitch;
 		} else if (Type->Type == "MaterialExpressionShadingPathSwitch") {
 			UMaterialExpressionShadingPathSwitch* ShadingPathSwitch = Cast<UMaterialExpressionShadingPathSwitch>(Expression);
 
-			ShadingPathSwitch->Default = CreateExpressionInput(Properties, CreatedExpressionMap, "Default");
 			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
 				int i = 0;
 				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
@@ -195,12 +251,9 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 					i++;
 				}
 			}
-
-			Expression = ShadingPathSwitch;
 		} else if (Type->Type == "MaterialExpressionFeatureLevelSwitch") {
 			UMaterialExpressionFeatureLevelSwitch* FeatureLevelSwitch = Cast<UMaterialExpressionFeatureLevelSwitch>(Expression);
 
-			FeatureLevelSwitch->Default = CreateExpressionInput(Properties, CreatedExpressionMap, "Default");
 			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
 				int i = 0;
 				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
@@ -213,8 +266,6 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 					i++;
 				}
 			}
-
-			Expression = FeatureLevelSwitch;
 		}
 
 		MaterialGraphNode_ExpressionWrapper(Parent, Expression, Properties);
