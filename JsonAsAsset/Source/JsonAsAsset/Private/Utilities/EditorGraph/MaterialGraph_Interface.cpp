@@ -21,10 +21,12 @@
 #include <MaterialEditingLibrary.h>
 #include <Editor/UnrealEd/Public/FileHelpers.h>
 
+#include "Materials/MaterialExpressionTextureBase.h"
+
 TSharedPtr<FJsonObject> UMaterialGraph_Interface::FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames, bool bFilterByOuter) {
 	TSharedPtr<FJsonObject> EditorOnlyData;
 
-	for (const TSharedPtr<FJsonValue> Value : (bFilterByOuter ? FilterExportsByOuter(Outer) : AllJsonObjects)) {
+	for (const TSharedPtr<FJsonValue> Value : bFilterByOuter ? FilterExportsByOuter(Outer) : AllJsonObjects) {
 		TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
 
 		FString ExType = Object->GetStringField("Type");
