@@ -106,10 +106,28 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	PackageIndex->Get()->GetStringField("ObjectName").Split("'", &Type, &Name);
 	FString Path;
 	PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
+
+	/*
+	* NOTE: Fortnite Alpha porters, please add these two lines of
+	*		code to allow reading objects:
+	* 
+	* 	Path = Path.Replace(TEXT("FortniteGame/Content"), TEXT("/Game"));
+	*	Path = Path.Replace(TEXT("Engine/Content"), TEXT("/Engine"));
+	*/
+
 	Name = Name.Replace(TEXT("'"), TEXT(""));
 
 	// Define found object
 	TObjectPtr<T> Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
+
+	// Material Expressions may be formatted differently
+	if (!Obj && Name.StartsWith("MaterialExpression")) {
+		FString AssetName; 
+			Path.Split("/", nullptr, &AssetName, ESearchCase::Type::IgnoreCase, ESearchDir::FromEnd);
+
+		// Load Object with :
+		Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + AssetName + ":" + Name)));
+	}
 
 	Object = DownloadWrapper(Obj, Type, Name, Path);
 }
