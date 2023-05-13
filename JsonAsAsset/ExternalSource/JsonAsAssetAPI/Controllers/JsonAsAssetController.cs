@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using CUE4Parse.Utils;
 using CUE4Parse.UE4.Assets.Exports.Texture;
 using CUE4Parse_Conversion.Textures;
+using SkiaSharp;
 
 namespace JsonAsAssetAPI.Controllers
 {
@@ -70,14 +71,20 @@ namespace JsonAsAssetAPI.Controllers
                         // Serialize object, and return it indented
                         return new OkObjectResult(JsonConvert.SerializeObject(finalExports, Formatting.Indented));
 
-                    // TODO: add texture support
                     case false:
-                        var obj = Provider.LoadObject(path);
+                        UTexture2D TextureObject = (UTexture2D)Provider.LoadObject(path);
+                        
+                        // Texture data
+                        SKBitmap TextureData = TextureObject.Decode();
+                        if (TextureData == null)
+                            return StatusCode(500, value: new
+                            {
+                                errored = true,
+                                exceptionstring = "Invalid texture data, exported as json",
+                                jsonoutput = new { TextureObject }
+                            });
 
-                        var texture = (UTexture2D)obj;
-                        var bitmap = TextureDecoder.Decode(texture);
-
-                        return File(bitmap.Bytes, "image/jpeg");
+                        return File(TextureData.Encode(SKEncodedImageFormat.Png, quality: 100).AsStream(), "image/png");
                 }
             }
             catch (Exception exception)
