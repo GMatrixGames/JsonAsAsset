@@ -11,7 +11,7 @@ public class Globals
 
     public async Task Initialize()
     {
-        Globals.Provider = new DefaultFileProvider("G:/Epic Games/Fortnite/FortniteGame/Content/Paks", SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE5_3));
+        Globals.Provider = new DefaultFileProvider("G:/Epic Games/Fortnite/FortniteGame/Content/Paks", SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE5_2));
         Globals.Provider.Initialize();
 
         await Globals.Provider.SubmitKeyAsync(new FGuid(), new FAesKey("0x9BC4ED189BCC283B21AB2929CDF87EACFE0187DA71AF700D61AB4D8D08AAB862"));
