@@ -4,6 +4,8 @@ using CUE4Parse.FileProvider;
 using CUE4Parse.UE4.Assets.Exports;
 using Newtonsoft.Json;
 using CUE4Parse.Utils;
+using CUE4Parse.UE4.Assets.Exports.Texture;
+using CUE4Parse_Conversion.Textures;
 
 namespace JsonAsAssetAPI.Controllers
 {
@@ -70,7 +72,12 @@ namespace JsonAsAssetAPI.Controllers
 
                     // TODO: add texture support
                     case false:
-                    return Ok();
+                        var obj = Provider.LoadObject(path);
+
+                        var texture = (UTexture2D)obj;
+                        var bitmap = TextureDecoder.Decode(texture);
+
+                        return File(bitmap.Bytes, "image/jpeg");
                 }
             }
             catch (Exception exception)

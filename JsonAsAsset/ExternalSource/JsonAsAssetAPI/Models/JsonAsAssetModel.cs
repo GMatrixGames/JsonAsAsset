@@ -7,7 +7,7 @@ using CUE4Parse.MappingsProvider;
 
 public class Globals
 {
-    public static DefaultFileProvider Provider;
+    public static DefaultFileProvider? Provider;
 
     public async Task Initialize()
     {
@@ -19,11 +19,6 @@ public class Globals
 
         Globals.Provider.LoadLocalization(ELanguage.English);
         Globals.Provider.LoadVirtualPaths();
-    }
-
-    static Globals()
-    {
-        Provider = new DefaultFileProvider("G:/Epic Games/Fortnite/FortniteGame/Content/Paks", SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE5_3));
     }
 }
 
