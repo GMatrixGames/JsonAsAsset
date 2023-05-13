@@ -200,7 +200,6 @@ bool UTextureImporters::ImportTexture_Data(UTexture* InTexture, const TSharedPtr
 
 	// TODO: Add LayerFormatSettings
 
-	if (int LODBias; Properties->TryGetNumberField("LODBias", LODBias)) InTexture->LODBias = LODBias;
 	if (FString LODGroup; Properties->TryGetStringField("LODGroup", LODGroup)) InTexture->LODGroup = static_cast<TextureGroup>(StaticEnum<TextureGroup>()->GetValueByNameString(LODGroup));
 	if (FString LossyCompressionAmount; Properties->TryGetStringField("LossyCompressionAmount", LossyCompressionAmount)) InTexture->LossyCompressionAmount = static_cast<ETextureLossyCompressionAmount>(StaticEnum<ETextureLossyCompressionAmount>()->GetValueByNameString(LossyCompressionAmount));
 
