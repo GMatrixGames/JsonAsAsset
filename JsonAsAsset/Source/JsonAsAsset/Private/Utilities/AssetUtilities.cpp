@@ -137,10 +137,11 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 		Type == "SoundAttenuation" ||
 		Type == "SoundConcurrency" ||
 		Type == "DataTable" ||
-		Type == "SubsurfaceProfile"
+		Type == "SubsurfaceProfile" ||
+		Type == "MaterialFunction"
 		) {
 		//		Manually supported asset types
-		// (ex: textures have to be handled differently)
+		// (ex: textures have to be handled separately)
 		if (Type ==
 			"Texture2D" ||
 			Type == "TextureRenderTarget2D" ||
@@ -154,10 +155,10 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 			return true;
 		}
 		else {
-			const TSharedPtr<FJsonObject> Response = API_RequestExports(Path);
-			if (Response == nullptr) return true;
+			const TArray<TSharedPtr<FJsonValue>> Response = API_RequestExports(Path);
+			if (Response.IsEmpty()) return true;
 
-			TSharedPtr<FJsonObject> JsonObject = Response->GetArrayField("jsonOutput")[0]->AsObject();
+			const TSharedPtr<FJsonObject> JsonObject = Response[0]->AsObject();
 			FString PackagePath;
 			FString AssetName;
 			Path.Split(".", &PackagePath, &AssetName);
@@ -170,7 +171,7 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 
 				// Import asset by IImporter
 				IImporter* Importer = new IImporter();
-				bSuccess = Importer->HandleExports(Response->GetArrayField("jsonOutput"), PackagePath, true);
+				bSuccess = Importer->HandleExports(Response, PackagePath, true);
 
 				// Define found object
 				OutObject = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *Path));
@@ -211,15 +212,14 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	if (!NewResponse.IsValid()) return false;
 
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
-	TSharedPtr<FJsonObject> JsonObject;
-	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
+	TArray<TSharedPtr<FJsonValue>> JsonArray;
+	if (FJsonSerializer::Deserialize(JsonReader, JsonArray)) {
 		UPackage* OutermostPkg;
 		UPackage* Package = CreatePackage(*PackagePath);
 		OutermostPkg = Package->GetOutermost();
 		Package->FullyLoad();
 
-		const UTextureImporters* Importer = new UTextureImporters(AssetName, Path, JsonObject, Package, OutermostPkg);
-		TArray<TSharedPtr<FJsonValue>> JsonArray = JsonObject->GetArrayField("jsonOutput");
+		const UTextureImporters* Importer = new UTextureImporters(AssetName, Path, JsonArray[0]->AsObject(), Package, OutermostPkg);
 
 		if (JsonArray.IsEmpty())
 			// No valid entries
@@ -253,7 +253,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	return true;
 }
 
-const TSharedPtr<FJsonObject> FAssetUtilities::API_RequestExports(const FString& Path) {
+const TArray<TSharedPtr<FJsonValue>> FAssetUtilities::API_RequestExports(const FString& Path) {
 	FHttpModule* HttpModule = &FHttpModule::Get();
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
@@ -266,13 +266,13 @@ const TSharedPtr<FJsonObject> FAssetUtilities::API_RequestExports(const FString&
 	NewRequest->SetVerb(TEXT("GET"));
 
 	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
-	if (!NewResponse.IsValid()) return TSharedPtr<FJsonObject>();
+	if (!NewResponse.IsValid()) return TArray<TSharedPtr<FJsonValue>>();
 
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
-	TSharedPtr<FJsonObject> JsonObject;
-	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
-		return JsonObject;
+	TArray<TSharedPtr<FJsonValue>> JsonArray;
+	if (FJsonSerializer::Deserialize(JsonReader, JsonArray)) {
+		return JsonArray;
 	}
 
-	return TSharedPtr<FJsonObject>();
+	return TArray<TSharedPtr<FJsonValue>>();
 }

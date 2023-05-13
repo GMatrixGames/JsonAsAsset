@@ -33,6 +33,8 @@ namespace JsonAsAssetAPI.Controllers
                 {
                     // Raw exports
                     case true:
+                        path = path.SubstringBeforeLast('.');
+
                         // Add .uasset to path
                         if (!path.EndsWith(".uasset") && !path.Contains("."))
                             path = path + ".uasset";

@@ -330,8 +330,9 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 						AcceptedTypes.Add("DataTable");
 						AcceptedTypes.Add("SubsurfaceProfile");
 
-						AcceptedTypes.Add("PhysicalMaterial");
 						AcceptedTypes.Add("MaterialParameterCollection");
+						AcceptedTypes.Add("MaterialFunction");
+						AcceptedTypes.Add("PhysicalMaterial");
 					}
 
 					for (FString& Asset : AcceptedTypes) {

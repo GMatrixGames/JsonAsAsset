@@ -27,5 +27,5 @@ public:
 	static bool ConstructAsset(const FString& Path, const FString& Type, TObjectPtr<T>& OutObject, bool& bSuccess);
 	static bool Construct_TypeTexture(const FString& Path, UTexture*& OutTexture);
 
-	static const TSharedPtr<FJsonObject> API_RequestExports(const FString& Path);
+	static const TArray<TSharedPtr<FJsonValue>> API_RequestExports(const FString& Path);
 };

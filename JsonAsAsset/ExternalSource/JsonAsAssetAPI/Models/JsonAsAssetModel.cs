@@ -14,7 +14,7 @@ public class Globals
     public async Task Initialize()
     {
         // Find config folder
-        string config_folder = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location).SubstringBeforeLast("\\Plugins\\") + "\\Config\\";
+        string config_folder = System.AppDomain.CurrentDomain.BaseDirectory.SubstringBeforeLast("\\Plugins\\") + "\\Config\\";
         ConfigIni config = new ConfigIni("DefaultEditorPerProjectUserSettings");
 
         // Read config file
