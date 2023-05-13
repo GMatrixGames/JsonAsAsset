@@ -48,11 +48,11 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 	}
 
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-	bool bRemoteDownload = Settings->bEnableRemoteDownload;
+	bool bEnableLocalFetch = Settings->bEnableLocalFetch;
 
 	FMessageLog MessageLogger = FMessageLog(FName("JsonAsAsset"));
 
-	if (bRemoteDownload && InObject == nullptr) {
+	if (bEnableLocalFetch && InObject == nullptr) {
 		const UObject* DefaultObject = T::StaticClass()->ClassDefaultObject;
 
 		if (DefaultObject != nullptr) {
@@ -65,7 +65,7 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 			if (bTriedDownload) {
 				if (bRemoteDownloadStatus) {
 					AppendNotification(
-						FText::FromString("Remotely Downloaded: " + Type),
+						FText::FromString("Locally Downloaded: " + Type),
 						FText::FromString(Name),
 						2.0f,
 						FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),

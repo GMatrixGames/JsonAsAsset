@@ -190,7 +190,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 
 	UE_LOG(LogTemp, Warning, TEXT("Test Path: %s"), *Path);
 
-	HttpRequest->SetURL("https://fortnitecentral.genxgames.gg/api/v1/export?path=" + Path);
+	HttpRequest->SetURL("http://localhost:1500/api/v1/export?path=" + Path);
 	HttpRequest->SetHeader("content-type", "image/png");
 	HttpRequest->SetVerb(TEXT("GET"));
 
@@ -204,7 +204,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	Path.Split(".", &PackagePath, &AssetName);
 
 	const TSharedRef<IHttpRequest> NewRequest = HttpModule->CreateRequest();
-	NewRequest->SetURL("https://fortnitecentral.genxgames.gg/api/v1/export?raw=true&path=" + Path);
+	NewRequest->SetURL("http://localhost:1500/api/v1/export?raw=true&path=" + Path);
 	NewRequest->SetVerb(TEXT("GET"));
 
 	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
@@ -262,7 +262,7 @@ const TSharedPtr<FJsonObject> FAssetUtilities::API_RequestExports(const FString&
 	Path.Split(".", &PackagePath, &AssetName);
 
 	const TSharedRef<IHttpRequest> NewRequest = HttpModule->CreateRequest();
-	NewRequest->SetURL("https://fortnitecentral.genxgames.gg/api/v1/export?raw=true&path=" + Path);
+	NewRequest->SetURL("http://localhost:1500/api/v1/export?raw=true&path=" + Path);
 	NewRequest->SetVerb(TEXT("GET"));
 
 	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);

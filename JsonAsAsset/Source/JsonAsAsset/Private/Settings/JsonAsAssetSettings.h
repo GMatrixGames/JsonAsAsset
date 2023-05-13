@@ -84,8 +84,12 @@ struct FParseKey {
 public:
     TArray<uint8> Key;
 
+    // Must start with 0x
     UPROPERTY(config, EditAnywhere)
     FString Value;
+
+    UPROPERTY(config, EditAnywhere)
+    FString Guid;
 };
 
 // A editor plugin to allow JSON files from FModel to a asset in the Content Browser
@@ -103,12 +107,6 @@ public:
     // NOTE: Please use the file selector, do not manually paste it 
 	UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
 	FDirectoryPath ExportDirectory;
-
-	// Downloads assets from FortniteCentral and automatically
-	// imports them into your project, without having them locally
-	// (only supports: Fortnite)
-	UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
-	bool bEnableRemoteDownload;
 
 public:
     // Fetchs assets from a local service and automatically
@@ -132,7 +130,11 @@ public:
     UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Configuration", meta = (EditCondition = "bEnableLocalFetch", FilePathFilter = "usmap", RelativeToGameDir))
         FFilePath MappingFilePath;
 
+    // Main key for archives
+    UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Configuration|Archive", meta = (EditCondition = "bEnableLocalFetch", DisplayName = "Archive Key"))
+        FString ArchiveKey;
+
     // AES Keys
-    UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Configuration", meta = (EditCondition = "bEnableLocalFetch", DisplayName = "Archive Keys"))
+    UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Configuration|Archive", meta = (EditCondition = "bEnableLocalFetch", DisplayName = "Archive Keys"))
         TArray<FParseKey> AESKeys;
 };

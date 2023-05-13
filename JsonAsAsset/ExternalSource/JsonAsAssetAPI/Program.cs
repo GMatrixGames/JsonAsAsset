@@ -2,6 +2,9 @@
 using JsonAsAssetApi.Data;
 using Microsoft.EntityFrameworkCore;
 
+Console.WriteLine("-------#------- JsonAsAsset API -------#-------");
+Console.WriteLine("-- (used for local fetch, and other things) --\n");
+
 var builder = WebApplication.CreateBuilder(args);
 
 var glob = new Globals();

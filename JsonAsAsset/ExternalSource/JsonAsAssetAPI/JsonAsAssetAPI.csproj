@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="CUE4Parse" Version="1.0.7" />
+    <PackageReference Include="CUE4Parse-Conversion" Version="1.0.7" />
+    <PackageReference Include="Infrablack.UE4Config" Version="0.7.2.97" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="7.0.5" />
   </ItemGroup>
