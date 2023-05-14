@@ -23,6 +23,14 @@ public class Globals
     public static EGame UnrealVersion;
     public static string? ArchiveKey;
 
+    public void WriteLog(string source, ConsoleColor Color, string description)
+    {
+        Console.ForegroundColor = Color;
+        Console.Write('[' + source + "] ");
+        Console.ResetColor();
+        Console.Write(description + '\n');
+    }
+
     // Get config property (path) by name
     public string GetPathProperty(ConfigIni config, string PropertyName)
     {
@@ -63,9 +71,9 @@ public class Globals
         UnrealVersion = (EGame)Enum.Parse(typeof(EGame), GetStringProperty(config, "UnrealVersion"), true);
         ArchiveKey = GetStringProperty(config, "ArchiveKey");
 
-        Console.WriteLine($"\n[DefaultEditorPerProjectUserSettings] Mappings: {MappingFilePath.SubstringBeforeLast("\\")}");
-        Console.WriteLine($"[DefaultEditorPerProjectUserSettings] Archive Directory: {ArchiveDirectory.SubstringBeforeLast("\\")}");
-        Console.WriteLine($"[DefaultEditorPerProjectUserSettings] Unreal Versioning: {UnrealVersion.ToString()}\n");
+        WriteLog("UserSettings", ConsoleColor.Blue, $"Mappings: {MappingFilePath.SubstringBeforeLast("\\")}");
+        WriteLog("UserSettings", ConsoleColor.Blue, $"Archive Directory: {ArchiveDirectory.SubstringBeforeLast("\\")}");
+        WriteLog("UserSettings", ConsoleColor.Blue, $"Unreal Versioning: {UnrealVersion.ToString()}");
 
         return config;
     }
@@ -74,7 +82,7 @@ public class Globals
     {
         // Find config folder
         string config_folder = System.AppDomain.CurrentDomain.BaseDirectory.SubstringBeforeLast("\\Plugins\\") + "\\Config\\";
-        Console.WriteLine($"[Provider]Found config folder: {config_folder.SubstringBeforeLast("\\")}");
+        WriteLog("Provider", ConsoleColor.Red, $"Found config folder: {config_folder.SubstringBeforeLast("\\")}");
 
         // DefaultEditorPerProjectUserSettings
         ConfigIni config = GetEditorConfig();
@@ -85,9 +93,11 @@ public class Globals
 
         // Submit Main AES Key
         await Provider.SubmitKeyAsync(new FGuid(), new FAesKey(ArchiveKey));
-        Console.WriteLine($"[Provider] Submitted Key: {ArchiveKey}");
+        WriteLog("Provider", ConsoleColor.Red, $"Submitted Archive Key: {ArchiveKey}");
 
         var DynamicKeys = GetArrayProperty(config, "DynamicKeys");
+        if (DynamicKeys.Count() != 0)
+            WriteLog("Provider", ConsoleColor.Red, "Reading {" + DynamicKeys.Count() + "} Dynamic Keys -------------------------------------------");
 
         // Submit each dynamic key
         foreach (string key in DynamicKeys)
@@ -100,7 +110,7 @@ public class Globals
             var Guid = entries[1].SubstringBeforeLast("\"").SubstringAfterLast("\"");
 
             await Provider.SubmitKeyAsync(new FGuid(Guid), new FAesKey(Key));
-            Console.WriteLine($"[Provider] Submitted Key: {Key}");
+            WriteLog("Provider", ConsoleColor.Red, $"Submitted Key: {Key}");
         }
 
         Provider.MappingsContainer = new FileUsmapTypeMappingsProvider(MappingFilePath);
