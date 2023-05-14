@@ -17,6 +17,7 @@
 #include "Materials/MaterialExpressionBreakMaterialAttributes.h"
 #include "Materials/MaterialExpressionBlendMaterialAttributes.h"
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
+#include "Materials/MaterialExpressionCollectionParameter.h"
 
 #include <MaterialEditingLibrary.h>
 #include <Editor/UnrealEd/Public/FileHelpers.h>
@@ -137,6 +138,13 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 
 		// Sets 99% of properties for nodes
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, Expression);
+
+		if (Type->Type == "MaterialExpressionCollectionParameter") {
+			UMaterialExpressionCollectionParameter* CollectionParameter = Cast<UMaterialExpressionCollectionParameter>(Expression);
+
+			if (FString ParameterId; Properties->TryGetStringField("ParameterId", ParameterId)) 
+				CollectionParameter->ParameterId = FGuid(ParameterId);
+		}
 
 		// ------------ Material Attributes have GUIDs, unsupported for property serializer ------------ 
 		if (Type->Type == "MaterialExpressionGetMaterialAttributes") {
