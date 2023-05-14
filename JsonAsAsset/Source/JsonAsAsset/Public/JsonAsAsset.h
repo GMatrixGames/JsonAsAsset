@@ -37,6 +37,7 @@ private:
 
 	// Creates a dialog for a file
 	TArray<FString> OpenFileDialog(FString Title, FString Type);
+	bool IsProcessRunning(const FString& ProcessName);
 };
 
 // About JsonAsAsset (copied from Epic Games Source)

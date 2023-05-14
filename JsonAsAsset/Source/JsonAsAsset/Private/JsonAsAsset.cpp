@@ -15,6 +15,8 @@
 #include "ToolMenus.h"
 #include "LevelEditor.h"
 
+#include "Windows/MinWindows.h"
+
 #include "Interfaces/IPluginManager.h"
 #include "Settings/JsonAsAssetSettings.h"
 #include "Importers/Importer.h"
@@ -51,6 +53,11 @@
 #include "Styling/StyleColors.h"
 #include "Styling/AppStyle.h"
 #include "SPrimaryButton.h"
+#include <TlHelp32.h>
+
+#ifdef _MSC_VER
+#undef GetObject
+#endif
 
 // ------------------------------------------------------ |
 
@@ -214,6 +221,33 @@ TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) 
 	return ReturnValue;
 }
 
+bool FJsonAsAssetModule::IsProcessRunning(const FString& ProcessName) {
+	bool bIsRunning = false;
+
+	// Convert FString to WCHAR
+	const TCHAR* ProcessNameChar = *ProcessName;
+	const WCHAR* ProcessNameWChar = (const WCHAR*)ProcessNameChar;
+
+	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (hSnapshot != INVALID_HANDLE_VALUE) {
+		PROCESSENTRY32 ProcessEntry;
+		ProcessEntry.dwSize = sizeof(ProcessEntry);
+
+		if (Process32First(hSnapshot, &ProcessEntry)) {
+			do {
+				if (_wcsicmp(ProcessEntry.szExeFile, ProcessNameWChar) == 0) {
+					bIsRunning = true;
+					break;
+				}
+			} while (Process32Next(hSnapshot, &ProcessEntry));
+		}
+
+		CloseHandle(hSnapshot);
+	}
+
+	return bIsRunning;
+}
+
 TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 {
 	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("JsonAsAsset");
@@ -305,9 +339,9 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 	}
 
 	if (Settings->bEnableLocalFetch) {
-		MenuBuilder.BeginSection("JsonAsAssetSection", FText::FromString("Local Fetch"));
+		MenuBuilder.BeginSection("JsonAsAssetSection", FText::FromString("Json-As-Asset API"));
 		MenuBuilder.AddSubMenu(
-			LOCTEXT("JsonAsAssetMenu", "Local Fetch Types"),
+			LOCTEXT("JsonAsAssetMenu", "Asset Types"),
 			LOCTEXT("JsonAsAssetMenuToolTip", "List of supported classes that can be locally fetched using the API"),
 			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
 				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Asset Classes"));
@@ -351,7 +385,86 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 				InnerMenuBuilder.EndSection();
 			}),
 			false,
-			FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Audit")
+			FSlateIcon()
+		);
+
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("JsonAsAssetMenu", "Command-line Application"),
+			LOCTEXT("", ""),
+			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
+				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Console"));
+				{
+					InnerMenuBuilder.AddMenuEntry(
+						FText::FromString("Execute JsonAsAsset API (.EXE)"),
+						FText::FromString(""),
+						FSlateIcon(),
+						FUIAction(
+							FExecuteAction::CreateLambda([this]() {
+								FString PluginBinariesFolder;
+
+								const TSharedPtr<IPlugin> PluginInfo = IPluginManager::Get().FindPlugin("JsonAsAsset");
+								if (PluginInfo.IsValid()) {
+									const FString PluginBaseDir = PluginInfo->GetBaseDir();
+									PluginBinariesFolder = FPaths::Combine(PluginBaseDir, TEXT("Binaries"));
+
+									if (!FPaths::DirectoryExists(PluginBinariesFolder)) {
+										PluginBinariesFolder = FPaths::Combine(PluginBaseDir, TEXT("JsonAsAsset/Binaries"));
+									}
+								}
+
+								FString FullPath = FPaths::ConvertRelativePathToFull(PluginBinariesFolder + "/Win64/JsonAsAsset_API/JsonAsAssetAPI.exe");
+								FPlatformProcess::LaunchFileInDefaultExternalApplication(*FullPath, TEXT("--urls=http://localhost:1500/"), ELaunchVerb::Open);
+							}),
+							FCanExecuteAction::CreateLambda([this]() {
+								return !IsProcessRunning("JsonAsAssetAPI.exe");
+							})
+						)
+					);
+
+					InnerMenuBuilder.AddMenuEntry(
+						FText::FromString("Shutdown JsonAsAsset API (.EXE)"),
+						FText::FromString(""),
+						FSlateIcon(),
+						FUIAction(
+							FExecuteAction::CreateLambda([this]() {
+								FString ProcessName = TEXT("JsonAsAssetAPI.exe");
+								TCHAR* ProcessNameChar = ProcessName.GetCharArray().GetData();
+
+								DWORD ProcessID = 0;
+								HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+								if (hSnapshot != INVALID_HANDLE_VALUE) {
+									PROCESSENTRY32 ProcessEntry;
+									ProcessEntry.dwSize = sizeof(PROCESSENTRY32);
+
+									if (Process32First(hSnapshot, &ProcessEntry)) {
+										do {
+											if (FCString::Stricmp(ProcessEntry.szExeFile, ProcessNameChar) == 0) {
+												ProcessID = ProcessEntry.th32ProcessID;
+												break;
+											}
+										} while (Process32Next(hSnapshot, &ProcessEntry));
+									}
+									CloseHandle(hSnapshot);
+								}
+
+								if (ProcessID != 0) {
+									HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, ProcessID);
+									if (hProcess != nullptr) {
+										TerminateProcess(hProcess, 0);
+										CloseHandle(hProcess);
+									}
+								}
+							}),
+							FCanExecuteAction::CreateLambda([this]() {
+								return IsProcessRunning("JsonAsAssetAPI.exe");
+							})
+						)
+					);
+				}
+				InnerMenuBuilder.EndSection();
+			}),
+			false,
+			FSlateIcon()
 		);
 		MenuBuilder.EndSection();
 	}
