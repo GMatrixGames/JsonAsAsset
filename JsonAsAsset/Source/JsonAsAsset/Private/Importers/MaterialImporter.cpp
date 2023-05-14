@@ -480,8 +480,11 @@ bool UMaterialImporter::ImportData() {
 		PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
 		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);
 
+		const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
 		// Handle edit changes, and add it to the content browser
-		if (!HandleAssetCreation(Material)) return false;
+		if (!Settings->bGhostMaterial)
+			if (!HandleAssetCreation(Material)) return false;
 
 		bool bEditorGraphOpen = false;
 		FMaterialEditor* AssetEditorInstance = nullptr;
@@ -639,7 +642,8 @@ bool UMaterialImporter::ImportData() {
 			}
 		}
 
-		Material->PostEditChange();
+		if (!Settings->bGhostMaterial)
+			Material->PostEditChange();
 	}
 	catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

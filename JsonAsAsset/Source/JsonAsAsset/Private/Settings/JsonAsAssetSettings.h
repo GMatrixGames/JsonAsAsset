@@ -108,6 +108,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
 	FDirectoryPath ExportDirectory;
 
+    // Ghosts a imported material until you interact with it
+    UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
+	bool bGhostMaterial;
+
 public:
     // Fetchs assets from a local service and automatically
     // imports them into your project, without having them locally
