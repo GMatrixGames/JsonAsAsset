@@ -1,12 +1,13 @@
-JsonAsAsset/Binaries
+
 JsonAsAsset/Intermediate
 .vscode/settings.json
 JsonAsAsset/Source/JsonAsAsset/Private/Importers/MaterialInstanceConstantImporter.cpp
 
+*.exe
+
 *.com
 *.class
 *.dll
-*.exe
 *.pdb
 *.dll.config
 *.cache
@@ -70,7 +71,6 @@ Thumbs.db
 packages
 NuGet.exe
 _[Ss]cripts
-*.exe
 *.dll
 *.nupkg
 *.ncrunchsolution

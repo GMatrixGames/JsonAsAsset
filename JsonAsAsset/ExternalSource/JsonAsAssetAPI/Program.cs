@@ -2,8 +2,8 @@
 using JsonAsAssetApi.Data;
 using Microsoft.EntityFrameworkCore;
 
-Console.WriteLine("-------#------- JsonAsAsset API -------#-------");
-Console.WriteLine("-- (used for local fetch, and other things) --\n");
+Console.WriteLine("JsonAsAsset API v.1.0.0\nAPI to allow asset downloading at runtime, for JsonAsAsset.\n");
+Console.WriteLine("Contributors: \n * [Tector]\n * [GMatrix]\n\n> Also credits to the people that worked on CUE4Parse!");
 
 var builder = WebApplication.CreateBuilder(args);
 
