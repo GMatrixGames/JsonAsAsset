@@ -20,6 +20,7 @@ public class Globals
 
     public static string? MappingFilePath;
     public static string? ArchiveDirectory;
+    public static string? ExportDirectory;
     public static EGame UnrealVersion;
     public static string? ArchiveKey;
 
@@ -67,6 +68,7 @@ public class Globals
 
         // Set Config Data to class
         MappingFilePath = GetPathProperty(config, "MappingFilePath");
+        ExportDirectory = GetPathProperty(config, "ExportDirectory");
         ArchiveDirectory = GetPathProperty(config, "ArchiveDirectory");
         UnrealVersion = (EGame)Enum.Parse(typeof(EGame), GetStringProperty(config, "UnrealVersion"), true);
         ArchiveKey = GetStringProperty(config, "ArchiveKey");
