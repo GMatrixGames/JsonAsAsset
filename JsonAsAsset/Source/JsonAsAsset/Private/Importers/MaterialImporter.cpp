@@ -475,12 +475,14 @@ bool UMaterialImporter::ImportData() {
 
 			Material->GetEditorOnlyData()->ParameterGroupData = ParameterGroupData;
 		}
+		const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
 		// Iterate through all the expression names
-		PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
-		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);
+		if (!Settings->bGhostMaterial) 
+			PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
+		else PropagateExpressions(nullptr, ExpressionNames, Exports, CreatedExpressionMap, true);
 
-		const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);
 
 		// Handle edit changes, and add it to the content browser
 		if (!Settings->bGhostMaterial)
