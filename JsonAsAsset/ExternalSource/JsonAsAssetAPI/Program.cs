@@ -1,16 +1,20 @@
 // JsonAsAsset API
-using JsonAsAssetApi.Data;
+using JsonAsAssetAPI.Controllers;
 using Microsoft.EntityFrameworkCore;
 
-Console.WriteLine("JsonAsAsset API v.1.0.0\nAPI to allow asset downloading at runtime, for JsonAsAsset.\n");
-Console.WriteLine("Contributors: \n * [Tector]\n * [GMatrix]\n\n> Also credits to the people that worked on CUE4Parse!");
+Console.Title = "Local Fetch API";
+Console.WriteLine("Contributors: \n * [Tector]\n * [GMatrix]\n");
 
 var builder = WebApplication.CreateBuilder(args);
 
-var glob = new Globals();
-await glob.Initialize();
+Console.WriteLine("[core] Initializing globals, and provider..");
 
-builder.Services.AddDbContext<ApiContext>
+var globals = new Globals();
+await globals.Initialize();
+
+Console.WriteLine("[core] Initialized provider successfully\n");
+
+builder.Services.AddDbContext<DbContext>
     (opt => opt.UseInMemoryDatabase("JsonAsAsset"));
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -29,6 +33,11 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+
+app.UseCors(builder => builder
+    .AllowAnyOrigin()
+    .AllowAnyMethod()
+    .AllowAnyHeader());
 
 app.UseHttpsRedirection();
 app.UseAuthentication();

@@ -12,6 +12,7 @@
     <PackageProjectUrl>https://github.com/Tectors/JsonAsAsset</PackageProjectUrl>
     <PackageIcon>Icon256.png</PackageIcon>
     <RepositoryUrl>https://github.com/Tectors/JsonAsAsset</RepositoryUrl>
+    <SignAssembly>False</SignAssembly>
   </PropertyGroup>
 
   <ItemGroup>

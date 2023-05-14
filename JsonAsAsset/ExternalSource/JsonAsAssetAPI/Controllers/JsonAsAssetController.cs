@@ -1,26 +1,130 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using JsonAsAssetApi.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using CUE4Parse.FileProvider;
 using CUE4Parse.UE4.Assets.Exports;
-using Newtonsoft.Json;
 using CUE4Parse.Utils;
 using CUE4Parse.UE4.Assets.Exports.Texture;
 using CUE4Parse_Conversion.Textures;
+using CUE4Parse.UE4.Versions;
+using CUE4Parse.Encryption.Aes;
+using CUE4Parse.UE4.Objects.Core.Misc;
+using CUE4Parse.MappingsProvider;
+using UE4Config.Parsing;
+using Newtonsoft.Json;
 using SkiaSharp;
 
+// Global Provider
+public class Globals
+{
+    public static DefaultFileProvider? Provider;
+
+    public static string? MappingFilePath;
+    public static string? ArchiveDirectory;
+    public static EGame UnrealVersion;
+    public static string? ArchiveKey;
+
+    // Get config property (path) by name
+    public string GetPathProperty(ConfigIni config, string PropertyName)
+    {
+        var values = new List<string>();
+        config.EvaluatePropertyValues("/Script/JsonAsAsset.JsonAsAssetSettings", PropertyName, values);
+
+        return values[0].SubstringBeforeLast("\"").SubstringAfterLast("\"");
+    }
+
+    // Get config property (string) by name
+    public string GetStringProperty(ConfigIni config, string PropertyName)
+    {
+        var values = new List<string>();
+        config.EvaluatePropertyValues("/Script/JsonAsAsset.JsonAsAssetSettings", PropertyName, values);
+
+        return values[0];
+    }
+
+    // Get config property (array) by name
+    public List<string> GetArrayProperty(ConfigIni config, string PropertyName)
+    {
+        var values = new List<string>();
+        config.EvaluatePropertyValues("/Script/JsonAsAsset.JsonAsAssetSettings", PropertyName, values);
+
+        return values;
+    }
+
+    // Find config folder & UpdateData
+    public ConfigIni GetEditorConfig()
+    {
+        string config_folder = System.AppDomain.CurrentDomain.BaseDirectory.SubstringBeforeLast("\\Plugins\\") + "\\Config\\";
+        ConfigIni config = new ConfigIni("DefaultEditorPerProjectUserSettings");
+        config.Read(File.OpenText(config_folder + "DefaultEditorPerProjectUserSettings.ini"));
+
+        // Set Config Data to class
+        MappingFilePath = GetPathProperty(config, "MappingFilePath");
+        ArchiveDirectory = GetPathProperty(config, "ArchiveDirectory");
+        UnrealVersion = (EGame)Enum.Parse(typeof(EGame), GetStringProperty(config, "UnrealVersion"), true);
+        ArchiveKey = GetStringProperty(config, "ArchiveKey");
+
+        Console.WriteLine($"\n[DefaultEditorPerProjectUserSettings] Mappings: {MappingFilePath.SubstringBeforeLast("\\")}");
+        Console.WriteLine($"[DefaultEditorPerProjectUserSettings] Archive Directory: {ArchiveDirectory.SubstringBeforeLast("\\")}");
+        Console.WriteLine($"[DefaultEditorPerProjectUserSettings] Unreal Versioning: {UnrealVersion.ToString()}\n");
+
+        return config;
+    }
+
+    public async Task Initialize()
+    {
+        // Find config folder
+        string config_folder = System.AppDomain.CurrentDomain.BaseDirectory.SubstringBeforeLast("\\Plugins\\") + "\\Config\\";
+        Console.WriteLine($"[Provider]Found config folder: {config_folder.SubstringBeforeLast("\\")}");
+
+        // DefaultEditorPerProjectUserSettings
+        ConfigIni config = GetEditorConfig();
+
+        // Create new file provider
+        Provider = new DefaultFileProvider(ArchiveDirectory, SearchOption.TopDirectoryOnly, true, new VersionContainer(UnrealVersion));
+        Provider.Initialize();
+
+        // Submit Main AES Key
+        await Provider.SubmitKeyAsync(new FGuid(), new FAesKey(ArchiveKey));
+        Console.WriteLine($"[Provider] Submitted Key: {ArchiveKey}");
+
+        var DynamicKeys = GetArrayProperty(config, "DynamicKeys");
+
+        // Submit each dynamic key
+        foreach (string key in DynamicKeys)
+        {
+            var _key = key; var ReAssignedKey = _key.SubstringAfterLast("(").SubstringBeforeLast(")");
+            string[] entries = ReAssignedKey.Split(",");
+
+            // Key & Guid
+            var Key = entries[0].SubstringBeforeLast("\"").SubstringAfterLast("\"");
+            var Guid = entries[1].SubstringBeforeLast("\"").SubstringAfterLast("\"");
+
+            await Provider.SubmitKeyAsync(new FGuid(Guid), new FAesKey(Key));
+            Console.WriteLine($"[Provider] Submitted Key: {Key}");
+        }
+
+        Provider.MappingsContainer = new FileUsmapTypeMappingsProvider(MappingFilePath);
+        Provider.LoadLocalization(ELanguage.English);
+        Provider.LoadVirtualPaths();
+    }
+}
+
+// Handles API Requests
 namespace JsonAsAssetAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class JsonAsAssetController : ControllerBase
     {
-        private readonly ApiContext _context;
+        private readonly DbContext _context;
         private DefaultFileProvider Provider;
 
-        public JsonAsAssetController(ApiContext context)
+        public JsonAsAssetController(DbContext context)
         {
             _context = context;
-            Provider = Globals.Provider;
+            #pragma warning disable CS8601 // Possible null reference assignment.
+                Provider = Globals.Provider;
+            #pragma warning restore CS8601 // Possible null reference assignment.
         }
 
         [HttpGet("/api/v1/export")]
@@ -29,7 +133,20 @@ namespace JsonAsAssetAPI.Controllers
             // Try to load object, if failed, return message
             try
             {
-                switch(raw)
+                var LocalObject = Provider.LoadObject(path);
+
+                switch (LocalObject)
+                {
+                    case UTexture2D texture:
+                        // ignore
+                    break;
+                   
+                    default:
+                        raw = true;
+                    break;
+                }
+
+                switch (raw)
                 {
                     // Raw exports
                     case true:

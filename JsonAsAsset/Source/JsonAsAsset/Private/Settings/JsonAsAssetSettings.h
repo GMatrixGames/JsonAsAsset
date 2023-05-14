@@ -139,6 +139,6 @@ public:
         FString ArchiveKey;
 
     // AES Keys
-    UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Configuration|Archive", meta = (EditCondition = "bEnableLocalFetch", DisplayName = "Archive Keys"))
-        TArray<FParseKey> AESKeys;
+    UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Configuration|Archive", meta = (EditCondition = "bEnableLocalFetch", DisplayName = "Dynamic Keys"))
+        TArray<FParseKey> DynamicKeys;
 };
