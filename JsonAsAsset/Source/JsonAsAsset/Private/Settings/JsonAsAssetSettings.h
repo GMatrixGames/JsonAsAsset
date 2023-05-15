@@ -108,9 +108,9 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
 	FDirectoryPath ExportDirectory;
 
-    // Ghosts a imported material until you interact with it
+    // Fixes errors with textures by not connecting nodes
     UPROPERTY(config, EditAnywhere, Category = "Asset|Configuration")
-	bool bGhostMaterial;
+	bool bExposePins;
 
 public:
     // Fetchs assets from a local service and automatically
