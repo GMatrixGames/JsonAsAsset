@@ -1,18 +1,16 @@
+using RestSharp.Serializers.NewtonsoftJson;
 using System.Text.Json.Serialization;
-using Newtonsoft.Json;
+using EpicManifestParser.Objects;
 using System.Net;
 using RestSharp;
 
-using EpicManifestParser.Objects;
-using System;
-using System.IO;
-
+using J = Newtonsoft.Json.JsonPropertyAttribute;
 namespace JsonAsAssetAPI.Endpoints.ContentManager;
 
 public class AuthorizationManager
 {
     public string AccessToken;
-    public readonly RestClient Client;
+    public readonly RestClient Client = new RestClient();
 
     public async Task<bool> VerifyAuthorization()
     {
@@ -74,33 +72,60 @@ public class AuthorizationResponse
 
 public class ContentBuildResponse
 {
-    public class BuildItem
+    [J] public ContentItems Items;
+
+    public class ContentItems
     {
-        [JsonPropertyAttribute] public string Distribution;
-        [JsonPropertyAttribute] public string Path;
+        [J] public ContentItem Manifest;
     }
 
-    public class BuildItems
+    public class ContentItem
     {
-        [JsonPropertyAttribute] public BuildItem Manifest;
+        [J] public string Distribution;
+        [J] public string Path;
     }
+}
 
-    [JsonPropertyAttribute] public BuildItems Items;
+public class SimpleJsonSerializer : JsonNetSerializer
+{
+    public string[] SupportedContentTypes { get; } = {
+        "application/json", "text/json", "text/x-json", "text/javascript", "*+json", "text/plain"
+    };
+
+}
+
+public class ManifestManager 
+{
+    public readonly RestClient Client = new RestClient();
+
+    public async Task<Manifest> GetManifest(string url)
+    {
+        RestResponse Response = await Client.ExecuteAsync(new RestRequest(url));
+
+        return new Manifest(Response.RawBytes, new ManifestOptions
+        {
+            ChunkBaseUri = new Uri("https://epicgames-download1.akamaized.net/Builds/Fortnite/Content/CloudDir/ChunksV4/", UriKind.Absolute),
+            ChunkCacheDirectory = new DirectoryInfo(Globals.ExportDirectory)
+        });
+    }
 }
 
 // [FORTNITE] Content Manager
 public class ContentManager
 {
-    public readonly RestClient Client;
-    public AuthorizationManager AuthManager;
+    public readonly RestClient Client = new RestClient(
+        configureSerialization: s => s.UseSerializer(() => new SimpleJsonSerializer())
+    );
+
+    public AuthorizationManager AuthManager = new AuthorizationManager();
+    public ManifestManager LocalManifestManager = new ManifestManager();
 
     public async Task<ContentBuildResponse?> GetContentBuilds(string label)
     {
         await AuthManager.VerifyAuthorization();
 
         RestRequest Request = new RestRequest(
-            "https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/token",
-            Method.Post // Post creates ouath token
+            "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/public/assets/Windows/5cb97847cee34581afdbc445400e2f77/FortniteContentBuilds"
         ).AddHeader(
             "Authorization",
             // Add client token
@@ -109,17 +134,5 @@ public class ContentManager
 
         RestResponse<ContentBuildResponse> Response = await Client.ExecuteAsync<ContentBuildResponse>(Request);
         return Response.Data;
-    }
-
-    public async Task<Manifest> GetManifest(string url)
-    {
-        RestRequest Request = new RestRequest(url);
-        RestResponse Response = await Client.ExecuteAsync(Request);
-
-        return new Manifest(Response.RawBytes, new ManifestOptions
-        {
-            ChunkBaseUri = new Uri("https://epicgames-download1.akamaized.net/Builds/Fortnite/Content/CloudDir/ChunksV4/", UriKind.Absolute),
-            ChunkCacheDirectory = new DirectoryInfo(Globals.ExportDirectory)
-        });
     }
 }

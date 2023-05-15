@@ -13,6 +13,12 @@ using UE4Config.Parsing;
 using Newtonsoft.Json;
 using SkiaSharp;
 
+using JsonAsAssetAPI.Endpoints.ContentManager;
+using CUE4Parse.FileProvider.Objects;
+using CUE4Parse.FileProvider.Vfs;
+using RestSharp.Serializers.NewtonsoftJson;
+using EpicManifestParser.Objects;
+
 // Global Provider
 public class Globals
 {
@@ -23,6 +29,7 @@ public class Globals
     public static string? ExportDirectory;
     public static EGame UnrealVersion;
     public static string? ArchiveKey;
+    public ContentManager Manager = new ContentManager();
 
     public void WriteLog(string source, ConsoleColor Color, string description)
     {
@@ -80,6 +87,42 @@ public class Globals
         return config;
     }
 
+    private async Task<bool> InitializeContentBuilds()
+    {
+        // Find BuildInfo.ini by archive directory
+        string BuildInfo = Path.Combine(ArchiveDirectory, "../../../Cloud/BuildInfo.ini");
+        ConfigIni BuildConfig = new ConfigIni();
+        BuildConfig.Read(File.OpenText(BuildInfo));
+
+        string Label; {
+            var InitEntries = new List<string>();
+            BuildConfig.EvaluatePropertyValues("Content", "Label", InitEntries);
+            Label = InitEntries[0];
+        }
+
+        ContentBuildResponse ContentBuilds = await Manager.GetContentBuilds(label: Label);
+        if (ContentBuilds == null) 
+            return false;
+
+        // Construct Manifest
+        ContentBuildResponse.ContentItem _Manifest = ContentBuilds.Items.Manifest;
+        Manifest LocalManifest = await Manager.LocalManifestManager.GetManifest(url: (_Manifest.Distribution + _Manifest.Path));
+
+        var ContentFiles = new Dictionary<string, GameFile>();
+        foreach (var FileManifest in LocalManifest.FileManifests)
+        {
+            if (Provider.Files.ContainsKey(FileManifest.Name)) continue;
+
+            StreamedGameFile StreamedFile = new StreamedGameFile(FileManifest.Name, FileManifest.GetStream(), Provider.Versions);
+            ContentFiles[StreamedFile.Path.ToLowerInvariant()] = StreamedFile;
+        }
+
+        FileProviderDictionary FileDirectory = (FileProviderDictionary)Provider.Files;
+        FileDirectory.AddFiles(ContentFiles);
+
+        return true;
+    }
+
     public async Task Initialize()
     {
         // Find config folder
@@ -118,6 +161,8 @@ public class Globals
         Provider.MappingsContainer = new FileUsmapTypeMappingsProvider(MappingFilePath);
         Provider.LoadLocalization(ELanguage.English);
         Provider.LoadVirtualPaths();
+
+        // bool bInitializedContentBuilds = await InitializeContentBuilds();
     }
 }
 
