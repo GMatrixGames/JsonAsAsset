@@ -19,6 +19,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "Utilities/AssetUtilities.h"
 #include "Utilities/RemoteUtilities.h"
+#include "PluginUtils.h"
 
 UPackage* FAssetUtilities::CreateAssetPackage(const FString& FullPath) {
 	UPackage* Package = CreatePackage(*FullPath);
@@ -38,7 +39,7 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 	FString ModifiablePath;
 
 	// References Automatically Formatted
-	if (!OutputPath.StartsWith("/Game/") && !OutputPath.StartsWith("/Plugins/")) {
+	if ((!OutputPath.StartsWith("/Game/") && !OutputPath.StartsWith("/Plugins/")) && OutputPath.Contains("Content")) {
 		OutputPath.Split(*(Settings->ExportDirectory.Path + "/"), nullptr, &ModifiablePath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		ModifiablePath.Split("/", nullptr, &ModifiablePath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		ModifiablePath.Split("/", &ModifiablePath, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
@@ -60,30 +61,19 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 			ModifiablePath.Split("/", nullptr, &PluginName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 			PluginName.Split("/", &PluginName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 
-			if (IPluginManager::Get().FindPlugin(PluginName) == nullptr) {
-				#define LOCTEXT_NAMESPACE "UMG"
-				#if WITH_EDITOR
-				// Setup notification's arguments
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("PluginName"), FText::FromString(PluginName));
-
-				// Create notification
-				FNotificationInfo Info(FText::Format(LOCTEXT("NeedPlugin", "Plugin Missing: {PluginName}"), Args));
-				Info.ExpireDuration = 10.0f;
-				Info.bUseLargeFont = true;
-				Info.bUseSuccessFailIcons = true;
-				Info.WidthOverride = FOptionalSize(350);
-				Info.SubText = FText::FromString(FString("Asset will be placed in Content Folder"));
-
-				TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-				NotificationPtr->SetCompletionState(SNotificationItem::CS_Fail);
-				#endif
-				#undef LOCTEXT_NAMESPACE
-
-				ModifiablePath = FString(TEXT("/Game/"));
-			}
+			if (IPluginManager::Get().FindPlugin(PluginName) == nullptr)
+				CreatePlugin(PluginName);
 		}
 	} else {
+		FString RootName; {
+			OutputPath.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+			RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		}
+
+		// Missing Plugin: Create it
+		if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName) == nullptr) 
+			CreatePlugin(RootName);
+
 		ModifiablePath = OutputPath;
 		ModifiablePath.Split("/", &ModifiablePath, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 
@@ -148,6 +138,15 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 			Type == "TextureCube"
 			) {
 			UTexture* Texture;
+
+			FString RootName; {
+				Path.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+				RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+			}
+
+			// Missing Plugin: Create it
+			if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName) == nullptr)
+				CreatePlugin(RootName);
 
 			bSuccess = Construct_TypeTexture(Path, Texture);
 			if (bSuccess) OutObject = Cast<T>(Texture);
@@ -251,6 +250,44 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	}
 
 	return true;
+}
+
+void FAssetUtilities::CreatePlugin(FString PluginName)
+{
+	FPluginUtils::FNewPluginParamsWithDescriptor CreationParams;
+	CreationParams.Descriptor.bCanContainContent = true;
+
+	CreationParams.Descriptor.FriendlyName = PluginName;
+	CreationParams.Descriptor.Version = 1;
+	CreationParams.Descriptor.VersionName = TEXT("1.0");
+	CreationParams.Descriptor.Category = TEXT("Other");
+
+	FText FailReason;
+	FPluginUtils::FLoadPluginParams LoadParams;
+	LoadParams.bEnablePluginInProject = true;
+	LoadParams.bUpdateProjectPluginSearchPath = true;
+	LoadParams.bSelectInContentBrowser = false;
+
+	FPluginUtils::CreateAndLoadNewPlugin(PluginName, FPaths::ProjectPluginsDir(), CreationParams, LoadParams);
+
+#define LOCTEXT_NAMESPACE "UMG"
+#if WITH_EDITOR
+	// Setup notification's arguments
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("PluginName"), FText::FromString(PluginName));
+
+	// Create notification
+	FNotificationInfo Info(FText::Format(LOCTEXT("PluginCreated", "Plugin Created: {PluginName}"), Args));
+	Info.ExpireDuration = 10.0f;
+	Info.bUseLargeFont = true;
+	Info.bUseSuccessFailIcons = false;
+	Info.WidthOverride = FOptionalSize(350);
+	Info.SubText = FText::FromString(FString("Created successfully"));
+
+	TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+	NotificationPtr->SetCompletionState(SNotificationItem::CS_Success);
+#endif
+#undef LOCTEXT_NAMESPACE
 }
 
 const TArray<TSharedPtr<FJsonValue>> FAssetUtilities::API_RequestExports(const FString& Path) {
