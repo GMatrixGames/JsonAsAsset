@@ -105,7 +105,7 @@ public class ManifestManager
         return new Manifest(Response.RawBytes, new ManifestOptions
         {
             ChunkBaseUri = new Uri("https://epicgames-download1.akamaized.net/Builds/Fortnite/Content/CloudDir/ChunksV4/", UriKind.Absolute),
-            ChunkCacheDirectory = new DirectoryInfo(Globals.ExportDirectory)
+            ChunkCacheDirectory = new DirectoryInfo(Globals.ExportDirectory + "/Chunks")
         });
     }
 }

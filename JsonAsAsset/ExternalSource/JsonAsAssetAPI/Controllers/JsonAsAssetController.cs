@@ -104,9 +104,15 @@ public class Globals
         if (ContentBuilds == null) 
             return false;
 
+        WriteLog("ContentBuilds", ConsoleColor.Yellow, "Finding manifest..");
+
         // Construct Manifest
         ContentBuildResponse.ContentItem _Manifest = ContentBuilds.Items.Manifest;
         Manifest LocalManifest = await Manager.LocalManifestManager.GetManifest(url: (_Manifest.Distribution + _Manifest.Path));
+
+        WriteLog("ContentBuilds", ConsoleColor.Yellow, "Downloaded manifest, reading..");
+
+        int FileManifestLength = LocalManifest.FileManifests.Count;
 
         var ContentFiles = new Dictionary<string, GameFile>();
         foreach (var FileManifest in LocalManifest.FileManifests)
@@ -116,6 +122,8 @@ public class Globals
             StreamedGameFile StreamedFile = new StreamedGameFile(FileManifest.Name, FileManifest.GetStream(), Provider.Versions);
             ContentFiles[StreamedFile.Path.ToLowerInvariant()] = StreamedFile;
         }
+         
+        WriteLog("ContentBuilds", ConsoleColor.Yellow, $"Read {FileManifestLength} content files");
 
         FileProviderDictionary FileDirectory = (FileProviderDictionary)Provider.Files;
         FileDirectory.AddFiles(ContentFiles);
@@ -162,7 +170,7 @@ public class Globals
         Provider.LoadLocalization(ELanguage.English);
         Provider.LoadVirtualPaths();
 
-        // bool bInitializedContentBuilds = await InitializeContentBuilds();
+        bool bInitializedContentBuilds = await InitializeContentBuilds();
     }
 }
 
