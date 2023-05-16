@@ -50,6 +50,7 @@ public class Globals
         config.EvaluatePropertyValues("/Script/JsonAsAsset.JsonAsAssetSettings", PropertyName, values);
 
         if (values.Count == 0)
+            return "";
 
         return values[0].SubstringBeforeLast("\"").SubstringAfterLast("\"");
     }
