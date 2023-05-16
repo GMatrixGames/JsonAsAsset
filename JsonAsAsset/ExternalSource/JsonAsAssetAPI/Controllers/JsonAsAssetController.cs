@@ -19,6 +19,8 @@ using CUE4Parse.FileProvider.Vfs;
 using RestSharp.Serializers.NewtonsoftJson;
 using EpicManifestParser.Objects;
 
+using System.Runtime.InteropServices;
+
 // Global Provider
 public class Globals
 {
@@ -29,6 +31,8 @@ public class Globals
     public static string? ExportDirectory;
     public static EGame UnrealVersion;
     public static string? ArchiveKey;
+    public static bool bUseContentBuilds;
+    public static bool bHideConsole;
     public ContentManager Manager = new ContentManager();
 
     public void WriteLog(string source, ConsoleColor Color, string description)
@@ -45,6 +49,8 @@ public class Globals
         var values = new List<string>();
         config.EvaluatePropertyValues("/Script/JsonAsAsset.JsonAsAssetSettings", PropertyName, values);
 
+        if (values.Count == 0)
+
         return values[0].SubstringBeforeLast("\"").SubstringAfterLast("\"");
     }
 
@@ -54,7 +60,7 @@ public class Globals
         var values = new List<string>();
         config.EvaluatePropertyValues("/Script/JsonAsAsset.JsonAsAssetSettings", PropertyName, values);
 
-        return values[0];
+        return values.Count == 1 ? values[0] : "";
     }
 
     // Get config property (array) by name
@@ -64,6 +70,18 @@ public class Globals
         config.EvaluatePropertyValues("/Script/JsonAsAsset.JsonAsAssetSettings", PropertyName, values);
 
         return values;
+    }
+
+    // Get config property (bool) by name
+    public bool GetBoolProperty(ConfigIni config, string PropertyName, bool Default = false)
+    {
+        var values = new List<string>();
+        config.EvaluatePropertyValues("/Script/JsonAsAsset.JsonAsAssetSettings", PropertyName, values);
+
+        if (values.Count == 0)
+            return Default;
+
+        return values[0] == "True" ? true : false;
     }
 
     // Find config folder & UpdateData
@@ -79,8 +97,17 @@ public class Globals
         ArchiveDirectory = GetPathProperty(config, "ArchiveDirectory");
         UnrealVersion = (EGame)Enum.Parse(typeof(EGame), GetStringProperty(config, "UnrealVersion"), true);
         ArchiveKey = GetStringProperty(config, "ArchiveKey");
+        bUseContentBuilds = GetBoolProperty(config, "bUseContentBuilds");
+        bHideConsole = GetBoolProperty(config, "bHideConsole");
 
-        WriteLog("UserSettings", ConsoleColor.Blue, $"Mappings: {MappingFilePath.SubstringBeforeLast("\\")}");
+        [DllImport("kernel32.dll")]
+        static extern IntPtr GetConsoleWindow();
+        [DllImport("user32.dll")]
+        static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        ShowWindow(GetConsoleWindow(), bHideConsole ? 0 : 5);
+
+        if (MappingFilePath != "") WriteLog("UserSettings", ConsoleColor.Blue, $"Mappings: {MappingFilePath.SubstringBeforeLast("\\")}");
         WriteLog("UserSettings", ConsoleColor.Blue, $"Archive Directory: {ArchiveDirectory.SubstringBeforeLast("\\")}");
         WriteLog("UserSettings", ConsoleColor.Blue, $"Unreal Versioning: {UnrealVersion.ToString()}");
 
@@ -133,6 +160,8 @@ public class Globals
 
     public async Task Initialize()
     {
+        WriteLog("CORE", ConsoleColor.Green, "Initializing globals, and provider..");
+
         // Find config folder
         string config_folder = System.AppDomain.CurrentDomain.BaseDirectory.SubstringBeforeLast("\\Plugins\\") + "\\Config\\";
         WriteLog("Provider", ConsoleColor.Red, $"Found config folder: {config_folder.SubstringBeforeLast("\\")}");
@@ -144,9 +173,12 @@ public class Globals
         Provider = new DefaultFileProvider(ArchiveDirectory, SearchOption.TopDirectoryOnly, true, new VersionContainer(UnrealVersion));
         Provider.Initialize();
 
-        // Submit Main AES Key
-        await Provider.SubmitKeyAsync(new FGuid(), new FAesKey(ArchiveKey));
-        WriteLog("Provider", ConsoleColor.Red, $"Submitted Archive Key: {ArchiveKey}");
+        if (ArchiveKey != "")
+        {
+            // Submit Main AES Key
+            await Provider.SubmitKeyAsync(new FGuid(), new FAesKey(ArchiveKey));
+            WriteLog("Provider", ConsoleColor.Red, $"Submitted Archive Key: {ArchiveKey}");
+        }
 
         var DynamicKeys = GetArrayProperty(config, "DynamicKeys");
         if (DynamicKeys.Count() != 0)
@@ -166,11 +198,14 @@ public class Globals
             WriteLog("Provider", ConsoleColor.Red, $"Submitted Key: {Key}");
         }
 
-        Provider.MappingsContainer = new FileUsmapTypeMappingsProvider(MappingFilePath);
+        if (MappingFilePath != "") Provider.MappingsContainer = new FileUsmapTypeMappingsProvider(MappingFilePath);
         Provider.LoadLocalization(ELanguage.English);
         Provider.LoadVirtualPaths();
 
-        bool bInitializedContentBuilds = await InitializeContentBuilds();
+        if (bUseContentBuilds)
+            await InitializeContentBuilds();
+
+        WriteLog("CREDITS", ConsoleColor.Red, "Created by Tector and GMatrix, thank you for using this application! :)");
     }
 }
 
@@ -273,7 +308,7 @@ namespace JsonAsAssetAPI.Controllers
             }
             catch (Exception exception)
             {
-                if (exception.Message.StartsWith("There is no game file"))
+                if (exception.Message.StartsWith("One or more errors occurred. (There is no game file with the path "))
                     return new NotFoundObjectResult(
                             new
                             {

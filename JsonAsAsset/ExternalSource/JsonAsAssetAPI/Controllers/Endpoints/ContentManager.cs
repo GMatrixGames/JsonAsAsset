@@ -86,14 +86,6 @@ public class ContentBuildResponse
     }
 }
 
-public class SimpleJsonSerializer : JsonNetSerializer
-{
-    public string[] SupportedContentTypes { get; } = {
-        "application/json", "text/json", "text/x-json", "text/javascript", "*+json", "text/plain"
-    };
-
-}
-
 public class ManifestManager 
 {
     public readonly RestClient Client = new RestClient();
@@ -114,7 +106,7 @@ public class ManifestManager
 public class ContentManager
 {
     public readonly RestClient Client = new RestClient(
-        configureSerialization: s => s.UseSerializer(() => new SimpleJsonSerializer())
+        configureSerialization: s => s.UseSerializer(() => new JsonNetSerializer())
     );
 
     public AuthorizationManager AuthManager = new AuthorizationManager();

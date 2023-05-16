@@ -3,16 +3,12 @@ using JsonAsAssetAPI.Controllers;
 using Microsoft.EntityFrameworkCore;
 
 var globals = new Globals();
-
 Console.Title = "Local Fetch API";
-Console.WriteLine("Contributors: \n * [Tector]\n * [GMatrix]\n");
-
-var builder = WebApplication.CreateBuilder(args);
-globals.WriteLog("CORE", ConsoleColor.Green, "Initializing globals, and provider..");
 
 await globals.Initialize();
 globals.WriteLog("CORE", ConsoleColor.Green, "Initialized provider successfully");
 
+var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<DbContext>
     (opt => opt.UseInMemoryDatabase("JsonAsAsset"));
 builder.Services.AddControllers();

@@ -138,6 +138,9 @@ public:
     UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Configuration", meta = (EditCondition = "bEnableLocalFetch"))
         bool bUseContentBuilds;
 
+    UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Console", meta = (EditCondition = "bEnableLocalFetch"))
+        bool bHideConsole;
+
     // Main key for archives
     UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Configuration|Archive", meta = (EditCondition = "bEnableLocalFetch", DisplayName = "Archive Key"))
         FString ArchiveKey;
