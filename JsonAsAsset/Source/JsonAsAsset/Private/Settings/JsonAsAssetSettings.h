@@ -134,6 +134,10 @@ public:
     UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Configuration", meta = (EditCondition = "bEnableLocalFetch", FilePathFilter = "usmap", RelativeToGameDir))
         FFilePath MappingFilePath;
 
+    // High res textures
+    UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Configuration", meta = (EditCondition = "bEnableLocalFetch"))
+        bool bUseContentBuilds;
+
     // Main key for archives
     UPROPERTY(config, EditAnywhere, Category = "Local Fetch|Configuration|Archive", meta = (EditCondition = "bEnableLocalFetch", DisplayName = "Archive Key"))
         FString ArchiveKey;

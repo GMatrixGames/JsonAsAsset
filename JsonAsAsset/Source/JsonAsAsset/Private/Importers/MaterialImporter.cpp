@@ -86,7 +86,7 @@ bool UMaterialImporter::ImportData() {
 		}
 
 		FString ShadingModel;
-		if (Properties->TryGetStringField("ShadingModel", ShadingModel)) {
+		if (Properties->TryGetStringField("ShadingModel", ShadingModel) && ShadingModel != "EMaterialShadingModel::MSM_FromMaterialExpression") {
 			Material->SetShadingModel(static_cast<EMaterialShadingModel>(StaticEnum<EMaterialShadingModel>()->GetValueByNameString(ShadingModel)));
 		}
 
