@@ -27,8 +27,7 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 > 1. [Introduction to JsonAsAsset](#intro)
 > 1. [Installing JsonAsAsset](#install)  
 >    2.1 [Setting Up JAA](#setup-jaa) 
-
->    2.2 [Setting Up Local Fetch](#setup-jaa) 
+>    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.2 [Setting Up Local Fetch](#setup-jaa) 
 
 <a name="intro"></a>
 ## 1. Introduction to JsonAsAsset
@@ -95,9 +94,8 @@ This is required as CUE4Parse needs this information to setup file providers and
 
 > You must launch Local Fetch through UE, and not by the executable file. The reason being is that the local host port is different when you launch it through UE, so it's important you do so.
 
-Once you've fully setup the settings for Local Fetch (for example look at the right), you can now launch the api.
+Once you've fully setup the settings for Local Fetch (for example look at the right), you can now launch the api without any problems hopefully.
 
-<br>
 Go ahead and click on the JsonAsAsset logo (<img width="25" height="25" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/b90ab71f-d9ac-4349-96eb-620aadf7812f>) and hover over the list `"Command-line Application"` and press `"Execute JsonAsAsset API (.EXE)"`.
 
 A window should pop-up, and once the console says `[CORE] Running API`, Local Fetch has been successfully started!
