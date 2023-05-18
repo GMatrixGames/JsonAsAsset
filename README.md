@@ -22,6 +22,7 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 -----------------
 
 **Table of Contents**:
+<img align="right" width="55%" height="100%" src="https://github.com/Tectors/JsonAsAsset/blob/main/JsonAsAsset/Resources/Icon_FullScreen.png">
 <br> 
 
 > 1. [Introduction to JsonAsAsset](#intro)
