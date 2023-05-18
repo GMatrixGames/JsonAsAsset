@@ -19,8 +19,10 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 - *Thumbnail*: [*JSON.org*](https://www.json.org/json-en.html)
 - *JsonAsAsset Logo*: *[@Tevtongermany](https://github.com/Tevtongermany)*
 
-<a name="table-of-contents"></a>
-## Table of Contents
+-----------------
+
+**Table of Contents**:
+<br> 
 
 > 1. [Introduction to JsonAsAsset](#intro)
 > 1. [Installing JsonAsAsset](#install)  
