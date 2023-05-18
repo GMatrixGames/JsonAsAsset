@@ -83,7 +83,7 @@ Now open up FModel, and go to your settings. `(Settings -> General)` There will 
 That is the basic setup done! However, if you want to import materials or linear curve atlas at bulk (ex: importing all material functions and their textures), then you're gonna need to setup `Local Fetch`.
 
 <a name="setup-local-fetch"></a>
-#### 2.2 Setting Up *Local Fetch*
+## 3. Setting Up *Local Fetch*
 > Local Fetch is a local api to assist JsonAsAsset by acting as a "FModel", and it supplies textures and asset data to import at runtime. Especially if you're wanting to import materials. It uses CUE4Parse just like FModel.
 <img align="right" width="461.5" height="164" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/cddf0ea7-2499-4b39-a7af-e6f27ec5148e>
 
