@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Importers/Importer.h"
+#include "CoreMinimal.h"
 #include "Settings/JsonAsAssetSettings.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"

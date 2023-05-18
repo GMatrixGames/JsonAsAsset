@@ -17,6 +17,8 @@
 #include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphNode_Composite.h>
 #include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphSchema.h>
 
+#include "Settings/JsonAsAssetSettings.h"
+
 void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, const TSharedPtr<FJsonObject>& _JsonObject, TMap<FName, FImportData>& Exports) {
 	FJsonObject* Expression = (Exports.Find(GetExportNameOfSubobject(_JsonObject->GetStringField("ObjectName")))->Json)->GetObjectField("Properties").Get();
 

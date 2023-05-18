@@ -12,10 +12,7 @@
 #include "Materials/MaterialExpressionQualitySwitch.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
-#include "Materials/MaterialExpressionMakeMaterialAttributes.h"
 #include "Materials/MaterialExpressionGetMaterialAttributes.h"
-#include "Materials/MaterialExpressionBreakMaterialAttributes.h"
-#include "Materials/MaterialExpressionBlendMaterialAttributes.h"
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
 
@@ -112,7 +109,7 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		//  | Checks if the outer is the same as the parent
 		//  | to determine if it's in a subgraph or not.
 		if (bCheckOuter) {
-			if (FString Outer; 
+			if (FString Outer;
 				Type->Json->TryGetStringField("Outer", Outer) &&
 				Outer != Parent->GetName()) // Not the same as parent
 
@@ -142,7 +139,7 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		if (Type->Type == "MaterialExpressionCollectionParameter") {
 			UMaterialExpressionCollectionParameter* CollectionParameter = Cast<UMaterialExpressionCollectionParameter>(Expression);
 
-			if (FString ParameterId; Properties->TryGetStringField("ParameterId", ParameterId)) 
+			if (FString ParameterId; Properties->TryGetStringField("ParameterId", ParameterId))
 				CollectionParameter->ParameterId = FGuid(ParameterId);
 		}
 
@@ -197,14 +194,14 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 				}
 			}
 		}
-		
+
 		// Properties with incorrect letter cases (and GUID problems)
 		if (Type->Type == "MaterialExpressionFunctionOutput") {
 			UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(Expression);
-				FunctionOutput->Id = FGuid(Properties->GetStringField("ID"));
+			FunctionOutput->Id = FGuid(Properties->GetStringField("ID"));
 		} else if (Type->Type == "MaterialExpressionFunctionInput") {
 			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>(Expression);
-				FunctionInput->Id = FGuid(Properties->GetStringField("ID"));
+			FunctionInput->Id = FGuid(Properties->GetStringField("ID"));
 		}
 
 		// Material Function Manually: To define function inputs correctly?
@@ -281,7 +278,7 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		MaterialGraphNode_ExpressionWrapper(Parent, Expression, Properties);
 
 		if (!bSubgraph) {
-			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) 
+			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent))
 				FuncCasted->GetExpressionCollection().AddExpression(Expression);
 
 			if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) {
@@ -304,7 +301,7 @@ void UMaterialGraph_Interface::MaterialGraphNode_ConstructComments(UObject* Pare
 			// Get properties of comment, and create it relative to parent
 			const TSharedPtr<FJsonObject> Properties = Exports.Find(ExportName)->Json->GetObjectField("Properties");
 			UMaterialExpressionComment* Comment = NewObject<UMaterialExpressionComment>(Parent, UMaterialExpressionComment::StaticClass(), ExportName, RF_Transactional);
-			
+
 			// Deserialize and send it off to the material
 			MaterialGraphNode_ExpressionWrapper(Parent, Comment, Properties);
 			GetObjectSerializer()->DeserializeObjectProperties(Properties, Comment);
@@ -326,17 +323,28 @@ void UMaterialGraph_Interface::MaterialGraphNode_ExpressionWrapper(UObject* Pare
 		}
 }
 
-UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Parent, const FName Name, const FName Type) const {
+UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Parent, FName Name, FName Type) const {
 	if (IgnoredExpressions.Contains(Type.ToString())) // Unhandled expressions
 		return nullptr;
 
+	const UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Type.ToString());
+
+	if (!Class) {
+		// Is it InterchangeImport
+		const FString NewPath = FLinkerLoad::FindNewPathNameForClass("/Script/InterchangeImport." + Type.ToString(), false);
+		if (!NewPath.IsEmpty())
+		{
+			Class = FindObject<UClass>(nullptr, *NewPath);
+		}
+	}
+
 	return NewObject<UMaterialExpression>
-		(
-			Parent, 
-			FindObjectChecked<UClass>(ANY_PACKAGE, *Type.ToString()), // Find class using ANY_PACKAGE (may error in the future)
-			Name, 
-			RF_Transactional
-		);
+	(
+		Parent,
+		Class, // Find class using ANY_PACKAGE (may error in the future)
+		Name,
+		RF_Transactional
+	);
 }
 
 FExpressionInput UMaterialGraph_Interface::PopulateExpressionInput(const FJsonObject* JsonProperties, UMaterialExpression* Expression, const FString& Type) {
