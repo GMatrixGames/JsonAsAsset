@@ -49,7 +49,7 @@ In this short documentation, we will learn how to use this powerful Unreal Engin
 7. Restart the editor for the changes to take effect.
 
 <a name="setup-jaa"></a>
-#### 2.1 Installing JsonAsAsset
+#### 2.1 Setting Up JAA
 > JsonAsAsset needs settings to be modified accordingly to properly handle assets. For example, the plugin has to seperate your export folder directory from the actual path to the game. 
 
 If you haven't already, install FModel and setup it up correctly.
