@@ -290,7 +290,9 @@ namespace JsonAsAssetAPI.Controllers
                         mergedExports.Clear();
 
                         // Serialize object, and return it indented
-                        return new OkObjectResult(JsonConvert.SerializeObject(finalExports, Formatting.Indented));
+                        return new OkObjectResult(JsonConvert.SerializeObject(new {
+                            jsonOutput = finalExports
+                        }, Formatting.Indented));
 
                     case false:
                         UTexture2D TextureObject = (UTexture2D)Provider.LoadObject(path);
