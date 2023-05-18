@@ -20,6 +20,7 @@ using RestSharp.Serializers.NewtonsoftJson;
 using EpicManifestParser.Objects;
 
 using System.Runtime.InteropServices;
+using System.IO;
 
 // Global Provider
 public class Globals

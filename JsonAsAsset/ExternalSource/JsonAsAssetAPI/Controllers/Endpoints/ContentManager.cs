@@ -5,6 +5,8 @@ using System.Net;
 using RestSharp;
 
 using J = Newtonsoft.Json.JsonPropertyAttribute;
+using System.IO;
+
 namespace JsonAsAssetAPI.Endpoints.ContentManager;
 
 public class AuthorizationManager

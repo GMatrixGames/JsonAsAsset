@@ -188,8 +188,6 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
-	UE_LOG(LogTemp, Warning, TEXT("Test Path: %s"), *Path);
-
 	HttpRequest->SetURL("http://localhost:1500/api/v1/export?path=" + Path);
 	HttpRequest->SetHeader("content-type", "image/png");
 	HttpRequest->SetVerb(TEXT("GET"));
