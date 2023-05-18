@@ -71,7 +71,7 @@ Now that you've installed FModel and setup it up correctly, we can continue to s
 <img align="right" width="300" height="180" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/aad4e86a-6f0b-4e66-aef1-13d30d8215de)>
 Upon launching your unreal engine project, you should of seen a notification asking you to change your export directory in the plugin settings, if you've already done that, skip this part.
 
-<br>Without changing your export directory, it will cause the plugin to crash your entire project and will make you restart. We need to change the export directory to allow the plugin to differentiate between what's your export directory, and what's the game path it should put it in.
+<br>Without changing your export directory, it will cause the plugin to crash your entire project and will make you restart. We need to change the export directory to allow the plugin to differentiate between what's your directory, and what's the game path it should put it in.
 
 First, open up to the JsonAsAsset plugin settings (basically do what's on the picture on the right) and make sure you are looking at the property "Export Directory".
 
