@@ -49,7 +49,7 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 
 		// Plugins/ContentLibraries/EpicBaseTextures -> ContentLibraries/EpicBaseTextures
 		if (bIsPlugin) ModifiablePath = ModifiablePath.Replace(TEXT("Plugins/"), TEXT("")).Replace(TEXT("GameFeatures/"), TEXT("")).Replace(TEXT("Content/"), TEXT(""));
-		// Content/Athena -> Game/Athena
+			// Content/Athena -> Game/Athena
 		else ModifiablePath = ModifiablePath.Replace(TEXT("Content"), TEXT("Game"));
 
 		// ContentLibraries/EpicBaseTextures -> /ContentLibraries/EpicBaseTextures/
@@ -65,13 +65,14 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 				CreatePlugin(PluginName);
 		}
 	} else {
-		FString RootName; {
+		FString RootName;
+		{
 			OutputPath.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 			RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		}
 
 		// Missing Plugin: Create it
-		if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName) == nullptr) 
+		if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName) == nullptr)
 			CreatePlugin(RootName);
 
 		ModifiablePath = OutputPath;
@@ -129,17 +130,18 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 		Type == "DataTable" ||
 		Type == "SubsurfaceProfile" ||
 		Type == "MaterialFunction"
-		) {
+	) {
 		//		Manually supported asset types
 		// (ex: textures have to be handled separately)
 		if (Type ==
 			"Texture2D" ||
 			Type == "TextureRenderTarget2D" ||
 			Type == "TextureCube"
-			) {
+		) {
 			UTexture* Texture;
 
-			FString RootName; {
+			FString RootName;
+			{
 				Path.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 				RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 			}
@@ -152,8 +154,7 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 			if (bSuccess) OutObject = Cast<T>(Texture);
 
 			return true;
-		}
-		else {
+		} else {
 			const TArray<TSharedPtr<FJsonValue>> Response = API_RequestExports(Path);
 			if (Response.IsEmpty()) return true;
 
@@ -188,7 +189,9 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
-	HttpRequest->SetURL("http://localhost:1500/api/v1/export?path=" + Path);
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+	HttpRequest->SetURL(Settings->Url + "/api/v1/export?path=" + Path);
 	HttpRequest->SetHeader("content-type", "image/png");
 	HttpRequest->SetVerb(TEXT("GET"));
 
@@ -202,7 +205,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	Path.Split(".", &PackagePath, &AssetName);
 
 	const TSharedRef<IHttpRequest> NewRequest = HttpModule->CreateRequest();
-	NewRequest->SetURL("http://localhost:1500/api/v1/export?raw=true&path=" + Path);
+	NewRequest->SetURL(Settings->Url + "/api/v1/export?raw=true&path=" + Path);
 	NewRequest->SetVerb(TEXT("GET"));
 
 	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
@@ -250,8 +253,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	return true;
 }
 
-void FAssetUtilities::CreatePlugin(FString PluginName)
-{
+void FAssetUtilities::CreatePlugin(FString PluginName) {
 	FPluginUtils::FNewPluginParamsWithDescriptor CreationParams;
 	CreationParams.Descriptor.bCanContainContent = true;
 
@@ -292,12 +294,14 @@ const TArray<TSharedPtr<FJsonValue>> FAssetUtilities::API_RequestExports(const F
 	FHttpModule* HttpModule = &FHttpModule::Get();
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
 	FString PackagePath;
 	FString AssetName;
 	Path.Split(".", &PackagePath, &AssetName);
 
 	const TSharedRef<IHttpRequest> NewRequest = HttpModule->CreateRequest();
-	NewRequest->SetURL("http://localhost:1500/api/v1/export?raw=true&path=" + Path);
+	NewRequest->SetURL(Settings->Url + "/api/v1/export?raw=true&path=" + Path);
 	NewRequest->SetVerb(TEXT("GET"));
 
 	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
