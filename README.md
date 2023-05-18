@@ -26,8 +26,9 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 
 > 1. [Introduction to JsonAsAsset](#intro)
 > 1. [Installing JsonAsAsset](#install)  
->    2.1 [Setting Up JAA](#setup-jaa) 
->    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.2 [Setting Up Local Fetch](#setup-jaa) 
+>    2.1 [Setting Up JAA Settings](#setup-jaa)  
+>    2.2 [Export Directory](#export-directory)  
+> 3. [Local Fetch](#setup-local-fetch) 
 
 <a name="intro"></a>
 ## 1. Introduction to JsonAsAsset
@@ -52,7 +53,7 @@ In this short documentation, we will learn how to use this powerful Unreal Engin
 7. Restart the editor for the changes to take effect.
 
 <a name="setup-jaa"></a>
-#### 2.1 Setting Up JAA
+#### 2.1 Setting Up JAA Settings
 > JsonAsAsset needs settings to be modified accordingly to properly handle assets. For example, the plugin has to seperate your export folder directory from the actual path to the game. 
 
 If you haven't already, install FModel and setup it up correctly.
@@ -66,6 +67,7 @@ The JSON format/file has to be from a program that fits the format of FModel's J
 
 Now that you've installed FModel and setup it up correctly, we can continue to setting up JsonAsAsset for our own Unreal Engine project. Also, FModel's data is the meat and bones of the plugin, without the data being correctly the same format, the plugin won't work.
 
+<a name="export-directory"></a>
 ##### Setting up Export Directory
 <img align="right" width="300" height="180" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/aad4e86a-6f0b-4e66-aef1-13d30d8215de)>
 Upon launching your unreal engine project, you should of seen a notification asking you to change your export directory in the plugin settings, if you've already done that, skip this part.
@@ -94,7 +96,7 @@ This is required as CUE4Parse needs this information to setup file providers and
 
 > You must launch Local Fetch through UE, and not by the executable file. The reason being is that the local host port is different when you launch it through UE, so it's important you do so.
 
-Once you've fully setup the settings for Local Fetch (for example look at the right), you can now launch the api without any problems hopefully.
+Once you've fully setup the settings for Local Fetch, you can now launch the api without any issues hopefully.
 
 -------------------
 
