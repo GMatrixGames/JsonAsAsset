@@ -68,7 +68,7 @@ The JSON format/file has to be from a program that fits the format of FModel's J
 Now that you've installed FModel and setup it up correctly, we can continue to setting up JsonAsAsset for our own Unreal Engine project. Also, FModel's data is the meat and bones of the plugin, without the data being correctly the same format, the plugin won't work.
 
 <a name="export-directory"></a>
-##### Setting up Export Directory
+##### 2.2 Setting up Export Directory
 <img align="right" width="300" height="180" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/aad4e86a-6f0b-4e66-aef1-13d30d8215de)>
 Upon launching your unreal engine project, you should of seen a notification asking you to change your export directory in the plugin settings, if you've already done that, skip this part.
 
