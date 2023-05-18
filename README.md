@@ -63,11 +63,11 @@ The JSON format/file has to be from a program that fits the format of FModel's J
 
 - [FModel](https://fmodel.app) *(Software for exploring Unreal Engine games)*
 
-------------
+-------------------
 
 Now that you've installed FModel and setup it up correctly, we can continue to setting up JsonAsAsset for our own Unreal Engine project. Also, FModel's data is the meat and bones of the plugin, without the data being correctly the same format, the plugin won't work.
 
-#### Setting up Export Directory
+##### Setting up Export Directory
 <img align="right" width="300" height="180" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/aad4e86a-6f0b-4e66-aef1-13d30d8215de)>
 Upon launching your unreal engine project, you should of seen a notification asking you to change your export directory in the plugin settings, if you've already done that, skip this part.
 
@@ -81,8 +81,23 @@ Now open up FModel, and go to your settings. `(Settings -> General)` There will 
 
 That is the basic setup done! However, if you want to import materials or linear curve atlas at bulk (ex: importing all material functions and their textures), then you're gonna need to setup `Local Fetch`.
 
-
-
 <a name="setup-local-fetch"></a>
 #### 2.2 Setting Up *Local Fetch*
-> Local Fetch is to assist JsonAsAsset by acting as a "FModel", and it supplies textures and asset data to import at runtime. Especially if you're wanting to import materials. It uses CUE4Parse just like FModel.
+> Local Fetch is a local api to assist JsonAsAsset by acting as a "FModel", and it supplies textures and asset data to import at runtime. Especially if you're wanting to import materials. It uses CUE4Parse just like FModel.
+<img align="right" width="461.5" height="164" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/cddf0ea7-2499-4b39-a7af-e6f27ec5148e>
+
+Before we can launch up Local Fetch and get started on automated references. You need to put in all the information about your game first.
+
+This is required as CUE4Parse needs this information to setup file providers and start reading the game files. A lot of these settings are the same as FModel, however make sure you always manually selecting a file/directory using UE's file selecter.
+
+###### Launching Local Fetch
+<img align="right" width="461.5" height="250" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/cddee284-4af7-4f4d-ad6c-24b2064ae59f>
+
+> You must launch Local Fetch through UE, and not by the executable file. The reason being is that the local host port is different when you launch it through UE, so it's important you do so.
+
+Once you've fully setup the settings for Local Fetch (for example look at the right), you can now launch the api.
+
+Go ahead and click on the JsonAsAsset logo (<img width="25" height="25" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/b90ab71f-d9ac-4349-96eb-620aadf7812f>) and hover over the list `"Command-line Application"` and press `"Execute JsonAsAsset API (.EXE)"`.
+
+A window should pop-up, and once the console says `[CORE] Running API`, Local Fetch has been successfully started!
+
