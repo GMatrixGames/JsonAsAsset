@@ -19,42 +19,46 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 - *Thumbnail*: [*JSON.org*](https://www.json.org/json-en.html)
 - *JsonAsAsset Logo*: *[@Tevtongermany](https://github.com/Tevtongermany)*
 
-## What's the file format?
+<a name="table-of-contents"></a>
+## Table of Contents
+
+> 1. [Introduction to JsonAsAsset](#intro)
+> 1. [Installing JsonAsAsset](#install)  
+>    2.1 [Setting Up JAA](#setup-jaa) 
+
+<a name="intro"></a>
+## 1. Introduction to JsonAsAsset
+> Please be aware that the use of this plugin should be for personal and educational purposes only. Do not use it to create and distribute commercial products without proper licensing and permissions. It is important to respect the intellectual property of others and only use assets that you have the right to use.
+
+JsonAsAsset (or sometimes refered as *`JAA`*) is a plugin to create assets from json data obtained from [FModel](https://fmodel.app) *(Software for exploring Unreal Engine games)*. We are in no way responsible for what may be done with the created content, but you are free to use this tool as much as you like.
+
+The plugin features a user-friendly interface that makes it easy for developers to import JSON data from FModel and map it to appropriate data structures within Unreal Engine to create assets based on them. This includes the ability to create curves, materials, animation curve data, and other assets based on the imported data.
+
+In this short documentation, we will learn how to use this powerful Unreal Engine plugin. And we hope you enjoy it! `:)`
+
+<a name="install"></a>
+## 2. Installing JsonAsAsset
+> JsonAsAsset may not work for every Unreal Engine 5 version, please check Releases to see compatibility. Unreal Engine 4 is not supported at the moment, and is not planned to be supported.
+
+1. Go to the [Releases page](https://github.com/Tectors/JsonAsAsset/releases) for the plugin.
+2. Download the release that matches your version of Unreal Engine. If there isn't a release that matches your version, you will need to compile the plugin yourself.
+3. Extract the downloaded files to your project's Plugins folder. If there isn't a Plugins folder, create one in the root directory of your project.
+4. Open your Unreal Engine project.
+5. Click on Edit -> Plugins.
+6. In the Plugins window, search for "JsonAsAsset" and enable it.
+7. Restart the editor for the changes to take effect.
+
+<a name="setup-jaa"></a>
+#### 2.1 Installing JsonAsAsset
+> JsonAsAsset needs settings to be modified accordingly to properly handle assets. For example, the plugin has to seperate your export folder directory from the actual path to the game. 
+
+If you haven't already, install FModel and setup it up correctly.
 <img align="left" width="150" height="150" src="https://github.com/Tectors/JsonAsAsset/blob/main/JsonAsAsset/Resources/ButtonIcon_FModel.png?raw=true">
 The JSON format/file has to be from a program that fits the format of FModel's JSON export files:
 <br><br>
 
 - [FModel](https://fmodel.app) *(Software for exploring Unreal Engine games)*
 
-However the version of your FModel application may affect the plugin's processing and parsing. For example, some FModel versions have different object names for curve data.
+------------
 
-## How is this usable?
-<img align="right" width="350" height="200" src="https://user-images.githubusercontent.com/73559984/232369173-74df3203-3af8-48e3-8d54-c28add197832.gif">
-
-**Importing JsonAsAsset**:
-<br> To import JsonAsAsset into your project, you simply head over to the [Releases](https://github.com/Tectors/JsonAsAsset/releases) and get a release that matches you unreal engine version. If not, compile the plugin yourself.
-
-**Using JsonAsAsset**:
-<br> After importing the plugin, click on the JSON logo on your toolbar and press JsonAsAsset (at the bottom) to select a JSON file. Then, it should import the asset and you can use it.
-
-   -----------
-
-## What's supported?
-*Asset types are still being added to this plugin, contribute if you like*
-
-- Material
-- Material Function
-- Material Instance Constant
-- Material Parameter Collection
-- Physical Material
-- CurveFloat
-- CurveVector
-- CurveLinearColor
-- CurveLinearColorAtlas
-- DataTable
-- SubsurfaceProfile
-- SkeletalMeshLODSettings
-- Animation (curves, sync markers)
-- SoundAttenuation
-- SoundConcurrency
-- ReverbEffect
+Now that you've installed FModel and setup it up correctly, we can continue to setting up JsonAsAsset for our own Unreal Engine project. Also, FModel's data is the meat and bones of the plugin, without the data being correctly the same format, the plugin won't work.
