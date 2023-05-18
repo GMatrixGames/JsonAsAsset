@@ -49,7 +49,7 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 
 		// Plugins/ContentLibraries/EpicBaseTextures -> ContentLibraries/EpicBaseTextures
 		if (bIsPlugin) ModifiablePath = ModifiablePath.Replace(TEXT("Plugins/"), TEXT("")).Replace(TEXT("GameFeatures/"), TEXT("")).Replace(TEXT("Content/"), TEXT(""));
-			// Content/Athena -> Game/Athena
+		// Content/Athena -> Game/Athena
 		else ModifiablePath = ModifiablePath.Replace(TEXT("Content"), TEXT("Game"));
 
 		// ContentLibraries/EpicBaseTextures -> /ContentLibraries/EpicBaseTextures/
@@ -64,9 +64,9 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 			if (IPluginManager::Get().FindPlugin(PluginName) == nullptr)
 				CreatePlugin(PluginName);
 		}
-	} else {
-		FString RootName;
-		{
+	}
+	else {
+		FString RootName; {
 			OutputPath.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 			RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		}
@@ -137,11 +137,10 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 			"Texture2D" ||
 			Type == "TextureRenderTarget2D" ||
 			Type == "TextureCube"
-		) {
+			) {
 			UTexture* Texture;
 
-			FString RootName;
-			{
+			FString RootName; {
 				Path.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 				RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 			}
@@ -155,10 +154,10 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 
 			return true;
 		} else {
-			const TArray<TSharedPtr<FJsonValue>> Response = API_RequestExports(Path);
-			if (Response.IsEmpty()) return true;
+			const TSharedPtr<FJsonObject> Response = API_RequestExports(Path);
+			if (Response == nullptr) return true;
 
-			const TSharedPtr<FJsonObject> JsonObject = Response[0]->AsObject();
+			TSharedPtr<FJsonObject> JsonObject = Response->GetArrayField("jsonOutput")[0]->AsObject();
 			FString PackagePath;
 			FString AssetName;
 			Path.Split(".", &PackagePath, &AssetName);
@@ -171,7 +170,7 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 
 				// Import asset by IImporter
 				IImporter* Importer = new IImporter();
-				bSuccess = Importer->HandleExports(Response, PackagePath, true);
+				bSuccess = Importer->HandleExports(Response->GetArrayField("jsonOutput"), PackagePath, true);
 
 				// Define found object
 				OutObject = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *Path));
@@ -186,10 +185,8 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 
 bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutTexture) {
 	FHttpModule* HttpModule = &FHttpModule::Get();
-
-	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
-
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
 	HttpRequest->SetURL(Settings->Url + "/api/v1/export?path=" + Path);
 	HttpRequest->SetHeader("content-type", "image/png");
@@ -205,6 +202,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	Path.Split(".", &PackagePath, &AssetName);
 
 	const TSharedRef<IHttpRequest> NewRequest = HttpModule->CreateRequest();
+
 	NewRequest->SetURL(Settings->Url + "/api/v1/export?raw=true&path=" + Path);
 	NewRequest->SetVerb(TEXT("GET"));
 
@@ -212,8 +210,10 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	if (!NewResponse.IsValid()) return false;
 
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
-	TArray<TSharedPtr<FJsonValue>> JsonArray;
-	if (FJsonSerializer::Deserialize(JsonReader, JsonArray)) {
+	TSharedPtr<FJsonObject> JsonObject;
+	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
+		TArray<TSharedPtr<FJsonValue>> JsonArray = JsonObject->GetArrayField("jsonOutput");
+
 		UPackage* OutermostPkg;
 		UPackage* Package = CreatePackage(*PackagePath);
 		OutermostPkg = Package->GetOutermost();
@@ -290,28 +290,28 @@ void FAssetUtilities::CreatePlugin(FString PluginName) {
 #undef LOCTEXT_NAMESPACE
 }
 
-const TArray<TSharedPtr<FJsonValue>> FAssetUtilities::API_RequestExports(const FString& Path) {
+const TSharedPtr<FJsonObject> FAssetUtilities::API_RequestExports(const FString& Path) {
 	FHttpModule* HttpModule = &FHttpModule::Get();
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
-
-	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
 	FString PackagePath;
 	FString AssetName;
 	Path.Split(".", &PackagePath, &AssetName);
+
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
 	const TSharedRef<IHttpRequest> NewRequest = HttpModule->CreateRequest();
 	NewRequest->SetURL(Settings->Url + "/api/v1/export?raw=true&path=" + Path);
 	NewRequest->SetVerb(TEXT("GET"));
 
 	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
-	if (!NewResponse.IsValid()) return TArray<TSharedPtr<FJsonValue>>();
+	if (!NewResponse.IsValid()) return TSharedPtr<FJsonObject>();
 
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
-	TArray<TSharedPtr<FJsonValue>> JsonArray;
-	if (FJsonSerializer::Deserialize(JsonReader, JsonArray)) {
-		return JsonArray;
+	TSharedPtr<FJsonObject> JsonObject;
+	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
+		return JsonObject;
 	}
 
-	return TArray<TSharedPtr<FJsonValue>>();
+	return TSharedPtr<FJsonObject>();
 }

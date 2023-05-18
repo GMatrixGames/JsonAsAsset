@@ -29,5 +29,5 @@ public:
 
 	static void CreatePlugin(FString PluginName);
 
-	static const TArray<TSharedPtr<FJsonValue>> API_RequestExports(const FString& Path);
+	static const TSharedPtr<FJsonObject> API_RequestExports(const FString& Path);
 };

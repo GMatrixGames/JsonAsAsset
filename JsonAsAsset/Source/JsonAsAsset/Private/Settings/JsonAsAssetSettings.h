@@ -113,28 +113,18 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category="Asset|Configuration")
 	bool bExposePins;
 
-	// Fetches assets from a remote service and automatically
-	// imports them into your project, without having them locally
-	UPROPERTY(Config, EditAnywhere, Category="Remote Fetch", meta=(EditConditionHides, EditCondition="!bEnableLocalFetch"))
-	bool bEnableRemoteFetch;
-
-	// Url used for remote asset importing
-	// "localhost" is default
-	UPROPERTY(Config, EditAnywhere, Category="Remote Fetch|Configuration", meta=(EditCondition="bEnableRemoteFetch"))
-	FString Url = "http://localhost:1500";
-
 	// Fetches assets from a local service and automatically
 	// imports them into your project, without having them locally
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch", meta=(EditConditionHides, EditCondition="!bEnableRemoteFetch"))
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch")
 	bool bEnableLocalFetch;
 
 	// Pak files location
 	// NOTE: Please use the file selector, do not manually paste it 
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditConditionHides, EditCondition="bEnableLocalFetch"))
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch"))
 	FDirectoryPath ArchiveDirectory;
 
 	// UE Version for the Unreal Engine Game (same as FModel's UE Verisons property)
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditConditionHides, EditCondition="bEnableLocalFetch", GetOptions="GetParseVersions"))
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch", GetOptions="GetParseVersions"))
 	FString UnrealVersion;
 
 	UFUNCTION(CallInEditor)
@@ -142,21 +132,29 @@ public:
 
 	// Mappings file
 	// NOTE: Please use the file selector, do not manually paste it 
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditConditionHides, EditCondition="bEnableLocalFetch", FilePathFilter="usmap", RelativeToGameDir))
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch", FilePathFilter="usmap", RelativeToGameDir))
 	FFilePath MappingFilePath;
 
 	// High res textures
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditConditionHides, EditCondition="bEnableLocalFetch"))
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch"))
 	bool bUseContentBuilds;
 
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration|Console", meta=(EditConditionHides, EditCondition="bEnableLocalFetch"))
-	bool bHideConsole;
-
 	// Main key for archives
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration|Archive", meta=(EditConditionHides, EditCondition="bEnableLocalFetch", DisplayName="Archive Key"))
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration|Archive", meta=(EditCondition="bEnableLocalFetch", DisplayName="Archive Key"))
 	FString ArchiveKey;
 
 	// AES Keys
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration|Archive", meta=(EditConditionHides, EditCondition="bEnableLocalFetch", DisplayName="Dynamic Keys"))
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration|Archive", meta=(EditCondition="bEnableLocalFetch", DisplayName="Dynamic Keys"))
 	TArray<FParseKey> DynamicKeys;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Local Fetch Director", meta = (EditConditionHides, EditCondition = "bEnableLocalFetch"))
+	bool bHideConsole;
+
+	// Enables the option to change the api's URL
+	UPROPERTY(Config, EditAnywhere, Category = "Local Fetch Director", meta = (EditConditionHides, EditCondition = "bEnableLocalFetch"))
+	bool bChangeURL;
+
+	// "localhost" is default
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch Director|REST API", meta=(EditConditionHides, EditCondition="bChangeURL && bEnableLocalFetch", DisplayName = "Local URL"))
+	FString Url = "http://localhost:1500";
 };
