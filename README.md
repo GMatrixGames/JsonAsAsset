@@ -26,6 +26,8 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 > 1. [Installing JsonAsAsset](#install)  
 >    2.1 [Setting Up JAA](#setup-jaa) 
 
+>    2.2 [Setting Up Local Fetch](#setup-jaa) 
+
 <a name="intro"></a>
 ## 1. Introduction to JsonAsAsset
 > Please be aware that the use of this plugin should be for personal and educational purposes only. Do not use it to create and distribute commercial products without proper licensing and permissions. It is important to respect the intellectual property of others and only use assets that you have the right to use.
@@ -73,5 +75,12 @@ First, open up to the JsonAsAsset plugin settings (basically do what's on the pi
 
 Now open up FModel, and go to your settings. `(Settings -> General)` There will be a setting called "Output Directory", copy that and go back to Unreal Engine. Now you need to click on the three dots and jump to the folder you copied, then press "Select Folder".
 
+-------------------
+
+That is the basic setup done! However, if you want to import materials or linear curve atlas at bulk (ex: importing all material functions and their textures), then you're gonna need to setup `Local Fetch`.
 
 
+
+<a name="setup-local-fetch"></a>
+#### 2.2 Setting Up *Local Fetch*
+> Local Fetch is to assist JsonAsAsset by acting as a "FModel", and it supplies textures and asset data to import at runtime. Especially if you're wanting to import materials. It uses CUE4Parse just like FModel.
