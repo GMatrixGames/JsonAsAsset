@@ -21,10 +21,6 @@
 
 #include "Materials/MaterialExpressionTextureBase.h"
 
-#ifdef _WIN32
-#undef UpdateResource
-#endif
-
 TSharedPtr<FJsonObject> UMaterialGraph_Interface::FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames, bool bFilterByOuter) {
 	TSharedPtr<FJsonObject> EditorOnlyData;
 
@@ -119,16 +115,6 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 
 				continue;
 		}
-
-		if (UMaterialExpressionTextureBase* TextureBase = Cast<UMaterialExpressionTextureBase>(Expression))
-			if (const TSharedPtr<FJsonObject>* TexturePtr; Properties->TryGetObjectField("Texture", TexturePtr)) {
-				LoadObject(TexturePtr, TextureBase->Texture);
-
-				if (TextureBase->Texture != nullptr) {
-					TextureBase->Texture->GetPackage()->FullyLoad();
-					TextureBase->Texture->UpdateResource();
-				}
-			}
 
 		// ------------ Manually check for Material Function Calls ------------ 
 		if (Type->Type == "MaterialExpressionMaterialFunctionCall") {

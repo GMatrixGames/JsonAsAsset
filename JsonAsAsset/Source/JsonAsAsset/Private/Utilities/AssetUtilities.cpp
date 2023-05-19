@@ -21,12 +21,6 @@
 #include "Utilities/RemoteUtilities.h"
 #include "PluginUtils.h"
 
-#include "UObject/SavePackage.h"
-
-#ifdef _WIN32
-#undef UpdateResource
-#endif
-
 UPackage* FAssetUtilities::CreateAssetPackage(const FString& FullPath) {
 	UPackage* Package = CreatePackage(*FullPath);
 	UPackage* _ = Package->GetOutermost();
@@ -252,19 +246,6 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 		Package->SetDirtyFlag(true);
 		Texture->PostEditChange();
 		Texture->AddToRoot();
-
-		Package->FullyLoad();
-		Texture->UpdateResource();
-
-		FSavePackageArgs SaveArgs;
-		{
-			SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-			SaveArgs.SaveFlags = SAVE_NoError;
-		}
-
-		const FString PackageName = Package->GetName();
-		const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
-		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
 
 		OutTexture = Texture;
 	}
