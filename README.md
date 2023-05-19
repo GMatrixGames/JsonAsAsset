@@ -64,7 +64,7 @@ JsonAsAsset (or sometimes refered as *`JAA`*) is a plugin to create assets from 
 
 The plugin features a user-friendly interface that makes it easy for developers to import JSON data from FModel and map it to appropriate data structures within Unreal Engine to create assets based on them. This includes the ability to create curves, materials, animation curve data, and other assets based on the imported data.
 
-In this short documentation, we will learn how to use this powerful Unreal Engine plugin. And we hope you enjoy it! `:)`
+In this short documentation, we will learn how to use this powerful Unreal Engine plugin. And we hope you enjoy it!
 
 <a name="install"></a>
 ## 2. Installing JsonAsAsset
