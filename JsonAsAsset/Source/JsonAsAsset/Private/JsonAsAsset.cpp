@@ -21,6 +21,8 @@
 #include "Settings/JsonAsAssetSettings.h"
 #include "Importers/Importer.h"
 
+#include "HttpModule.h"
+
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
 
@@ -31,6 +33,7 @@
 
 #include "MessageLog/Public/MessageLogInitializationOptions.h"
 #include "MessageLog/Public/MessageLogModule.h"
+#include "Utilities/RemoteUtilities.h"
 
 #include "Importers/MaterialFunctionImporter.h"
 
@@ -65,6 +68,7 @@
 
 #if PLATFORM_WINDOWS
 static TWeakPtr<SNotificationItem> ImportantNotificationPtr;
+static TWeakPtr<SNotificationItem> LocalFetchNotificationPtr;
 #endif
 
 void FJsonAsAssetModule::StartupModule() {
@@ -152,6 +156,72 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 	if (Settings->ExportDirectory.Path.IsEmpty())
 		return;
+
+	if (Settings->bEnableLocalFetch) {
+		TSharedPtr<SNotificationItem> NotificationItem = LocalFetchNotificationPtr.Pin();
+
+		if (NotificationItem.IsValid()) {
+			NotificationItem->SetFadeOutDuration(0.001);
+			NotificationItem->Fadeout();
+			LocalFetchNotificationPtr.Reset();
+		}
+
+		bool bIsLocalHost = Settings->Url.StartsWith("http://localhost");
+
+		if (!IsProcessRunning("JsonAsAssetAPI.exe") && bIsLocalHost) {
+			FNotificationInfo Info(LOCTEXT("JsonAsAssetNotificationTitle", "Local Fetch API"));
+			Info.SubText = LOCTEXT("JsonAsAssetNotificationText",
+				"Please start the Local Fetch API to use JsonAsAsset with no issues, if you need any assistance figuring out Local Fetch and the settings, please take a look at the documentation:"
+			);
+
+			Info.HyperlinkText = LOCTEXT("UnrealSoftwareRequirements", "JsonAsAsset Docs");
+			Info.Hyperlink = FSimpleDelegate::CreateStatic([]() {
+				FString TheURL = "https://github.com/Tectors/JsonAsAsset";
+				FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr);
+			});
+
+			Info.bFireAndForget = false;
+			Info.FadeOutDuration = 3.0f;
+			Info.ExpireDuration = 3.0f;
+			Info.bUseLargeFont = false;
+			Info.bUseThrobber = false;
+			Info.Image = FJsonAsAssetStyle::Get().GetBrush("JsonAsAsset.PluginAction");
+
+			Info.ButtonDetails.Add(
+				FNotificationButtonInfo(LOCTEXT("StartLocalFetch", "Execute JsonAsAsset API (.EXE)"), FText::GetEmpty(),
+					FSimpleDelegate::CreateStatic([]() {
+						TSharedPtr<SNotificationItem> NotificationItem = LocalFetchNotificationPtr.Pin();
+
+						if (NotificationItem.IsValid()) {
+							NotificationItem->SetFadeOutDuration(0.001);
+							NotificationItem->Fadeout();
+							LocalFetchNotificationPtr.Reset();
+						}
+
+						FString PluginBinariesFolder;
+
+						const TSharedPtr<IPlugin> PluginInfo = IPluginManager::Get().FindPlugin("JsonAsAsset");
+						if (PluginInfo.IsValid()) {
+							const FString PluginBaseDir = PluginInfo->GetBaseDir();
+							PluginBinariesFolder = FPaths::Combine(PluginBaseDir, TEXT("Binaries"));
+
+							if (!FPaths::DirectoryExists(PluginBinariesFolder)) {
+								PluginBinariesFolder = FPaths::Combine(PluginBaseDir, TEXT("JsonAsAsset/Binaries"));
+							}
+						}
+
+						FString FullPath = FPaths::ConvertRelativePathToFull(PluginBinariesFolder + "/Win64/JsonAsAsset_API/JsonAsAssetAPI.exe");
+						FPlatformProcess::LaunchFileInDefaultExternalApplication(*FullPath, TEXT("--urls=http://localhost:1500/"), ELaunchVerb::Open);
+					})
+				)
+			);
+
+			LocalFetchNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+			LocalFetchNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
+
+			return;
+		}
+	}
 
 	// Dialog for a JSON File
 	TArray<FString> OutFileNames = OpenFileDialog("Open JSON file", "JSON Files|*.json");
@@ -400,6 +470,14 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
 						FSlateIcon(),
 						FUIAction(
 							FExecuteAction::CreateLambda([this]() {
+								TSharedPtr<SNotificationItem> NotificationItem = LocalFetchNotificationPtr.Pin();
+
+								if (NotificationItem.IsValid()) {
+									NotificationItem->SetFadeOutDuration(0.001);
+									NotificationItem->Fadeout();
+									LocalFetchNotificationPtr.Reset();
+								}
+
 								FString PluginBinariesFolder;
 
 								const TSharedPtr<IPlugin> PluginInfo = IPluginManager::Get().FindPlugin("JsonAsAsset");

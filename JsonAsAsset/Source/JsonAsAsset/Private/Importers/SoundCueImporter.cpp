@@ -42,6 +42,7 @@ bool USoundCueImporter::ImportData() {
 				SoundNode->CreateStartingConnectors();
 			}
 
+			SoundNode->GraphNode->CreateNewGuid();
 			NodeMapping.Add(SoundNode, NodeReference);
 		}
 
