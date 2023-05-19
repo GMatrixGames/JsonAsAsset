@@ -212,11 +212,18 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 	else if (const FStructProperty* StructProperty = CastField<const FStructProperty>(Property)) {
 		// JSON for FGuids are FStrings
 		if (FString OutString; JsonValue->TryGetString(OutString)) {
+			FGuid GUID = FGuid(OutString); // Create GUID from String
+
+			TSharedRef<FJsonObject> SharedObject = MakeShareable(new FJsonObject());
+			SharedObject->SetNumberField("A", GUID.A); SharedObject->SetNumberField("B", GUID.B);
+			SharedObject->SetNumberField("C", GUID.C); SharedObject->SetNumberField("D", GUID.D);
+
+			const TSharedRef<FJsonValue> NewValue = MakeShareable(new FJsonValueObject(SharedObject));
+			NewJsonValue = NewValue;
 		}
 
-		else 
 		// To serialize struct, we need it's type and value pointer, because struct value doesn't contain type information
-			DeserializeStruct(StructProperty->Struct, NewJsonValue->AsObject().ToSharedRef(), Value);
+		DeserializeStruct(StructProperty->Struct, NewJsonValue->AsObject().ToSharedRef(), Value);
 	}
 	else if (const FByteProperty* ByteProperty = CastField<const FByteProperty>(Property)) {
 		// If we have a string provided, make sure Enum is not null
