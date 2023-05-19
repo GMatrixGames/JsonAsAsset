@@ -35,7 +35,32 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 ## 1. Introduction to JsonAsAsset
 > Please be aware that the use of this plugin should be for personal and educational purposes only. Do not use it to create and distribute commercial products without proper licensing and permissions. It is important to respect the intellectual property of others and only use assets that you have the right to use.
 
-JsonAsAsset (or sometimes refered as *`JAA`*) is a plugin to create assets from json data obtained from [FModel](https://fmodel.app) *(Software for exploring Unreal Engine games)*. We are in no way responsible for what may be done with the created content, but you are free to use this tool as much as you like.
+JsonAsAsset (or sometimes refered as *`JAA`*) is a plugin to create assets from json data obtained from [FModel](https://fmodel.app) *(Software for exploring Unreal Engine games)*. We are in no way responsible for what may be done with the created content, but you are free to use this tool as much as you like. Here are the supported asset types in JsonAsAsset:
+
+###### Materials
+ - Material
+ - MaterialFunction
+ - MaterialParameterCollection
+ - PhysicalMaterial
+ - SubsurfaceProfile
+     
+###### Curve Asset Types
+ - CurveFloat
+ - CurveVector
+ - CurveLinearColor
+ - CurveLinearColorAtlas
+
+###### Skeleton/Animation Asset Types
+ - SkeletalMeshLODSettings
+ - Animation (curves, sync markers)
+
+###### Sound Asset Types
+ - SoundAttenuation
+ - SoundConcurrency
+ - ReverbEffect
+
+###### Data Asset Types
+- DataTable
 
 The plugin features a user-friendly interface that makes it easy for developers to import JSON data from FModel and map it to appropriate data structures within Unreal Engine to create assets based on them. This includes the ability to create curves, materials, animation curve data, and other assets based on the imported data.
 
