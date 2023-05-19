@@ -27,6 +27,7 @@
 #include "Importers/MaterialParameterCollectionImporter.h"
 #include "Importers/NiagaraParameterCollectionImporter.h"
 #include "Importers/MaterialInstanceConstantImporter.h"
+#include "Importers/SoundCueImporter.h"
 #include "Importers/PhysicalMaterialImporter.h"
 #include "Importers/TextureImporters.h"
 #include "Utilities/AssetUtilities.h"
@@ -111,10 +112,10 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
 
 	/*
-	* NOTE: Fortnite Alpha porters, please add these two lines of
+	* NOTE: Alpha porters, please add these two lines of
 	*		code to allow reading objects:
 	* 
-	* 	Path = Path.Replace(TEXT("FortniteGame/Content"), TEXT("/Game"));
+	* 	Path = Path.Replace(TEXT("GameName/Content"), TEXT("/Game"));
 	*	Path = Path.Replace(TEXT("Engine/Content"), TEXT("/Engine"));
 	*/
 
@@ -254,6 +255,7 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 				else if (Type == "Skeleton") Importer = new USkeletonImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 				else if (Type == "SkeletalMeshLODSettings") Importer = new USkeletalMeshLODSettingsImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
+				else if (Type == "SoundCue") Importer = new USoundCueImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 				else if (Type == "ReverbEffect") Importer = new UReverbEffectImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SoundAttenuation") Importer = new USoundAttenuationImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SoundConcurrency") Importer = new USoundConcurrencyImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);

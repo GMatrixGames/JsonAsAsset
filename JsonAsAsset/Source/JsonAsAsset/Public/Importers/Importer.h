@@ -71,6 +71,7 @@ private:
 
 		// separator
 
+		"SoundCue",
 		"ReverbEffect",
 		"SoundAttenuation",
 		"SoundConcurrency",
@@ -82,7 +83,7 @@ private:
 		// separator
 
 		"TextureRenderTarget2D",
-		"PhysicalMaterial",
+		"PhysicalMaterial"
 	};
 
 public:
