@@ -30,6 +30,10 @@
 		{
 			"Name": "Niagara",
 			"Enabled": true
+		},
+		{
+			"Name": "PluginUtils",
+			"Enabled": true
 		}
 	]
 }
