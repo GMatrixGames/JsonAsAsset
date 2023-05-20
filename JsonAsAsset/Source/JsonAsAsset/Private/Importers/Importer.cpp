@@ -265,10 +265,7 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "TextureRenderTarget2D") Importer = new UTextureImporters(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-
-				if (bDataAsset)
-					Importer = new UDataAssetImporter(Class, Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				
+				else if (bDataAsset) Importer = new UDataAssetImporter(Class, Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 				else Importer = nullptr;
 			}
 
