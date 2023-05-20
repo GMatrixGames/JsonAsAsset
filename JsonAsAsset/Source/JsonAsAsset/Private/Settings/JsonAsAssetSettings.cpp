@@ -113,6 +113,8 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 				}
 
 				PluginSettings->SaveConfig();
+				PluginSettings->UpdateDefaultConfigFile();
+				PluginSettings->LoadConfig();
 
 				return FReply::Handled();
 			}).IsEnabled_Lambda([this, Settings]() {
