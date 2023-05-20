@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/DeveloperSettings.h"
+#include "IDetailCustomization.h"
 #include "JsonAsAssetSettings.generated.h"
 
 // Grabbed from (https://github.com/FabianFG/CUE4Parse/blob/master/CUE4Parse/UE4/Versions/EGame.cs)
@@ -82,6 +83,14 @@ USTRUCT()
 struct FParseKey {
 	GENERATED_BODY()
 
+	FParseKey() {
+	}
+
+	FParseKey(FString NewGUID, FString NewKey) {
+		Value = NewKey;
+		Guid = NewGUID;
+	}
+
 	TArray<uint8> Key;
 
 	// Must start with 0x
@@ -90,6 +99,13 @@ struct FParseKey {
 
 	UPROPERTY(Config, EditAnywhere)
 	FString Guid;
+};
+
+// Buttons in plugin settings
+class FJsonAsAssetSettingsDetails : public IDetailCustomization {
+public:
+	static TSharedRef<IDetailCustomization> MakeInstance();
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 };
 
 // A editor plugin to allow JSON files from FModel to a asset in the Content Browser
@@ -140,11 +156,11 @@ public:
 	bool bUseContentBuilds;
 
 	// Main key for archives
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration|Archive", meta=(EditCondition="bEnableLocalFetch", DisplayName="Archive Key"))
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Archive Key"))
 	FString ArchiveKey;
 
 	// AES Keys
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration|Archive", meta=(EditCondition="bEnableLocalFetch", DisplayName="Dynamic Keys"))
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Dynamic Keys"))
 	TArray<FParseKey> DynamicKeys;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Local Fetch Director", meta = (EditConditionHides, EditCondition = "bEnableLocalFetch"))
