@@ -119,7 +119,7 @@ Before we can launch up Local Fetch and get started on automated references. You
 This is required as CUE4Parse needs this information to setup file providers and start reading the game files. A lot of these settings are the same as FModel, however make sure you always manually selecting a file/directory using UE's file selecter.
 
 ###### Launching Local Fetch
-<img align="right" width="461.5" height="250" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/cddee284-4af7-4f4d-ad6c-24b2064ae59f>
+<img align="right" width="461.5" height="250" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/4688482d-0854-4a62-83cf-fc055d657284>
 
 > You must launch Local Fetch through UE, and not by the executable file. The reason being is that the local host port is different when you launch it through UE, so it's important you do so.
 
