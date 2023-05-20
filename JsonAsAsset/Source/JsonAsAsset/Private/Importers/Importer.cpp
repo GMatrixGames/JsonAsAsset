@@ -30,6 +30,7 @@
 #include "Importers/SoundCueImporter.h"
 #include "Importers/PhysicalMaterialImporter.h"
 #include "Importers/TextureImporters.h"
+#include "Importers/DataAssetImporter.h"
 #include "Utilities/AssetUtilities.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
@@ -92,12 +93,6 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 				}
 			}
 		}
-	}
-
-	if (InObject == nullptr) {
-		MessageLogger.Error(FText::FromString("Object not found while importing: " + Name + " (" + Type + ")"));
-
-		UE_LOG(LogJson, Error, TEXT("Object not found while importing: %s (%s)"), *Name, *Type);
 	}
 
 	return InObject;
@@ -223,11 +218,6 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 	TArray<FString> Types;
 	for (const TSharedPtr<FJsonValue>& Obj : Exports) Types.Add(Obj->AsObject()->GetStringField("Type"));
 
-	// If type is not supported, decline
-	if (!CanImportAny(Types)) {
-		const FText DialogText = FText::FromString("No exports from \"" + File + "\" can be imported!");
-		FMessageDialog::Open(EAppMsgType::Ok, DialogText);
-	}
 
 	for (const TSharedPtr<FJsonValue>& ExportPtr : Exports) {
 		TSharedPtr<FJsonObject> DataObject = ExportPtr->AsObject();
@@ -235,7 +225,10 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 		FString Type = DataObject->GetStringField("Type");
 		FString Name = DataObject->GetStringField("Name");
 
-		if (CanImport(Type)) {
+		UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Type);
+		bool bDataAsset = Class->IsChildOf(UPrimaryDataAsset::StaticClass());
+
+		if (CanImport(Type) || bDataAsset) {
 			// Convert from relative to full
 			// NOTE: Used for references
 			if (FPaths::IsRelative(File)) File = FPaths::ConvertRelativePathToFull(File);
@@ -272,6 +265,10 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "TextureRenderTarget2D") Importer = new UTextureImporters(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+
+				if (bDataAsset)
+					Importer = new UDataAssetImporter(Class, Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+				
 				else Importer = nullptr;
 			}
 
