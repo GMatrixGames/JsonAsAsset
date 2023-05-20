@@ -41,5 +41,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 globals.WriteLog("CORE", ConsoleColor.Green, "Running API...");
-
+globals.WriteLog("CREDITS", ConsoleColor.DarkRed, "Created by Tector and GMatrix, thank you for using! :)");
 app.Run();

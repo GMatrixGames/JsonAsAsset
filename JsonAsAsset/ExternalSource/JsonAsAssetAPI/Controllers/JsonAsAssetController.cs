@@ -18,7 +18,6 @@ using JsonAsAssetAPI.Endpoints.ContentManager;
 using CUE4Parse.FileProvider;
 using CUE4Parse.FileProvider.Objects;
 using CUE4Parse.FileProvider.Vfs;
-using RestSharp.Serializers.NewtonsoftJson;
 using EpicManifestParser.Objects;
 
 using System.Runtime.InteropServices;
@@ -186,7 +185,7 @@ public class Globals
 
         var DynamicKeys = GetArrayProperty(config, "DynamicKeys");
         if (DynamicKeys.Count() != 0)
-            WriteLog("Provider", ConsoleColor.Red, "Reading {" + DynamicKeys.Count() + "} Dynamic Keys -------------------------------------------");
+            WriteLog("Provider", ConsoleColor.Red, "Reading " + DynamicKeys.Count() + " Dynamic Keys -------------------------------------------");
 
         // Submit each dynamic key
         foreach (string key in DynamicKeys)
@@ -208,8 +207,6 @@ public class Globals
 
         if (bUseContentBuilds)
             await InitializeContentBuilds();
-
-        WriteLog("CREDITS", ConsoleColor.Red, "Created by Tector and GMatrix, thank you for using this application! :)");
     }
 }
 
@@ -320,19 +317,14 @@ namespace JsonAsAssetAPI.Controllers
             }
             catch (Exception exception)
             {
-                if (exception.Message.StartsWith("One or more errors occurred. (There is no game file with the path "))
-                    return new NotFoundObjectResult(
-                            new
-                            {
-                                errored = true,
-                                note = "Unable to find package"
-                            }
-                        );
-                else return new ConflictObjectResult(
+                return new ConflictObjectResult(
                     new
                     {
                         errored = true,
-                        note = exception.Message
+                        note =
+                            exception.Message.StartsWith("One or more errors occurred. (There is no game file with the path ") ?
+                                "Unable to find package" :
+                            exception.Message
                     }
                 );
             }
