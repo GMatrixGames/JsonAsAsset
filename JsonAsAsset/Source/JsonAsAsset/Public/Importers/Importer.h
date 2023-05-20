@@ -66,6 +66,7 @@ private:
 
 		// separator
 
+		"DataAsset",
 		"DataTable",
 		"LandscapeGrassType",
 
