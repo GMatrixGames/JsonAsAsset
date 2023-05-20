@@ -1,19 +1,21 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
-using CUE4Parse.FileProvider;
-using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.Utils;
+using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Assets.Exports.Texture;
-using CUE4Parse_Conversion.Textures;
-using CUE4Parse.UE4.Versions;
-using CUE4Parse.Encryption.Aes;
+using CUE4Parse.UE4.Assets.Exports.Sound;
 using CUE4Parse.UE4.Objects.Core.Misc;
+using CUE4Parse.UE4.Versions;
+using CUE4Parse_Conversion.Textures;
+using CUE4Parse_Conversion.Sounds;
+using CUE4Parse.Encryption.Aes;
 using CUE4Parse.MappingsProvider;
 using UE4Config.Parsing;
 using Newtonsoft.Json;
 using SkiaSharp;
 
 using JsonAsAssetAPI.Endpoints.ContentManager;
+using CUE4Parse.FileProvider;
 using CUE4Parse.FileProvider.Objects;
 using CUE4Parse.FileProvider.Vfs;
 using RestSharp.Serializers.NewtonsoftJson;
@@ -225,7 +227,7 @@ namespace JsonAsAssetAPI.Controllers
         {
             _context = context;
             #pragma warning disable CS8601 // Possible null reference assignment.
-                Provider = Globals.Provider;
+            Provider = Globals.Provider;
             #pragma warning restore CS8601 // Possible null reference assignment.
         }
 
@@ -235,80 +237,86 @@ namespace JsonAsAssetAPI.Controllers
             // Try to load object, if failed, return message
             try
             {
+                path = path.SubstringBefore('.');
                 var LocalObject = Provider.LoadObject(path);
 
-                switch (LocalObject)
+                if (!raw)
                 {
-                    case UTexture2D texture:
-                        // ignore
-                    break;
-                   
-                    default:
-                        raw = true;
-                    break;
+                    switch (LocalObject)
+                    {
+                        case UTexture2D texture:
+                            UTexture2D TextureObject = (UTexture2D)Provider.LoadObject(path);
+
+                            // Texture data
+                            SKBitmap TextureData = TextureObject.Decode();
+                            if (TextureData == null)
+                                return StatusCode(500, value: new
+                                {
+                                    errored = true,
+                                    exceptionstring = "Invalid texture data, exported as json",
+                                    jsonOutput = new { TextureObject }
+                                });
+
+                            return File(TextureData.Encode(SKEncodedImageFormat.Png, quality: 100).AsStream(), "image/png");
+
+                        case USoundWave wave:
+                            wave.Decode(true, out var audioFormat, out var data);
+                            if (data == null || string.IsNullOrEmpty(audioFormat))
+                                return new ConflictObjectResult(new 
+                                {
+                                    errored = true,
+                                    exceptionstring = "Invalid audio data, exported as json",
+                                    jsonOutput = new[] { wave }
+                                });
+
+                            var mimeType = audioFormat.ToLower() switch
+                            {
+                                "wem" => "application/vnd.wwise.wem",
+                                "wav" => "audio/wav",
+                                "adpcm" => "audio/adpcm",
+                                "opus" => "audio/opus",
+                                _ => "audio/ogg"
+                            };
+
+                            return File(data, mimeType);
+                    }
                 }
 
-                switch (raw)
+                // Credit to MoutainFlash:
+                //  - https://gist.github.com/MinshuG/55f0da93fb839d41050e634b288e81b1
+                //    : (merging editor only data)
+                var objectPath = path.SubstringBefore('.') + ".o.uasset";
+                var exports = Provider.LoadAllObjects(path);
+                var finalExports = new List<UObject>();
+                finalExports.AddRange(exports);
+
+                var mergedExports = new List<UObject>();
+                if (Provider.TryLoadPackage(objectPath, out var editorAsset))
                 {
-                    // Raw exports
-                    case true:
-                        path = path.SubstringBeforeLast('.');
-
-                        // Add .uasset to path
-                        if (!path.EndsWith(".uasset") && !path.Contains("."))
-                            path = path + ".uasset";
-
-                        // Credit to MoutainFlash:
-                        //  - https://gist.github.com/MinshuG/55f0da93fb839d41050e634b288e81b1
-                        //    : (merging editor only data)
-                        var objectPath = path.SubstringBeforeLast('.') + ".o." + path.SubstringAfterLast('.');
-                        var exports = Provider.LoadAllObjects(path);
-                        var finalExports = new List<UObject>();
-                        finalExports.AddRange(exports);
-
-                        var mergedExports = new List<UObject>();
-                        if (Provider.TryLoadPackage(objectPath, out var editorAsset))
+                    foreach (var export in exports)
+                    {
+                        var editorData = editorAsset.GetExportOrNull(export.Name + "EditorOnlyData");
+                        if (editorData != null)
                         {
-                            foreach (var export in exports)
-                            {
-                                var editorData = editorAsset.GetExportOrNull(export.Name + "EditorOnlyData");
-                                if (editorData != null)
-                                {
-                                    export.Properties.AddRange(editorData.Properties);
-                                    mergedExports.Add(export);
-                                }
-                            }
-
-                            foreach (var editorExport in editorAsset.GetExports())
-                            {
-                                if (!mergedExports.Contains(editorExport))
-                                {
-                                    finalExports.Add(editorExport);
-                                }
-                            }
+                            export.Properties.AddRange(editorData.Properties);
+                            mergedExports.Add(export);
                         }
-                        mergedExports.Clear();
+                    }
 
-                        // Serialize object, and return it indented
-                        return new OkObjectResult(JsonConvert.SerializeObject(new {
-                            jsonOutput = finalExports
-                        }, Formatting.Indented));
-
-                    case false:
-                        UTexture2D TextureObject = (UTexture2D)Provider.LoadObject(path);
-                        
-                        // Texture data
-                        SKBitmap TextureData = TextureObject.Decode();
-                        if (TextureData == null)
-                            return StatusCode(500, value: new
-                            {
-                                errored = true,
-                                exceptionstring = "Invalid texture data, exported as json",
-                                jsonoutput = new { TextureObject }
-                            });
-
-                        return File(TextureData.Encode(SKEncodedImageFormat.Png, quality: 100).AsStream(), "image/png");
+                    foreach (var editorExport in editorAsset.GetExports())
+                    {
+                        if (!mergedExports.Contains(editorExport))
+                        {
+                            finalExports.Add(editorExport);
+                        }
+                    }
                 }
+                mergedExports.Clear();
+
+                // Serialize object, and return it indented
+                return new OkObjectResult(JsonConvert.SerializeObject(new {
+                    jsonOutput = finalExports
+                }, Formatting.Indented));
             }
             catch (Exception exception)
             {
