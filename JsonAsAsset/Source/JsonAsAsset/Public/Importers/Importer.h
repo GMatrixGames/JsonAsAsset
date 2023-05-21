@@ -132,6 +132,7 @@ public:
 
 protected:
 	bool HandleAssetCreation(UObject* Asset) const;
+	void SavePackage();
 
 	// Wrapper for remote downloading
 	template <class T = UObject>

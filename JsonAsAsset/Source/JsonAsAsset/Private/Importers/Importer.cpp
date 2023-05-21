@@ -45,6 +45,8 @@
 
 template <typename T>
 TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, FString Name, FString Path) {
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
 	// If the asset can be found locally
 	if (InObject == nullptr && HandleReference(Path)) {
 		TObjectPtr<T> Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
@@ -52,9 +54,7 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 		return Object;
 	}
 
-	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 	bool bEnableLocalFetch = Settings->bEnableLocalFetch;
-
 	FMessageLog MessageLogger = FMessageLog(FName("JsonAsAsset"));
 
 	if (bEnableLocalFetch && InObject == nullptr) {
@@ -107,20 +107,10 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	PackageIndex->Get()->GetStringField("ObjectName").Split("'", &Type, &Name);
 	FString Path;
 	PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
-
-	/*
-	* NOTE: Alpha porters, please add these two lines of
-	*		code to allow reading objects:
-	* 
-	* 	Path = Path.Replace(TEXT("GameName/Content"), TEXT("/Game"));
-	*	Path = Path.Replace(TEXT("Engine/Content"), TEXT("/Engine"));
-	*/
-
 	Name = Name.Replace(TEXT("'"), TEXT(""));
 
 #pragma warning( push )
 #pragma warning( disable : 4101) // Hide LoadObject Fail
-
 	// Define found object
 	TObjectPtr<T> Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
 
@@ -132,7 +122,6 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 		// Load Object with :
 		Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + AssetName + ":" + Name)));
 	}
-
 #pragma warning( pop )
 
 	Object = DownloadWrapper(Obj, Type, Name, Path);
@@ -140,7 +129,6 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 
 template <typename T>
 TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array) {
-	// Go through each
 	for (const TSharedPtr<FJsonValue> ArrayElement : PackageArray) {
 		const TSharedPtr<FJsonObject> Ptr = ArrayElement->AsObject();
 
@@ -152,7 +140,6 @@ TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>
 		Name = Name.Replace(TEXT("'"), TEXT(""));
 
 		TObjectPtr<T> Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
-
 		Array.Add(DownloadWrapper(Object, Type, Name, Path));
 	}
 
@@ -214,6 +201,24 @@ bool IImporter::HandleAssetCreation(UObject* Asset) const {
 	ContentBrowserModule.Get().SyncBrowserToAssets(Assets);
 
 	return true;
+}
+
+void IImporter::SavePackage() {
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+	Package->FullyLoad();
+
+	FSavePackageArgs SaveArgs;
+	{
+		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+		SaveArgs.SaveFlags = SAVE_NoError;
+	}
+
+	const FString PackageName = Package->GetName();
+	const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+
+	if (Settings->bSavePackages)
+		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
 }
 
 bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, const bool bHideNotifications) {

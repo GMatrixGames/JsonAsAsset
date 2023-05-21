@@ -21,6 +21,8 @@
 UJsonAsAssetSettings::UJsonAsAssetSettings() {
 	CategoryName = TEXT("Plugins");
 	SectionName = TEXT("JsonAsAsset");
+
+	bSavePackages = true;
 }
 
 #if WITH_EDITOR

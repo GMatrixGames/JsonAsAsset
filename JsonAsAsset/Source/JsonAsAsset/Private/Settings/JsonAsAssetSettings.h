@@ -125,6 +125,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category="Asset|Configuration")
 	FDirectoryPath ExportDirectory;
 
+	// Saves packages when imported
+	UPROPERTY(Config, EditAnywhere, Category="Asset|Configuration")
+	bool bSavePackages;
+
 	// Fixes errors with textures by not connecting nodes
 	UPROPERTY(Config, EditAnywhere, Category="Asset|Configuration")
 	bool bExposePins;
