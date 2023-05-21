@@ -94,10 +94,10 @@ struct FParseKey {
 	TArray<uint8> Key;
 
 	// Must start with 0x
-	UPROPERTY(Config, EditAnywhere)
+	UPROPERTY(Config, EditAnywhere, Category = "Key")
 	FString Value;
 
-	UPROPERTY(Config, EditAnywhere)
+	UPROPERTY(Config, EditAnywhere, Category = "Key")
 	FString Guid;
 };
 
