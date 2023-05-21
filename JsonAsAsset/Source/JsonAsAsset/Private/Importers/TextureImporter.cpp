@@ -1,4 +1,4 @@
-﻿#include "Importers/TextureImporters.h"
+﻿#include "Importers/TextureImporter.h"
 
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/TextureCube.h"
@@ -10,25 +10,7 @@
 #include "Factories.h"
 #include "IImageWrapperModule.h"
 
-bool UTextureImporters::ImportData() {
-	try {
-		const FString Type = JsonObject->GetStringField("Type");
-
-		UTexture* OutTexture = nullptr;
-
-		if (Type == "TextureRenderTarget2D") ImportRenderTarget2D(OutTexture, JsonObject->GetObjectField("Properties"));
-
-		// Handle edit changes, and add it to the content browser
-		if (!HandleAssetCreation(OutTexture)) return false;
-	} catch (const char* Exception) {
-		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception))
-		return false;
-	}
-
-	return true;
-}
-
-bool UTextureImporters::ImportTexture2D(UTexture*& OutTexture2D, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
+bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
 	UTextureFactory* TextureFactory = NewObject<UTextureFactory>();
 	TextureFactory->AddToRoot();
 	TextureFactory->SuppressImportOverwriteDialog();
@@ -49,7 +31,7 @@ bool UTextureImporters::ImportTexture2D(UTexture*& OutTexture2D, const TArray<ui
 	return false;
 }
 
-bool UTextureImporters::ImportTextureCube(UTexture*& OutTextureCube, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
+bool UTextureImporter::ImportTextureCube(UTexture*& OutTextureCube, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
 	// create the cube texture
 	UTextureCube* TextureCube = NewObject<UTextureCube>(Package, UTextureCube::StaticClass(), *FileName, RF_Public | RF_Standalone);
 
@@ -99,7 +81,12 @@ bool UTextureImporters::ImportTextureCube(UTexture*& OutTextureCube, const TArra
 	return false;
 }
 
-bool UTextureImporters::ImportRenderTarget2D(UTexture*& OutRenderTarget2D, const TSharedPtr<FJsonObject>& Properties) const {
+bool UTextureImporter::ImportVolumeTexture(UTexture*& OutTexture2D, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const
+{
+	return false;
+}
+
+bool UTextureImporter::ImportRenderTarget2D(UTexture*& OutRenderTarget2D, const TSharedPtr<FJsonObject>& Properties) const {
 	UTextureRenderTargetFactoryNew* TextureFactory = NewObject<UTextureRenderTargetFactoryNew>();
 	TextureFactory->AddToRoot();
 	UTextureRenderTarget2D* RenderTarget2D = Cast<UTextureRenderTarget2D>(TextureFactory->FactoryCreateNew(UTextureRenderTarget2D::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
@@ -137,7 +124,7 @@ bool UTextureImporters::ImportRenderTarget2D(UTexture*& OutRenderTarget2D, const
 }
 
 // Handle UTexture2D
-bool UTextureImporters::ImportTexture2D_Data(UTexture2D* InTexture2D, const TSharedPtr<FJsonObject>& Properties) const {
+bool UTextureImporter::ImportTexture2D_Data(UTexture2D* InTexture2D, const TSharedPtr<FJsonObject>& Properties) const {
 	if (InTexture2D == nullptr) return false;
 
 	ImportTexture_Data(InTexture2D, Properties);
@@ -161,7 +148,7 @@ bool UTextureImporters::ImportTexture2D_Data(UTexture2D* InTexture2D, const TSha
 }
 
 // Handle UTexture
-bool UTextureImporters::ImportTexture_Data(UTexture* InTexture, const TSharedPtr<FJsonObject>& Properties) const {
+bool UTextureImporter::ImportTexture_Data(UTexture* InTexture, const TSharedPtr<FJsonObject>& Properties) const {
 	if (InTexture == nullptr) return false;
 
 	// Adjust parameters

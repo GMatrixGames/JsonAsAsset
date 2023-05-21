@@ -644,6 +644,18 @@ bool UMaterialImporter::ImportData() {
 			}
 		}
 
+		Package->FullyLoad();
+
+		FSavePackageArgs SaveArgs;
+		{
+			SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+			SaveArgs.SaveFlags = SAVE_NoError;
+		}
+
+		const FString PackageName = Package->GetName();
+		const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
+
 		Material->PostEditChange();
 	}
 	catch (const char* Exception) {

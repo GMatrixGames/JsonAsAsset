@@ -29,7 +29,7 @@
 #include "Importers/MaterialInstanceConstantImporter.h"
 #include "Importers/SoundCueImporter.h"
 #include "Importers/PhysicalMaterialImporter.h"
-#include "Importers/TextureImporters.h"
+#include "Importers/TextureImporter.h"
 #include "Importers/DataAssetImporter.h"
 #include "Utilities/AssetUtilities.h"
 #include "Widgets/Notifications/SNotificationList.h"
@@ -264,7 +264,6 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 
 				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "TextureRenderTarget2D") Importer = new UTextureImporters(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (bDataAsset) Importer = new UDataAssetImporter(Class, Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 				else Importer = nullptr;
 			}

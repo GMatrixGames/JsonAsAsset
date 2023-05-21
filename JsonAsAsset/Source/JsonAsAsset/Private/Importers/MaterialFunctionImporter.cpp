@@ -3,6 +3,8 @@
 #include "Importers/MaterialFunctionImporter.h"
 #include "Factories/MaterialFunctionFactoryNew.h"
 
+#include "UObject/SavePackage.h"
+
 bool UMaterialFunctionImporter::ImportData() {
 	try {
 		// Create Material Function Factory (factory automatically creates the MF)
@@ -35,6 +37,16 @@ bool UMaterialFunctionImporter::ImportData() {
 
 		MaterialFunction->PreEditChange(NULL);
 		MaterialFunction->PostEditChange();
+
+		FSavePackageArgs SaveArgs;
+		{
+			SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+			SaveArgs.SaveFlags = SAVE_NoError;
+		}
+
+		const FString PackageName = Package->GetName();
+		const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception))
 		return false;

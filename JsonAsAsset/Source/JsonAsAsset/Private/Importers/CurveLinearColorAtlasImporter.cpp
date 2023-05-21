@@ -1,7 +1,7 @@
 ﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Importers/CurveLinearColorAtlasImporter.h"
-#include "Importers/TextureImporters.h"
+#include "Importers/TextureImporter.h"
 #include "Curves/CurveLinearColor.h"
 
 #include "JsonGlobals.h"
@@ -17,7 +17,7 @@ bool UCurveLinearColorAtlasImporter::ImportData() {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 		
 		// Create UTextureImporters to add UTexture2D properties
-		const UTextureImporters* Importer = new UTextureImporters(FString(), FString(), JsonObject, Package, OutermostPkg);
+		const UTextureImporter* Importer = new UTextureImporter(FString(), FString(), JsonObject, Package, OutermostPkg);
 
 		float Width = 256;
 		float Height = 256;

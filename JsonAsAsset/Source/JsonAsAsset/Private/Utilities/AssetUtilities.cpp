@@ -10,9 +10,11 @@
 #include "Settings/JsonAsAssetSettings.h"
 #include "Dom/JsonObject.h"
 
+#include "UObject/SavePackage.h"
+
 #include "HttpModule.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "Importers/TextureImporters.h"
+#include "Importers/TextureImporter.h"
 #include "Importers/MaterialParameterCollectionImporter.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Serialization/JsonReader.h"
@@ -219,7 +221,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 		OutermostPkg = Package->GetOutermost();
 		Package->FullyLoad();
 
-		const UTextureImporters* Importer = new UTextureImporters(AssetName, Path, JsonArray[0]->AsObject(), Package, OutermostPkg);
+		const UTextureImporter* Importer = new UTextureImporter(AssetName, Path, JsonArray[0]->AsObject(), Package, OutermostPkg);
 
 		if (JsonArray.IsEmpty())
 			// No valid entries
@@ -246,6 +248,18 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 		Package->SetDirtyFlag(true);
 		Texture->PostEditChange();
 		Texture->AddToRoot();
+
+		Package->FullyLoad();
+
+		FSavePackageArgs SaveArgs;
+		{
+			SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+			SaveArgs.SaveFlags = SAVE_NoError;
+		}
+
+		const FString PackageName = Package->GetName();
+		const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
 
 		OutTexture = Texture;
 	}
