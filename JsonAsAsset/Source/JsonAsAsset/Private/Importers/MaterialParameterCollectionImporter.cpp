@@ -2,6 +2,8 @@
 
 #include "Importers/MaterialParameterCollectionImporter.h"
 
+#include "UObject/SavePackage.h"
+
 #include "Dom/JsonObject.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Utilities/MathUtilities.h"
@@ -39,6 +41,18 @@ bool UMaterialParameterCollectionImporter::ImportData() {
 				MaterialParameterCollection->VectorParameters.Add(VectorParameter_Collection);
 			}
 		}
+
+		Package->FullyLoad();
+
+		FSavePackageArgs SaveArgs;
+		{
+			SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+			SaveArgs.SaveFlags = SAVE_NoError;
+		}
+
+		const FString PackageName = Package->GetName();
+		const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
 
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(MaterialParameterCollection)) return false;

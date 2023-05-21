@@ -12,6 +12,8 @@
 #include "Utilities/AssetUtilities.h"
 #include <Runtime/CoreUObject/Public/UObject/UnrealTypePrivate.h>
 
+#include "UObject/SavePackage.h"
+
 bool UCurveLinearColorAtlasImporter::ImportData() {
 	try {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
@@ -65,6 +67,19 @@ bool UCurveLinearColorAtlasImporter::ImportData() {
 
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(Object)) return false;
+
+		Package->FullyLoad();
+
+		FSavePackageArgs SaveArgs;
+		{
+			SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+			SaveArgs.SaveFlags = SAVE_NoError;
+		}
+
+		const FString PackageName = Package->GetName();
+		const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
+
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;

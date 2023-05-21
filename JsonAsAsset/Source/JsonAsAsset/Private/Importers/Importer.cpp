@@ -39,6 +39,8 @@
 #include "Misc/FileHelper.h"
 #include "Logging/MessageLog.h"
 
+#include "UObject/SavePackage.h"
+
 #define LOCTEXT_NAMESPACE "IImporter"
 
 template <typename T>
@@ -217,7 +219,6 @@ bool IImporter::HandleAssetCreation(UObject* Asset) const {
 bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, const bool bHideNotifications) {
 	TArray<FString> Types;
 	for (const TSharedPtr<FJsonValue>& Obj : Exports) Types.Add(Obj->AsObject()->GetStringField("Type"));
-
 
 	for (const TSharedPtr<FJsonValue>& ExportPtr : Exports) {
 		TSharedPtr<FJsonObject> DataObject = ExportPtr->AsObject();

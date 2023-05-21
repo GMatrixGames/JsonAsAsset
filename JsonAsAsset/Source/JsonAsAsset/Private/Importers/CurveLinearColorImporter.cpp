@@ -9,6 +9,8 @@
 #include "Factories/CurveFactory.h"
 #include "Utilities/MathUtilities.h"
 
+#include "UObject/SavePackage.h"
+
 bool UCurveLinearColorImporter::ImportData() {
 	try {
 		// Array of containers
@@ -27,6 +29,18 @@ bool UCurveLinearColorImporter::ImportData() {
 				LinearCurveAsset->FloatCurves[i].Keys.Add(FMathUtilities::ObjectToRichCurveKey(Keys[j]->AsObject()));
 			}
 		}
+
+		Package->FullyLoad();
+
+		FSavePackageArgs SaveArgs;
+		{
+			SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+			SaveArgs.SaveFlags = SAVE_NoError;
+		}
+
+		const FString PackageName = Package->GetName();
+		const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
 
 		// Handle edit changes, and add it to the content browser
 		if (!HandleAssetCreation(LinearCurveAsset)) return false;
