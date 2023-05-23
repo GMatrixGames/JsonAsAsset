@@ -19,6 +19,8 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 		TArray<TSharedPtr<FJsonObject>> EditorOnlyData;
 
+		GetObjectSerializer()->DeserializeObjectProperties(Properties, MaterialInstanceConstant);
+
 		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
 			TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
 
@@ -27,14 +29,16 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			}
 		}
 
-		const TSharedPtr<FJsonObject>* ParentPtr = nullptr;
-		if (Properties->TryGetObjectField("Parent", ParentPtr) && ParentPtr != nullptr) {
+		if (const TSharedPtr<FJsonObject>* ParentPtr; Properties->TryGetObjectField("Parent", ParentPtr))
 			LoadObject(ParentPtr, MaterialInstanceConstant->Parent);
-		}
+		if (const TSharedPtr<FJsonObject>* SubsurfaceProfilePtr; Properties->TryGetObjectField("SubsurfaceProfile", SubsurfaceProfilePtr))
+			LoadObject(SubsurfaceProfilePtr, MaterialInstanceConstant->SubsurfaceProfile);
+		if (bool bOverrideSubsurfaceProfile; Properties->TryGetBoolField("bOverrideSubsurfaceProfile", bOverrideSubsurfaceProfile))
+			MaterialInstanceConstant->bOverrideSubsurfaceProfile = bOverrideSubsurfaceProfile;
 
 		TArray<FScalarParameterValue> ScalarParameterValues;
-
 		TArray<TSharedPtr<FJsonValue>> Scalars = Properties->GetArrayField("ScalarParameterValues");
+		
 		for (int32 i = 0; i < Scalars.Num(); i++) {
 			TSharedPtr<FJsonObject> Scalar = Scalars[i]->AsObject();
 

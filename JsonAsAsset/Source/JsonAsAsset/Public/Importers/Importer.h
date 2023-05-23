@@ -34,11 +34,12 @@ public:
 	// Import the data of the supported type, return if successful or not
 	virtual bool ImportData() { return false; }
 
+protected:
+	UPROPERTY()
+		UPropertySerializer* PropertySerializer;
 private:
 	UPROPERTY()
 	UObjectSerializer* GObjectSerializer;
-	UPROPERTY()
-	UPropertySerializer* PropertySerializer;
 
 	inline static TArray<FString> AcceptedTypes = {
 		"CurveFloat",
