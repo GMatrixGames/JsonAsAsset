@@ -6,6 +6,10 @@
 #include "Materials/MaterialInstanceConstant.h"
 #include "Utilities/MathUtilities.h"
 
+#include "Materials/MaterialExpressionStaticSwitchParameter.h"
+#include "Materials/MaterialExpressionStaticBoolParameter.h"
+#include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
+
 bool UMaterialInstanceConstantImporter::ImportData() {
 	try {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
@@ -102,47 +106,123 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 		MaterialInstanceConstant->TextureParameterValues = TextureParameterValues;
 
-		TArray<TSharedPtr<FJsonValue>> Static;
+		TArray<TSharedPtr<FJsonValue>> Local_StaticParameterObjects;
+		TArray<TSharedPtr<FJsonValue>> Local_StaticComponentMaskParametersObjects;
 		const TSharedPtr<FJsonObject>* StaticParams;
 
 		if (EditorOnlyData.Num() > 0) {
 			for (TSharedPtr<FJsonObject> Ed : EditorOnlyData) {
-				if (Ed->GetObjectField("Properties")->TryGetObjectField("StaticParameters", StaticParams)) {
+				const TSharedPtr<FJsonObject> Props = Ed->GetObjectField("Properties");
+
+				if (Props->TryGetObjectField("StaticParameters", StaticParams)) {
 					for (TSharedPtr<FJsonValue> Parameter : StaticParams->Get()->GetArrayField("StaticSwitchParameters")) {
-						Static.Add(TSharedPtr(Parameter));
+						Local_StaticParameterObjects.Add(TSharedPtr(Parameter));
+					}
+
+					for (TSharedPtr<FJsonValue> Parameter : StaticParams->Get()->GetArrayField("StaticComponentMaskParameters")) {
+						Local_StaticComponentMaskParametersObjects.Add(TSharedPtr(Parameter));
 					}
 				}
 			}
 		} else if (Properties->TryGetObjectField("StaticParameters", StaticParams)) {
-			Static = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
+			Local_StaticParameterObjects = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
 		} else if (Properties->TryGetObjectField("StaticParametersRuntime", StaticParams)) {
-			Static = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
+			Local_StaticParameterObjects = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
 		}
 
 		TArray<FStaticSwitchParameter> StaticSwitchParameters;
+		for (const TSharedPtr<FJsonValue> StaticParameter_Value : Local_StaticParameterObjects) {
+			TSharedPtr<FJsonObject> ParameterObject = StaticParameter_Value->AsObject();
+			TSharedPtr<FJsonObject> Local_MaterialParameterInfo = ParameterObject->GetObjectField("ParameterInfo");
 
-		for (int32 i = 0; i < Static.Num(); i++) {
-			TSharedPtr<FJsonObject> Stat = Static[i]->AsObject();
-
-			FStaticSwitchParameter Parameter;
-			Parameter.ExpressionGUID = FGuid(Stat->GetStringField("ExpressionGUID"));
-			Parameter.Value = Stat->GetBoolField("Value");
-			Parameter.bOverride = Stat->GetBoolField("bOverride");
-
-			TSharedPtr<FJsonObject> ParameterInfoJson = Stat->GetObjectField("ParameterInfo");
-			FMaterialParameterInfo ParameterInfo;
-			ParameterInfo.Index = ParameterInfoJson->GetIntegerField("Index");
-			ParameterInfo.Name = FName(ParameterInfoJson->GetStringField("Name"));
-			ParameterInfo.Association = GlobalParameter;
-
-			Parameter.ParameterInfo = ParameterInfo;
+			// Create Material Parameter Info
+			FMaterialParameterInfo MaterialParameterParameterInfo = FMaterialParameterInfo (
+				FName(Local_MaterialParameterInfo->GetStringField("Name")),
+				static_cast<EMaterialParameterAssociation>(StaticEnum<EMaterialParameterAssociation>()->GetValueByNameString(Local_MaterialParameterInfo->GetStringField("Association"))),
+				Local_MaterialParameterInfo->GetIntegerField("Index")
+			);
+			
+			// Now, create the actual switch parameter
+			FStaticSwitchParameter Parameter = FStaticSwitchParameter(
+				MaterialParameterParameterInfo, 
+				ParameterObject->GetBoolField("Value"),
+				ParameterObject->GetBoolField("bOverride"),
+				FGuid(ParameterObject->GetStringField("ExpressionGUID"))
+			);
 
 			StaticSwitchParameters.Add(Parameter);
+			MaterialInstanceConstant->GetEditorOnlyData()->StaticParameters.StaticSwitchParameters.Add(Parameter);
 		}
 
-#if IS_PINNACLE
-		MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
-#endif
+		TArray<FStaticComponentMaskParameter> StaticSwitchMaskParameters;
+		for (const TSharedPtr<FJsonValue> StaticParameter_Value : Local_StaticComponentMaskParametersObjects) {
+			TSharedPtr<FJsonObject> ParameterObject = StaticParameter_Value->AsObject();
+			TSharedPtr<FJsonObject> Local_MaterialParameterInfo = ParameterObject->GetObjectField("ParameterInfo");
+
+			// Create Material Parameter Info
+			FMaterialParameterInfo MaterialParameterParameterInfo = FMaterialParameterInfo (
+				FName(Local_MaterialParameterInfo->GetStringField("Name")),
+				static_cast<EMaterialParameterAssociation>(StaticEnum<EMaterialParameterAssociation>()->GetValueByNameString(Local_MaterialParameterInfo->GetStringField("Association"))),
+				Local_MaterialParameterInfo->GetIntegerField("Index")
+			);
+
+			FStaticComponentMaskParameter Parameter = FStaticComponentMaskParameter(
+				MaterialParameterParameterInfo,
+				ParameterObject->GetBoolField("R"),
+				ParameterObject->GetBoolField("G"),
+				ParameterObject->GetBoolField("B"),
+				ParameterObject->GetBoolField("A"),
+				ParameterObject->GetBoolField("bOverride"),
+				FGuid(ParameterObject->GetStringField("ExpressionGUID"))
+			);
+
+			StaticSwitchMaskParameters.Add(Parameter);
+			MaterialInstanceConstant->GetEditorOnlyData()->StaticParameters.StaticComponentMaskParameters.Add(Parameter);
+		}
+		
+		// Just-in case the material doesn't have the static parameters
+		TArray<FName> StaticParameters;
+		bool bCheckParameters = false;
+
+		if (MaterialInstanceConstant->GetMaterial() != nullptr && bCheckParameters) {
+			UMaterial* Parent = MaterialInstanceConstant->GetMaterial();
+			TArray<TObjectPtr<UMaterialExpression>> Expressions = Parent->GetEditorOnlyData()->ExpressionCollection.Expressions;
+			FStaticParameterSetEditorOnlyData StaticParams_EditorOnly = MaterialInstanceConstant->GetEditorOnlyData()->StaticParameters;
+
+			// Add parameter to array
+			for (UMaterialExpression* Expression : Expressions) {
+				if (UMaterialExpressionStaticSwitchParameter* StaticSwitchParameter = Cast<UMaterialExpressionStaticSwitchParameter>(Expression))
+					StaticParameters.Add(StaticSwitchParameter->ParameterName);
+				if (UMaterialExpressionStaticBoolParameter* StaticBoolParameter = Cast<UMaterialExpressionStaticBoolParameter>(Expression))
+					StaticParameters.Add(StaticBoolParameter->ParameterName);
+				if (UMaterialExpressionStaticComponentMaskParameter* StaticMaskParameter = Cast<UMaterialExpressionStaticComponentMaskParameter>(Expression))
+					StaticParameters.Add(StaticMaskParameter->ParameterName);
+			}
+
+			// If a parameter doesn't exist, create it
+			for (FStaticSwitchParameter& StaticSwitchParameter : StaticParams_EditorOnly.StaticSwitchParameters) {
+				if (!StaticParameters.Contains(StaticSwitchParameter.ParameterInfo.Name)) {
+					UMaterialExpressionStaticSwitchParameter* Parameter = NewObject<UMaterialExpressionStaticSwitchParameter>(Parent); {
+						Parent->GetEditorOnlyData()->ExpressionCollection.Expressions.Add(Parameter);
+					}
+					Parameter->SetParameterName(StaticSwitchParameter.ParameterInfo.Name);
+				}
+			}
+
+			// If a parameter doesn't exist, create it
+			for (FStaticComponentMaskParameter& StaticSwitchMaskParameter : StaticParams_EditorOnly.StaticComponentMaskParameters) {
+				if (!StaticParameters.Contains(StaticSwitchMaskParameter.ParameterInfo.Name)) {
+					UMaterialExpressionStaticComponentMaskParameter* Parameter = NewObject<UMaterialExpressionStaticComponentMaskParameter>(Parent); {
+						Parent->GetEditorOnlyData()->ExpressionCollection.Expressions.Add(Parameter);
+					}
+					Parameter->SetParameterName(StaticSwitchMaskParameter.ParameterInfo.Name);
+				}
+			}
+		}
+
+		#if IS_PINNACLE
+			MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
+		#endif
 
 		// SavePackageHelper(Package, *Package->GetName());
 	} catch (const char* Exception) {
