@@ -5,10 +5,12 @@
 #include "Dom/JsonObject.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Utilities/MathUtilities.h"
+#include "RHIDefinitions.h"
 
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
+#include "MaterialShared.h"
 
 bool UMaterialInstanceConstantImporter::ImportData() {
 	try {
@@ -18,7 +20,6 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 		HandleAssetCreation(MaterialInstanceConstant);
 
 		TArray<TSharedPtr<FJsonObject>> EditorOnlyData;
-
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, MaterialInstanceConstant);
 
 		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
@@ -38,7 +39,7 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 		TArray<FScalarParameterValue> ScalarParameterValues;
 		TArray<TSharedPtr<FJsonValue>> Scalars = Properties->GetArrayField("ScalarParameterValues");
-		
+
 		for (int32 i = 0; i < Scalars.Num(); i++) {
 			TSharedPtr<FJsonObject> Scalar = Scalars[i]->AsObject();
 
@@ -58,7 +59,6 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 		}
 
 		MaterialInstanceConstant->ScalarParameterValues = ScalarParameterValues;
-
 		TArray<FVectorParameterValue> VectorParameterValues;
 
 		TArray<TSharedPtr<FJsonValue>> Vectors = Properties->GetArrayField("VectorParameterValues");
@@ -82,7 +82,6 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 		}
 
 		MaterialInstanceConstant->VectorParameterValues = VectorParameterValues;
-
 		TArray<FTextureParameterValue> TextureParameterValues;
 
 		TArray<TSharedPtr<FJsonValue>> Textures = Properties->GetArrayField("TextureParameterValues");
@@ -134,28 +133,39 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			Local_StaticParameterObjects = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
 		}
 
+		// --------- STATIC PARAMETERS -----------
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+		FStaticParameterSet NewStaticParameterSet; // Unreal Engine 5.2 and beyond have a different method
+#endif
+
 		TArray<FStaticSwitchParameter> StaticSwitchParameters;
 		for (const TSharedPtr<FJsonValue> StaticParameter_Value : Local_StaticParameterObjects) {
 			TSharedPtr<FJsonObject> ParameterObject = StaticParameter_Value->AsObject();
 			TSharedPtr<FJsonObject> Local_MaterialParameterInfo = ParameterObject->GetObjectField("ParameterInfo");
 
 			// Create Material Parameter Info
-			FMaterialParameterInfo MaterialParameterParameterInfo = FMaterialParameterInfo (
+			FMaterialParameterInfo MaterialParameterParameterInfo = FMaterialParameterInfo(
 				FName(Local_MaterialParameterInfo->GetStringField("Name")),
 				static_cast<EMaterialParameterAssociation>(StaticEnum<EMaterialParameterAssociation>()->GetValueByNameString(Local_MaterialParameterInfo->GetStringField("Association"))),
 				Local_MaterialParameterInfo->GetIntegerField("Index")
 			);
-			
+
 			// Now, create the actual switch parameter
 			FStaticSwitchParameter Parameter = FStaticSwitchParameter(
-				MaterialParameterParameterInfo, 
+				MaterialParameterParameterInfo,
 				ParameterObject->GetBoolField("Value"),
 				ParameterObject->GetBoolField("bOverride"),
 				FGuid(ParameterObject->GetStringField("ExpressionGUID"))
 			);
 
 			StaticSwitchParameters.Add(Parameter);
-			MaterialInstanceConstant->GetEditorOnlyData()->StaticParameters.StaticSwitchParameters.Add(Parameter);
+			#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 2
+				MaterialInstanceConstant->GetEditorOnlyData()->StaticParameters.StaticSwitchParameters.Add(Parameter);
+			#endif
+			#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+				// Unreal Engine 5.2 and beyond have a different method
+				NewStaticParameterSet.StaticSwitchParameters.Add(Parameter); 
+			#endif
 		}
 
 		TArray<FStaticComponentMaskParameter> StaticSwitchMaskParameters;
@@ -164,7 +174,7 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			TSharedPtr<FJsonObject> Local_MaterialParameterInfo = ParameterObject->GetObjectField("ParameterInfo");
 
 			// Create Material Parameter Info
-			FMaterialParameterInfo MaterialParameterParameterInfo = FMaterialParameterInfo (
+			FMaterialParameterInfo MaterialParameterParameterInfo = FMaterialParameterInfo(
 				FName(Local_MaterialParameterInfo->GetStringField("Name")),
 				static_cast<EMaterialParameterAssociation>(StaticEnum<EMaterialParameterAssociation>()->GetValueByNameString(Local_MaterialParameterInfo->GetStringField("Association"))),
 				Local_MaterialParameterInfo->GetIntegerField("Index")
@@ -181,54 +191,24 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			);
 
 			StaticSwitchMaskParameters.Add(Parameter);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 2
 			MaterialInstanceConstant->GetEditorOnlyData()->StaticParameters.StaticComponentMaskParameters.Add(Parameter);
-		}
-		
-		// Just-in case the material doesn't have the static parameters
-		TArray<FName> StaticParameters;
-		bool bCheckParameters = false;
-
-		if (MaterialInstanceConstant->GetMaterial() != nullptr && bCheckParameters) {
-			UMaterial* Parent = MaterialInstanceConstant->GetMaterial();
-			TArray<TObjectPtr<UMaterialExpression>> Expressions = Parent->GetEditorOnlyData()->ExpressionCollection.Expressions;
-			FStaticParameterSetEditorOnlyData StaticParams_EditorOnly = MaterialInstanceConstant->GetEditorOnlyData()->StaticParameters;
-
-			// Add parameter to array
-			for (UMaterialExpression* Expression : Expressions) {
-				if (UMaterialExpressionStaticSwitchParameter* StaticSwitchParameter = Cast<UMaterialExpressionStaticSwitchParameter>(Expression))
-					StaticParameters.Add(StaticSwitchParameter->ParameterName);
-				if (UMaterialExpressionStaticBoolParameter* StaticBoolParameter = Cast<UMaterialExpressionStaticBoolParameter>(Expression))
-					StaticParameters.Add(StaticBoolParameter->ParameterName);
-				if (UMaterialExpressionStaticComponentMaskParameter* StaticMaskParameter = Cast<UMaterialExpressionStaticComponentMaskParameter>(Expression))
-					StaticParameters.Add(StaticMaskParameter->ParameterName);
-			}
-
-			// If a parameter doesn't exist, create it
-			for (FStaticSwitchParameter& StaticSwitchParameter : StaticParams_EditorOnly.StaticSwitchParameters) {
-				if (!StaticParameters.Contains(StaticSwitchParameter.ParameterInfo.Name)) {
-					UMaterialExpressionStaticSwitchParameter* Parameter = NewObject<UMaterialExpressionStaticSwitchParameter>(Parent); {
-						Parent->GetEditorOnlyData()->ExpressionCollection.Expressions.Add(Parameter);
-					}
-					Parameter->SetParameterName(StaticSwitchParameter.ParameterInfo.Name);
-				}
-			}
-
-			// If a parameter doesn't exist, create it
-			for (FStaticComponentMaskParameter& StaticSwitchMaskParameter : StaticParams_EditorOnly.StaticComponentMaskParameters) {
-				if (!StaticParameters.Contains(StaticSwitchMaskParameter.ParameterInfo.Name)) {
-					UMaterialExpressionStaticComponentMaskParameter* Parameter = NewObject<UMaterialExpressionStaticComponentMaskParameter>(Parent); {
-						Parent->GetEditorOnlyData()->ExpressionCollection.Expressions.Add(Parameter);
-					}
-					Parameter->SetParameterName(StaticSwitchMaskParameter.ParameterInfo.Name);
-				}
-			}
+#endif
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+			NewStaticParameterSet.EditorOnly.StaticComponentMaskParameters.Add(Parameter);
+#endif
 		}
 
-		#if IS_PINNACLE
-			MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
-		#endif
+#if IS_PINNACLE
+		MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
+#endif
 
-		// SavePackageHelper(Package, *Package->GetName());
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+		FMaterialUpdateContext MaterialUpdateContext(FMaterialUpdateContext::EOptions::Default & ~FMaterialUpdateContext::EOptions::RecreateRenderStates);
+
+		MaterialInstanceConstant->UpdateStaticPermutation(NewStaticParameterSet, &MaterialUpdateContext);
+		MaterialInstanceConstant->InitStaticPermutation();
+#endif
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
