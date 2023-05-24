@@ -156,8 +156,11 @@ public:
 	FFilePath MappingFilePath;
 
 	// High res textures
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch"))
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration|Handling Assets", meta=(EditCondition="bEnableLocalFetch"))
 	bool bUseContentBuilds;
+
+	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration|Handling Assets", meta=(EditCondition="bEnableLocalFetch"))
+	bool bDownloadExistingTextures;
 
 	// Main key for archives
 	UPROPERTY(Config, EditAnywhere, Category="Local Fetch Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Archive Key"))

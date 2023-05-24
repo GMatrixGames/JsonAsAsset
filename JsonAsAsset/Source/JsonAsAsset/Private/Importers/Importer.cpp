@@ -57,7 +57,12 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 	bool bEnableLocalFetch = Settings->bEnableLocalFetch;
 	FMessageLog MessageLogger = FMessageLog(FName("JsonAsAsset"));
 
-	if (bEnableLocalFetch && InObject == nullptr) {
+	if (bEnableLocalFetch && (
+		InObject == nullptr ||
+			Settings->bDownloadExistingTextures &&
+			Type == "Texture2D"
+		)
+	) {
 		const UObject* DefaultObject = T::StaticClass()->ClassDefaultObject;
 
 		if (DefaultObject != nullptr) {
