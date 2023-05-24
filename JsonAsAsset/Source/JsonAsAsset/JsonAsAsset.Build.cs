@@ -49,7 +49,8 @@ public class JsonAsAsset : ModuleRules
 				"InterchangePipelines",
 				"MessageLog",
 				"ToolWidgets",
-				"PluginUtils"
+				"PluginUtils",
+				"RHI"
 			}
 		);
 
