@@ -646,8 +646,7 @@ bool UMaterialImporter::ImportData() {
 
 		SavePackage();
 		Material->PostEditChange();
-	}
-	catch (const char* Exception) {
+	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
 	}

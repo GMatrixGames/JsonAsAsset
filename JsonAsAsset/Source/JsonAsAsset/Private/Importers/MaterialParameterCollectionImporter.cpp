@@ -42,7 +42,6 @@ bool UMaterialParameterCollectionImporter::ImportData() {
 			}
 		}
 
-		SavePackage();
 		if (!HandleAssetCreation(MaterialParameterCollection)) return false;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

@@ -57,33 +57,10 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 	DetailBuilder.EditCategory("Local Fetch", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("Local Fetch Encryption", FText::GetEmpty(), ECategoryPriority::Important);
 	IDetailCategoryBuilder& EncryptionCategory = DetailBuilder.EditCategory("Local Fetch Encryption", FText::GetEmpty(), ECategoryPriority::Important);
-		
 	DetailBuilder.EditCategory("Local Fetch Director", FText::GetEmpty(), ECategoryPriority::Important);
 
-	// keep for future use
-	//EncryptionCategory.AddCustomRow(LOCTEXT("UpgradeInfo", "Upgrade Info"), false)
-	//	.WholeRowWidget
-	//	[
-	//		SNew(SBorder)
-	//		.Padding(1)
-	//		[
-	//			SNew(SHorizontalBox)
-	//			+ SHorizontalBox::Slot()
-	//			.Padding(FMargin(10, 10, 10, 10))
-	//			.FillWidth(1.0f)
-	//			[
-	//				SNew(SRichTextBlock)
-	//				.Text(LOCTEXT("UpgradeInfoMessage", "<RichTextBlock.TextHighlight>NOTE:</> Please fill these out correct so the Local Fetch API can fully start without any problems."))
-	//				.TextStyle(FAppStyle::Get(), "MessageLog")
-	//				.DecoratorStyleSet(&FAppStyle::Get())
-	//				.AutoWrapText(true)
-	//			]
-	//		]
-	//	];
-
 	EncryptionCategory.AddCustomRow(LOCTEXT("EncryptionKeyGenerator", "EncryptionKeyGenerator"))
-		.ValueContent()
-		[
+		.ValueContent() [
 			SNew(SButton)
 			.Text(LOCTEXT("GenerateEncryptionKey", "[FORTNITE] Generate Encryption"))
 			.ToolTipText(LOCTEXT("GenerateEncryptionKey_Tooltip", "Generates encryption keys from a Fortnite API."))

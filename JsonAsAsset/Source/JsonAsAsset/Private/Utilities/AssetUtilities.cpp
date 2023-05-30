@@ -25,7 +25,7 @@
 
 UPackage* FAssetUtilities::CreateAssetPackage(const FString& FullPath) {
 	UPackage* Package = CreatePackage(*FullPath);
-	UPackage* _ = Package->GetOutermost();
+	UPackage* _ = Package->GetOutermost(); // ??
 	Package->FullyLoad();
 
 	return Package;
@@ -66,8 +66,7 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 			if (IPluginManager::Get().FindPlugin(PluginName) == nullptr)
 				CreatePlugin(PluginName);
 		}
-	}
-	else {
+	} else {
 		FString RootName; {
 			OutputPath.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 			RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
@@ -102,11 +101,9 @@ UObject* FAssetUtilities::GetSelectedAsset() {
 		const FText DialogText = FText::FromString(TEXT("A function to find a selected asset failed, please select a asset to go further."));
 		FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 
-		// None found, therefore we need to return nullptr
 		return nullptr;
 	}
 
-	// Return only the first selected asset
 	return SelectedAssets[0].GetAsset();
 }
 
@@ -195,7 +192,8 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	HttpRequest->SetVerb(TEXT("GET"));
 
 	const TSharedPtr<IHttpResponse> HttpResponse = FRemoteUtilities::ExecuteRequestSync(HttpRequest);
-	if (!HttpResponse.IsValid()) return false;
+	if (!HttpResponse.IsValid()) 
+		return false;
 
 	const TArray<uint8> Data = HttpResponse->GetContent();
 
@@ -209,7 +207,8 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	NewRequest->SetVerb(TEXT("GET"));
 
 	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
-	if (!NewResponse.IsValid()) return false;
+	if (!NewResponse.IsValid()) 
+		return false;
 
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
 	TSharedPtr<FJsonObject> JsonObject;
@@ -240,26 +239,31 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 		if (FinalJsonObject->GetStringField("Type") == "TextureRenderTarget2D")
 			Importer->ImportRenderTarget2D(Texture, FinalJsonObject->GetObjectField("Properties"));
 
-		// If it still wasn't imported
-		if (Texture == nullptr) return false;
+		if (Texture == nullptr)
+			return false;
 
 		FAssetRegistryModule::AssetCreated(Texture);
-		if (!Texture->MarkPackageDirty()) return false;
+
+		if (!Texture->MarkPackageDirty()) 
+			return false;
+
 		Package->SetDirtyFlag(true);
 		Texture->PostEditChange();
 		Texture->AddToRoot();
 
 		Package->FullyLoad();
 
-		FSavePackageArgs SaveArgs;
-		{
-			SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-			SaveArgs.SaveFlags = SAVE_NoError;
-		}
+		// Save texture
+		if (Settings->bSavePackages) {
+			FSavePackageArgs SaveArgs; {
+				SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+				SaveArgs.SaveFlags = SAVE_NoError;
+			}
 
-		const FString PackageName = Package->GetName();
-		const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
-		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
+			const FString PackageName = Package->GetName();
+			const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+			UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
+		}
 
 		OutTexture = Texture;
 	}
@@ -323,9 +327,8 @@ const TSharedPtr<FJsonObject> FAssetUtilities::API_RequestExports(const FString&
 
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
 	TSharedPtr<FJsonObject> JsonObject;
-	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
+	if (FJsonSerializer::Deserialize(JsonReader, JsonObject))
 		return JsonObject;
-	}
 
 	return TSharedPtr<FJsonObject>();
 }

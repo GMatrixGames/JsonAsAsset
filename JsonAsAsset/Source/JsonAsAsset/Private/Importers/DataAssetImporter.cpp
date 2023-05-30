@@ -11,7 +11,7 @@ bool UDataAssetImporter::ImportData() {
 		UPrimaryDataAsset* PrimaryDataAsset = NewObject<UPrimaryDataAsset>(Package, DataAssetClass, FName(FileName), RF_Public | RF_Standalone);
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, PrimaryDataAsset);
 		
-		HandleAssetCreation(PrimaryDataAsset);
+		if (!HandleAssetCreation(PrimaryDataAsset)) return false;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;

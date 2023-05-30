@@ -25,7 +25,6 @@
 
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
-
 #include "IMessageLogListing.h"
 
 #include "Dialogs/Dialogs.h"
@@ -228,9 +227,8 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 
 	// Dialog for a JSON File
 	TArray<FString> OutFileNames = OpenFileDialog("Open JSON file", "JSON Files|*.json");
-	if (OutFileNames.Num() == 0) {
+	if (OutFileNames.Num() == 0)
 		return;
-	}
 
 	for (FString& File : OutFileNames) {
 		// Clear Message Log
@@ -247,28 +245,24 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 void FJsonAsAssetModule::RegisterMenus() {
 	FToolMenuOwnerScoped OwnerScoped(this);
 
-	{
-		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
-		{
-			FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("JsonAsAsset");
-			{
-				FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitComboButton(
-					"JsonAsAsset",
-					FUIAction(
-						FExecuteAction(),
-						FCanExecuteAction(),
-						FGetActionCheckState()
-					),
-					FOnGetContent::CreateRaw(this, &FJsonAsAssetModule::CreateToolbarDropdown),
-					LOCTEXT("JsonAsAssetDisplayName", "JsonAsAsset"),
-					LOCTEXT("JsonAsAsset", "List of actions for JsonAsAsset"),
-					FSlateIcon(FJsonAsAssetStyle::Get().GetStyleSetName(), FName("JsonAsAsset.PluginAction"))
-				));
+	// Register JsonAsAsset toolbar dropdown button
+	UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
+	FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("JsonAsAsset");
 
-				Entry.SetCommandList(PluginCommands);
-			}
-		}
-	}
+	FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitComboButton(
+		"JsonAsAsset",
+		FUIAction(
+			FExecuteAction(),
+			FCanExecuteAction(),
+			FGetActionCheckState()
+		),
+		FOnGetContent::CreateRaw(this, &FJsonAsAssetModule::CreateToolbarDropdown),
+		LOCTEXT("JsonAsAssetDisplayName", "JsonAsAsset"),
+		LOCTEXT("JsonAsAsset", "List of actions for JsonAsAsset"),
+		FSlateIcon(FJsonAsAssetStyle::Get().GetStyleSetName(), FName("JsonAsAsset.PluginAction"))
+	));
+
+	Entry.SetCommandList(PluginCommands);
 }
 
 TArray<FString> FJsonAsAssetModule::OpenFileDialog(FString Title, FString Type) {
@@ -321,8 +315,7 @@ bool FJsonAsAssetModule::IsProcessRunning(const FString& ProcessName) {
 	return bIsRunning;
 }
 
-TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown()
-{
+TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("JsonAsAsset");
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
@@ -730,21 +723,16 @@ void SAboutJsonAsAsset::Construct(const FArguments& InArgs) {
 }
 
 TSharedRef<ITableRow> SAboutJsonAsAsset::MakeAboutTextItemWidget(TSharedRef<FLineDefinition> Item, const TSharedRef<STableViewBase>& OwnerTable) {
-	if (Item->Text.IsEmpty()) {
-		return
-			SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
+	if (Item->Text.IsEmpty())
+		return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 			.Style(&FAppStyle::Get().GetWidgetStyle<FTableRowStyle>("SimpleTableView.Row"))
-			.Padding(6.0f)
-			[
+			.Padding(6.0f) [
 				SNew(SSpacer)
 			];
-	}
-	else {
-		return
-			SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
+	else
+		return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 			.Style(&FAppStyle::Get().GetWidgetStyle<FTableRowStyle>("SimpleTableView.Row"))
-			.Padding(Item->Margin)
-			[
+			.Padding(Item->Margin) [
 				SNew(STextBlock)
 				.LineHeightPercentage(1.3f)
 				.AutoWrapText(true)
@@ -752,7 +740,6 @@ TSharedRef<ITableRow> SAboutJsonAsAsset::MakeAboutTextItemWidget(TSharedRef<FLin
 				.Font(FCoreStyle::GetDefaultFontStyle("Regular", Item->FontSize))
 				.Text(Item->Text)
 			];
-	}
 }
 
 FReply SAboutJsonAsAsset::OnFModelButtonClicked() {

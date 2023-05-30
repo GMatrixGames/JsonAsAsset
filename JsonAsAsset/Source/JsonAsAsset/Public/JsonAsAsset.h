@@ -10,10 +10,6 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
 
-struct ImportOptionsBase {
-	bool bImportWithPath;
-};
-
 class FToolBarBuilder;
 class FMenuBuilder;
 class ITableRow;

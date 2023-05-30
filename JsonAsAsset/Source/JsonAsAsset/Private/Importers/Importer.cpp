@@ -2,6 +2,7 @@
 
 #include "Importers/Importer.h"
 #include "CoreMinimal.h"
+
 #include "Settings/JsonAsAssetSettings.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
@@ -31,6 +32,8 @@
 #include "Importers/PhysicalMaterialImporter.h"
 #include "Importers/TextureImporter.h"
 #include "Importers/DataAssetImporter.h"
+// <---- Importers
+
 #include "Utilities/AssetUtilities.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
@@ -38,7 +41,6 @@
 #include "Misc/MessageDialog.h"
 #include "Misc/FileHelper.h"
 #include "Logging/MessageLog.h"
-
 #include "UObject/SavePackage.h"
 
 #define LOCTEXT_NAMESPACE "IImporter"
@@ -210,11 +212,9 @@ bool IImporter::HandleAssetCreation(UObject* Asset) const {
 
 void IImporter::SavePackage() {
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
 	Package->FullyLoad();
 
-	FSavePackageArgs SaveArgs;
-	{
+	FSavePackageArgs SaveArgs; {
 		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
 		SaveArgs.SaveFlags = SAVE_NoError;
 	}
@@ -289,6 +289,9 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 
 			if (Importer != nullptr && Importer->ImportData()) {
 				UE_LOG(LogJson, Log, TEXT("Successfully imported \"%s\" as \"%s\""), *Name, *Type);
+				
+				if (!(Type == "AnimSequence" || Type == "AnimMontage"))
+					Importer->SavePackage();
 
 				// Notification for asset
 				AppendNotification(
@@ -358,7 +361,8 @@ TArray<TSharedPtr<FJsonValue>> IImporter::FilterExportsByOuter(const FString& Ou
 	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
 		const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Value->AsObject());
 
-		if (FString ExOuter; ValueObject->TryGetStringField("Outer", ExOuter) && ExOuter == Outer) ReturnValue.Add(TSharedPtr(Value));
+		if (FString ExOuter; ValueObject->TryGetStringField("Outer", ExOuter) && ExOuter == Outer) 
+			ReturnValue.Add(TSharedPtr(Value));
 	}
 
 	return ReturnValue;
@@ -367,8 +371,9 @@ TArray<TSharedPtr<FJsonValue>> IImporter::FilterExportsByOuter(const FString& Ou
 TSharedPtr<FJsonValue> IImporter::GetExportByObjectPath(const TSharedPtr<FJsonObject>& Object) {
 	const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Object);
 
-	FString StringIndex;
-	ValueObject->GetStringField("ObjectPath").Split(".", nullptr, &StringIndex);
+	FString StringIndex; {
+		ValueObject->GetStringField("ObjectPath").Split(".", nullptr, &StringIndex);
+	}
 
 	return AllJsonObjects[FCString::Atod(*StringIndex)];
 }
