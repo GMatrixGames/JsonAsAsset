@@ -199,10 +199,6 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 #endif
 		}
 
-#if IS_PINNACLE
-		MaterialInstanceConstant->StaticParametersRuntime.StaticSwitchParameters = StaticSwitchParameters;
-#endif
-
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	FMaterialUpdateContext MaterialUpdateContext(FMaterialUpdateContext::EOptions::Default & ~FMaterialUpdateContext::EOptions::RecreateRenderStates);
 	
