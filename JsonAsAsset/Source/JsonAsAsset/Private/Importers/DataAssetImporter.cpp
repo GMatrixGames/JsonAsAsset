@@ -8,10 +8,10 @@ bool UDataAssetImporter::ImportData() {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 		GetObjectSerializer()->SetPackageForDeserialization(Package);
 
-		UPrimaryDataAsset* PrimaryDataAsset = NewObject<UPrimaryDataAsset>(Package, DataAssetClass, FName(FileName), RF_Public | RF_Standalone);
-		GetObjectSerializer()->DeserializeObjectProperties(Properties, PrimaryDataAsset);
+		UDataAsset* DataAsset = NewObject<UDataAsset>(Package, DataAssetClass, FName(FileName), RF_Public | RF_Standalone);
+		GetObjectSerializer()->DeserializeObjectProperties(Properties, DataAsset);
 		
-		if (!HandleAssetCreation(PrimaryDataAsset)) return false;
+		if (!HandleAssetCreation(DataAsset)) return false;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
