@@ -237,7 +237,7 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 		FString Name = DataObject->GetStringField("Name");
 
 		UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Type);
-		bool bDataAsset = Class->IsChildOf(UPrimaryDataAsset::StaticClass());
+		bool bDataAsset = Class->IsChildOf(UDataAsset::StaticClass());
 
 		if (CanImport(Type) || bDataAsset) {
 			// Convert from relative to full
