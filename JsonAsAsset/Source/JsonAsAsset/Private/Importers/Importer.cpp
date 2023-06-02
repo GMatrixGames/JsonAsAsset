@@ -37,6 +37,7 @@
 #include "Utilities/AssetUtilities.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
+#include "Importers/CurveTableImporter.h"
 #include "Styling/SlateIconFinder.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/FileHelper.h"
@@ -252,6 +253,7 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 				UPackage* LocalPackage = FAssetUtilities::CreateAssetPackage(Name, File, LocalOutermostPkg);
 
 				if (Type == "CurveFloat") Importer = new UCurveFloatImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else if (Type == "CurveTable") Importer = new UCurveTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "CurveVector") Importer = new UCurveVectorImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "CurveLinearColor") Importer = new UCurveLinearColorImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "CurveLinearColorAtlas") Importer = new UCurveLinearColorAtlasImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);

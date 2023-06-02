@@ -42,6 +42,7 @@ private:
 	UObjectSerializer* GObjectSerializer;
 
 	inline static TArray<FString> AcceptedTypes = {
+		"CurveTable",
 		"CurveFloat",
 		"CurveVector",
 		"CurveLinearColor",

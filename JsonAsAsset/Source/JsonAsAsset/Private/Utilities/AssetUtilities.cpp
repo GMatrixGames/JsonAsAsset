@@ -116,6 +116,7 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 		Type == "TextureRenderTarget2D" ||
 		Type == "MaterialParameterCollection" ||
 		Type == "CurveFloat" ||
+		Type == "CurveTable" ||
 		Type == "CurveVector" ||
 		Type == "CurveLinearColorAtlas" ||
 		Type == "CurveLinearColor" ||
