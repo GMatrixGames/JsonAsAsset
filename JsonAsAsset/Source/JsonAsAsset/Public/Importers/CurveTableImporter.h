@@ -3,6 +3,13 @@
 #pragma once
 
 #include "Importer.h"
+#include "Engine/CurveTable.h"
+
+class UCurveTableDerived : public UCurveTable {
+public:
+	void AddRow(FName Name, FRealCurve* Curve);
+	void ChangeTableMode(ECurveTableMode Mode);
+};
 
 class UCurveTableImporter : public IImporter {
 public:
