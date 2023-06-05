@@ -115,6 +115,9 @@ That is the basic setup done! However, if you want to import materials or linear
 > Local Fetch is a local API to assist JsonAsAsset by acting as a "FModel", and it supplies textures and asset data to import at runtime. Especially if you're wanting to import materials. It uses CUE4Parse just like FModel.
 <img align="right" width="461.5" height="164" src=https://github.com/Tectors/JsonAsAsset/assets/73559984/cddf0ea7-2499-4b39-a7af-e6f27ec5148e>
 
+#### **NOTE:** Please make sure you have the plugin in your project's directory and not in the Engine.
+> The reason being is that the Local Fetch API won't be able to find your config file (settings). 
+
 Before we can launch up Local Fetch and get started on automated references. You need to put in all the information about your game first.
 
 This is required as CUE4Parse needs this information to setup file providers and start reading the game files. A lot of these settings are the same as FModel, however make sure you always manually selecting a file/directory using UE's file selecter.
