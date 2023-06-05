@@ -12,6 +12,7 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "Interfaces/IHttpResponse.h"
+#include "Misc/FileHelper.h"
 
 #include "Dom/JsonObject.h"
 #include "HttpModule.h"
@@ -53,7 +54,27 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 	// Reference to settings
 	TWeakObjectPtr<UJsonAsAssetSettings> Settings = Cast<UJsonAsAssetSettings>(ObjectsBeingCustomized[0].Get());
 
-	DetailBuilder.EditCategory("Asset", FText::GetEmpty(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& AssetCategory = DetailBuilder.EditCategory("Asset", FText::GetEmpty(), ECategoryPriority::Important);
+	AssetCategory.AddCustomRow(LOCTEXT("NOTICE", "Notice"), false)
+	.WholeRowWidget
+	[
+		SNew(SBorder)
+		.Padding(1)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(FMargin(10, 10, 10, 10))
+			.FillWidth(1.0f)
+			[
+				SNew(SRichTextBlock)
+				.Text(LOCTEXT("NOTICEMessage", "<RichTextBlock.TextHighlight>NOTE:</> Please make sure you are using Unreal Engine's file/directory selector, if not, please replace the character \"\\\" with \"/\" so issues do not happen.\n> The character casuses a issue on parsing the path correctly, so it may make shadow folders in your browser and assets not importing correctly."))
+				.TextStyle(FAppStyle::Get(), "MessageLog")
+				.DecoratorStyleSet(&FAppStyle::Get())
+				.AutoWrapText(true)
+			]
+		]
+	];
+
 	DetailBuilder.EditCategory("Local Fetch", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("Local Fetch Encryption", FText::GetEmpty(), ECategoryPriority::Important);
 	IDetailCategoryBuilder& EncryptionCategory = DetailBuilder.EditCategory("Local Fetch Encryption", FText::GetEmpty(), ECategoryPriority::Important);
@@ -77,7 +98,7 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 
 				PluginSettings->DynamicKeys.Empty();
 
-				const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+				TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
 				if (TSharedPtr<FJsonObject> JsonObject; FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
 					PluginSettings->ArchiveKey = JsonObject->GetStringField("mainKey");
 
@@ -94,6 +115,53 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 				PluginSettings->SaveConfig();
 				PluginSettings->UpdateDefaultConfigFile();
 				PluginSettings->LoadConfig();
+
+				FString LocalExportDirectory = PluginSettings->ExportDirectory.Path;
+
+				if (LocalExportDirectory != "" && LocalExportDirectory.Contains("/")) {
+					FString DataFolder; {
+						if (LocalExportDirectory.EndsWith("/"))
+							LocalExportDirectory.Split("/", &DataFolder, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+						else DataFolder = LocalExportDirectory;
+
+						DataFolder.Split("/", &DataFolder, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd); {
+							DataFolder = DataFolder + "/.data";
+						}
+					}
+					
+					const TSharedRef<IHttpRequest> MappingsURLRequest = HttpModule->CreateRequest();
+					MappingsURLRequest->SetURL("https://fortnitecentral.genxgames.gg/api/v1/mappings");
+					MappingsURLRequest->SetVerb(TEXT("GET"));
+
+					const TSharedPtr<IHttpResponse> MappingsURLResponse = FRemoteUtilities::ExecuteRequestSync(MappingsURLRequest);
+					if (!MappingsURLResponse.IsValid()) return FReply::Handled();
+
+					JsonReader = TJsonReaderFactory<>::Create(MappingsURLResponse->GetContentAsString());
+					if (TArray<TSharedPtr<FJsonValue>> JsonArray; FJsonSerializer::Deserialize(JsonReader, JsonArray)) {
+						TSharedPtr<FJsonObject> MappingsObject = JsonArray[1]->AsObject();
+
+						FString FileName = MappingsObject->GetStringField("fileName");
+						FString URL = MappingsObject->GetStringField("url");
+
+						auto OnRequestComplete = [DataFolder, FileName](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful) {
+							if (bWasSuccessful) {
+								FFileHelper::SaveArrayToFile(Response->GetContent(), *(DataFolder + "/" + FileName));
+
+								UJsonAsAssetSettings* PluginSettings = GetMutableDefault<UJsonAsAssetSettings>();
+								PluginSettings->MappingFilePath.FilePath = DataFolder + "/" + FileName;
+								PluginSettings->SaveConfig();
+									PluginSettings->UpdateDefaultConfigFile();
+									PluginSettings->LoadConfig();
+							}
+						};
+
+						TSharedRef<IHttpRequest, ESPMode::ThreadSafe> MappingsRequest = FHttpModule::Get().CreateRequest();
+						MappingsRequest->SetVerb("GET");
+						MappingsRequest->SetURL(URL);
+						MappingsRequest->OnProcessRequestComplete().BindLambda(OnRequestComplete);
+						MappingsRequest->ProcessRequest();
+					}
+				}
 
 				return FReply::Handled();
 			}).IsEnabled_Lambda([this, Settings]() {
