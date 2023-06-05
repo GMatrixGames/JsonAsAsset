@@ -239,12 +239,18 @@ UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Pa
 	const UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Type.ToString());
 
 	if (!Class) {
-		// Is it InterchangeImport
-		const FString NewPath = FLinkerLoad::FindNewPathNameForClass("/Script/InterchangeImport." + Type.ToString(), false);
-		if (!NewPath.IsEmpty())
-		{
-			Class = FindObject<UClass>(nullptr, *NewPath);
+		TArray<FString> Redirects = TArray{
+			FLinkerLoad::FindNewPathNameForClass("/Script/InterchangeImport." + Type.ToString(), false),
+			FLinkerLoad::FindNewPathNameForClass("/Script/Landscape." + Type.ToString(), false)
+		};
+		
+		for (FString RedirectedPath : Redirects) {
+			if (!RedirectedPath.IsEmpty() && !Class)
+				Class = FindObject<UClass>(nullptr, *RedirectedPath);
 		}
+
+		if (!Class) 
+			Class = FindObject<UClass>(ANY_PACKAGE, *Type.ToString().Replace(TEXT("MaterialExpressionPhysicalMaterialOutput"), TEXT("MaterialExpressionLandscapePhysicalMaterialOutput")));
 	}
 
 	return NewObject<UMaterialExpression>
