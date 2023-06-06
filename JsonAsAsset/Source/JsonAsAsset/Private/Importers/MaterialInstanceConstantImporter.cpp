@@ -46,14 +46,23 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			FScalarParameterValue Parameter;
 			Parameter.ParameterValue = Scalar->GetNumberField("ParameterValue");
 			Parameter.ExpressionGUID = FGuid(Scalar->GetStringField("ExpressionGUID"));
+			
+			if (const TSharedPtr<FJsonObject>* ParameterInfoPtr; Scalar->TryGetObjectField("ParameterInfo", ParameterInfoPtr)) {
+				TSharedPtr<FJsonObject> ParameterInfoJson = Scalar->GetObjectField("ParameterInfo");
+				FMaterialParameterInfo ParameterInfo;
+				ParameterInfo.Index = ParameterInfoJson->GetIntegerField("Index");
+				ParameterInfo.Name = FName(ParameterInfoJson->GetStringField("Name"));
+				ParameterInfo.Association = GlobalParameter;
 
-			TSharedPtr<FJsonObject> ParameterInfoJson = Scalar->GetObjectField("ParameterInfo");
-			FMaterialParameterInfo ParameterInfo;
-			ParameterInfo.Index = ParameterInfoJson->GetIntegerField("Index");
-			ParameterInfo.Name = FName(ParameterInfoJson->GetStringField("Name"));
-			ParameterInfo.Association = GlobalParameter;
+				Parameter.ParameterInfo = ParameterInfo;
+			} else {
+				FMaterialParameterInfo ParameterInfo;
+				ParameterInfo.Index = -1;
+				ParameterInfo.Name = FName(Scalar->GetStringField("ParameterName"));
+				ParameterInfo.Association = GlobalParameter;
 
-			Parameter.ParameterInfo = ParameterInfo;
+				Parameter.ParameterInfo = ParameterInfo;
+			}
 
 			ScalarParameterValues.Add(Parameter);
 		}
@@ -70,13 +79,22 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 			Parameter.ParameterValue = FMathUtilities::ObjectToLinearColor(Vector->GetObjectField("ParameterValue").Get());
 
-			TSharedPtr<FJsonObject> ParameterInfoJson = Vector->GetObjectField("ParameterInfo");
-			FMaterialParameterInfo ParameterInfo;
-			ParameterInfo.Index = ParameterInfoJson->GetIntegerField("Index");
-			ParameterInfo.Name = FName(ParameterInfoJson->GetStringField("Name"));
-			ParameterInfo.Association = GlobalParameter;
+			if (const TSharedPtr<FJsonObject>* ParameterInfoPtr; Vector->TryGetObjectField("ParameterInfo", ParameterInfoPtr)) {
+				TSharedPtr<FJsonObject> ParameterInfoJson = Vector->GetObjectField("ParameterInfo");
+				FMaterialParameterInfo ParameterInfo;
+				ParameterInfo.Index = ParameterInfoJson->GetIntegerField("Index");
+				ParameterInfo.Name = FName(ParameterInfoJson->GetStringField("Name"));
+				ParameterInfo.Association = GlobalParameter;
 
-			Parameter.ParameterInfo = ParameterInfo;
+				Parameter.ParameterInfo = ParameterInfo;
+			} else {
+				FMaterialParameterInfo ParameterInfo;
+				ParameterInfo.Index = -1;
+				ParameterInfo.Name = FName(Vector->GetStringField("ParameterName"));
+				ParameterInfo.Association = GlobalParameter;
+
+				Parameter.ParameterInfo = ParameterInfo;
+			}
 
 			VectorParameterValues.Add(Parameter);
 		}
@@ -96,13 +114,22 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 				LoadObject(TexturePtr, Parameter.ParameterValue);
 			}
 
-			TSharedPtr<FJsonObject> ParameterInfoJson = Texture->GetObjectField("ParameterInfo");
-			FMaterialParameterInfo ParameterInfo;
-			ParameterInfo.Index = ParameterInfoJson->GetIntegerField("Index");
-			ParameterInfo.Name = FName(ParameterInfoJson->GetStringField("Name"));
-			ParameterInfo.Association = GlobalParameter;
+			if (const TSharedPtr<FJsonObject>* ParameterInfoPtr; Texture->TryGetObjectField("ParameterInfo", ParameterInfoPtr)) {
+				TSharedPtr<FJsonObject> ParameterInfoJson = Texture->GetObjectField("ParameterInfo");
+				FMaterialParameterInfo ParameterInfo;
+				ParameterInfo.Index = ParameterInfoJson->GetIntegerField("Index");
+				ParameterInfo.Name = FName(ParameterInfoJson->GetStringField("Name"));
+				ParameterInfo.Association = GlobalParameter;
 
-			Parameter.ParameterInfo = ParameterInfo;
+				Parameter.ParameterInfo = ParameterInfo;
+			} else {
+				FMaterialParameterInfo ParameterInfo;
+				ParameterInfo.Index = -1;
+				ParameterInfo.Name = FName(Texture->GetStringField("ParameterName"));
+				ParameterInfo.Association = GlobalParameter;
+
+				Parameter.ParameterInfo = ParameterInfo;
+			}
 
 			TextureParameterValues.Add(Parameter);
 		}
