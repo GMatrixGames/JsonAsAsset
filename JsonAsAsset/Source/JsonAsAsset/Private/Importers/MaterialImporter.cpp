@@ -271,7 +271,7 @@ bool UMaterialImporter::ImportData() {
 		PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
 		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);
 
-		if (!Settings->bExposePins) {
+		if (!Settings->bSkipResultNodeConnection) {
 			const TSharedPtr<FJsonObject>* APtr = nullptr;
 			if (EdProps->TryGetObjectField("MaterialAttributes", APtr) && APtr != nullptr) {
 				FJsonObject* AObject = APtr->Get();

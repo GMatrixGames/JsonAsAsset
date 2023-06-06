@@ -94,10 +94,10 @@ struct FParseKey {
 	TArray<uint8> Key;
 
 	// Must start with 0x
-	UPROPERTY(Config, EditAnywhere, Category = "Key")
+	UPROPERTY(EditAnywhere, Config, Category = "Key")
 	FString Value;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Key")
+	UPROPERTY(EditAnywhere, Config, Category = "Key")
 	FString Guid;
 };
 
@@ -120,64 +120,93 @@ public:
 	virtual FText GetSectionText() const override;
 #endif
 
-	// FModel Exports Folder
-	// NOTE: Please use the file selector, do not manually paste it 
-	UPROPERTY(Config, EditAnywhere, Category="Asset|Configuration")
-	FDirectoryPath ExportDirectory;
+	/**
+	* Export directory for FModel
+	*	  (Output/Exports)
+	* 
+	* NOTE: Please use the file selector, do not manually paste it
+	*		or replace "\" with "/"
+	*/
+	UPROPERTY(EditAnywhere, Config, Category="Behavior")
+		FDirectoryPath ExportDirectory;
 
-	// Saves packages when imported
-	UPROPERTY(Config, EditAnywhere, Category="Asset|Configuration")
-	bool bSavePackages;
+	/**
+	* When importing/downloading any asset type using JsonAsAsset,
+	* save the package (asset) after finalization.
+	* 
+	* NOTE: This is recommended to be turned off, as this may override
+	*		your own assets, causing irreversible changes. 
+	*/
+	UPROPERTY(EditAnywhere, Config, Category = "Behavior")
+		bool bAllowPackageSaving;
 
-	// Fixes errors with textures by not connecting nodes
-	UPROPERTY(Config, EditAnywhere, Category="Asset|Configuration")
-	bool bExposePins;
+	/**
+	* When importing/downloading the asset type Material, a error may occur
+	* | Material expression called Compiler->TextureParameter() without implementing UMaterialExpression::GetReferencedTexture properly
+	*
+	* To counter that error, we skip connecting the inputs to the main result
+	* node in the material. If you do use this, import a material, save everything,
+	* restart, and re-import the material without any problems with this turned off/on.
+	*			  (or you could just connect them yourself)
+	*/
+	UPROPERTY(EditAnywhere, Config, Category = "Behavior|Material")
+		bool bSkipResultNodeConnection;
 
-	// Fetches assets from a local service and automatically
-	// imports them into your project, without having them locally
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch")
-	bool bEnableLocalFetch;
+	/**
+	* Fetches assets from a local service and automatically imports
+	* them into your project, without having them locally
+	* 
+	* NOTE: Please set all the settings correctly to properly start
+	*		Local Fetch, read more at the README.md file.
+	*/
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch")
+		bool bEnableLocalFetch;
 
-	// Pak files location
-	// NOTE: Please use the file selector, do not manually paste it 
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch"))
-	FDirectoryPath ArchiveDirectory;
+	/**
+	* Paks folder location where all the assets are
+	* (Content/Paks)
+	*
+	* NOTE: Please use the file selector, do not manually paste it
+	*		or replace "\" with "/"
+	*/
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch"))
+		FDirectoryPath ArchiveDirectory;
 
 	// UE Version for the Unreal Engine Game (same as FModel's UE Verisons property)
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch", GetOptions="GetParseVersions"))
-	FString UnrealVersion;
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch", GetOptions="GetParseVersions"))
+		FString UnrealVersion;
 
 	UFUNCTION(CallInEditor)
-	TArray<FString> GetParseVersions();
+		TArray<FString> GetParseVersions();
 
 	// Mappings file
 	// NOTE: Please use the file selector, do not manually paste it 
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch", FilePathFilter="usmap", RelativeToGameDir))
-	FFilePath MappingFilePath;
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch", FilePathFilter="usmap", RelativeToGameDir))
+		FFilePath MappingFilePath;
 
 	// High res textures
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration|Handling Assets", meta=(EditCondition="bEnableLocalFetch"))
-	bool bUseContentBuilds;
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch Encryption|Behavior", meta=(EditCondition="bEnableLocalFetch"))
+		bool bUseContentBuilds;
 
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch|Configuration|Handling Assets", meta=(EditCondition="bEnableLocalFetch"))
-	bool bDownloadExistingTextures;
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch Encryption|Behavior", meta=(EditCondition="bEnableLocalFetch"))
+		bool bDownloadExistingTextures;
 
 	// Main key for archives
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Archive Key"))
-	FString ArchiveKey;
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Archive Key"))
+		FString ArchiveKey;
 
 	// AES Keys
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Dynamic Keys"))
-	TArray<FParseKey> DynamicKeys;
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Dynamic Keys"))
+		TArray<FParseKey> DynamicKeys;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Local Fetch Director", meta = (EditConditionHides, EditCondition = "bEnableLocalFetch"))
-	bool bHideConsole;
+	UPROPERTY(EditAnywhere, Config, Category = "Local Fetch Director", meta = (EditConditionHides, EditCondition = "bEnableLocalFetch"))
+		bool bHideConsole;
 
 	// Enables the option to change the api's URL
-	UPROPERTY(Config, EditAnywhere, Category = "Local Fetch Director", meta = (EditConditionHides, EditCondition = "bEnableLocalFetch"))
-	bool bChangeURL;
+	UPROPERTY(EditAnywhere, Config, Category = "Local Fetch Director", meta = (EditConditionHides, EditCondition = "bEnableLocalFetch"))
+		bool bChangeURL;
 
 	// "localhost" is default
-	UPROPERTY(Config, EditAnywhere, Category="Local Fetch Director|REST API", meta=(EditConditionHides, EditCondition="bChangeURL && bEnableLocalFetch", DisplayName = "Local URL"))
-	FString Url = "http://localhost:1500";
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch Director|REST API", meta=(EditConditionHides, EditCondition="bChangeURL && bEnableLocalFetch", DisplayName = "Local URL"))
+		FString Url = "http://localhost:1500";
 };

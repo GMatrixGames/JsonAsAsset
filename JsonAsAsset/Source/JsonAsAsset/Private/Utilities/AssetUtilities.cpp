@@ -155,7 +155,7 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 			return true;
 		} else {
 			const TSharedPtr<FJsonObject> Response = API_RequestExports(Path);
-			if (Response == nullptr) return true;
+			if (Response == nullptr || Path.IsEmpty()) return true;
 
 			TSharedPtr<FJsonObject> JsonObject = Response->GetArrayField("jsonOutput")[0]->AsObject();
 			FString PackagePath;
@@ -184,6 +184,8 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 }
 
 bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutTexture) {
+	if (Path.IsEmpty()) return false;
+
 	FHttpModule* HttpModule = &FHttpModule::Get();
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
@@ -255,7 +257,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 		Package->FullyLoad();
 
 		// Save texture
-		if (Settings->bSavePackages) {
+		if (Settings->bAllowPackageSaving) {
 			FSavePackageArgs SaveArgs; {
 				SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
 				SaveArgs.SaveFlags = SAVE_NoError;

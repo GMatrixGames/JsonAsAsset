@@ -22,8 +22,6 @@
 UJsonAsAssetSettings::UJsonAsAssetSettings() {
 	CategoryName = TEXT("Plugins");
 	SectionName = TEXT("JsonAsAsset");
-
-	bSavePackages = true;
 }
 
 #if WITH_EDITOR
@@ -54,7 +52,7 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 	// Reference to settings
 	TWeakObjectPtr<UJsonAsAssetSettings> Settings = Cast<UJsonAsAssetSettings>(ObjectsBeingCustomized[0].Get());
 
-	IDetailCategoryBuilder& AssetCategory = DetailBuilder.EditCategory("Asset", FText::GetEmpty(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& AssetCategory = DetailBuilder.EditCategory("Behavior", FText::GetEmpty(), ECategoryPriority::Important);
 	AssetCategory.AddCustomRow(LOCTEXT("NOTICE", "Notice"), false)
 	.WholeRowWidget
 	[

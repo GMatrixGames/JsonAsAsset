@@ -115,6 +115,10 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	PackageIndex->Get()->GetStringField("ObjectName").Split("'", &Type, &Name);
 	FString Path;
 	PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
+
+	Path = Path.Replace(TEXT("FortniteGame/Content"), TEXT("/Game"));
+	Path = Path.Replace(TEXT("Engine/Content"), TEXT("/Engine"));
+
 	Name = Name.Replace(TEXT("'"), TEXT(""));
 
 #pragma warning( push )
@@ -223,7 +227,7 @@ void IImporter::SavePackage() {
 	const FString PackageName = Package->GetName();
 	const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
 
-	if (Settings->bSavePackages)
+	if (Settings->bAllowPackageSaving)
 		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
 }
 
