@@ -74,7 +74,7 @@ private:
 
 		// separator
 
-		"SoundCue",
+		// "SoundCue", // TBD
 		"ReverbEffect",
 		"SoundAttenuation",
 		"SoundConcurrency",
