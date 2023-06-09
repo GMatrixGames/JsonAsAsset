@@ -231,6 +231,8 @@ namespace JsonAsAssetAPI.Controllers
         [HttpGet("/api/v1/export")]
         public ActionResult Get(bool raw, string path)
         {
+            var type = Request.Headers.ContentType;
+
             // Try to load object, if failed, return message
             try
             {
@@ -243,6 +245,10 @@ namespace JsonAsAssetAPI.Controllers
                     {
                         case UTexture2D texture:
                             UTexture2D TextureObject = (UTexture2D)Provider.LoadObject(path);
+
+                            // .bin support
+                            if (type == "application/octet-stream" && TextureObject.Mips.FirstOrDefault()?.Data.Data is { } mipData)
+                                return File(mipData, type);
 
                             // Texture data
                             SKBitmap TextureData = TextureObject.Decode();
