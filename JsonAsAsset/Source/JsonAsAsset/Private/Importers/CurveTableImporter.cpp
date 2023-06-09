@@ -25,15 +25,67 @@ bool UCurveTableImporter::ImportData() {
 			const TSharedPtr<FJsonObject> CurveData = Pair.Value->AsObject();
 
 			// Curve structure (either simple or rich)
-			UScriptStruct* InStruct = CurveTableMode == ECurveTableMode::SimpleCurves ?
-				FSimpleCurve::StaticStruct()
-				: FRichCurve::StaticStruct();
+			FRealCurve RealCurve;
 
-			TSharedPtr<FStructOnScope> Struct = MakeShareable(new FStructOnScope(InStruct));
-			PropertySerializer->DeserializeStruct(InStruct, CurveData.ToSharedRef(), Struct->GetStructMemory());
+			if (CurveTableMode == ECurveTableMode::RichCurves) {
+				FRichCurve& NewRichCurve = CurveTable->AddRichCurve(FName(*Pair.Key)); {
+					RealCurve = NewRichCurve;
+				}
 
-			// Add Row using Derived Reference
-			DerivedCurveTable->AddRow(FName(*Pair.Key), reinterpret_cast<FRealCurve*>(&Struct));
+				if (const TArray<TSharedPtr<FJsonValue>>* KeysPtr; CurveData->TryGetArrayField("Keys", KeysPtr))
+					for (const TSharedPtr<FJsonValue> KeyPtr : *KeysPtr) {
+						TSharedPtr<FJsonObject> Key = KeyPtr->AsObject(); {
+							NewRichCurve.AddKey(Key->GetNumberField("Time"), Key->GetNumberField("Value"));
+							FRichCurveKey RichKey = NewRichCurve.Keys.Last();
+
+							RichKey.InterpMode =
+								static_cast<ERichCurveInterpMode>(
+									StaticEnum<ERichCurveInterpMode>()->GetValueByNameString(Key->GetStringField("InterpMode"))
+								);
+							RichKey.TangentMode =
+								static_cast<ERichCurveTangentMode>(
+									StaticEnum<ERichCurveTangentMode>()->GetValueByNameString(Key->GetStringField("TangentMode"))
+								);
+							RichKey.TangentWeightMode =
+								static_cast<ERichCurveTangentWeightMode>(
+									StaticEnum<ERichCurveTangentWeightMode>()->GetValueByNameString(Key->GetStringField("TangentWeightMode"))
+								);
+
+							RichKey.ArriveTangent = Key->GetNumberField("ArriveTangent");
+							RichKey.ArriveTangentWeight = Key->GetNumberField("ArriveTangentWeight");
+							RichKey.LeaveTangent = Key->GetNumberField("LeaveTangent");
+							RichKey.LeaveTangentWeight = Key->GetNumberField("LeaveTangentWeight");
+						}
+					}
+			} else {
+				FSimpleCurve& NewSimpleCurve = CurveTable->AddSimpleCurve(FName(*Pair.Key)); {
+					RealCurve = NewSimpleCurve;
+				}
+
+				// Method of Interpolation
+				NewSimpleCurve.InterpMode =
+					static_cast<ERichCurveInterpMode>(
+						StaticEnum<ERichCurveInterpMode>()->GetValueByNameString(CurveData->GetStringField("InterpMode"))
+					);
+
+				if (const TArray<TSharedPtr<FJsonValue>>* KeysPtr; CurveData->TryGetArrayField("Keys", KeysPtr))
+					for (const TSharedPtr<FJsonValue> KeyPtr : *KeysPtr) {
+						TSharedPtr<FJsonObject> Key = KeyPtr->AsObject(); {
+							NewSimpleCurve.AddKey(Key->GetNumberField("Time"), Key->GetNumberField("Value"));
+						}
+					}
+			}
+
+			// Inherited data from FRealCurve
+			RealCurve.SetDefaultValue(CurveData->GetNumberField("DefaultValue"));
+			RealCurve.PreInfinityExtrap = 
+				static_cast<ERichCurveExtrapolation>(
+					StaticEnum<ERichCurveExtrapolation>()->GetValueByNameString(CurveData->GetStringField("PreInfinityExtrap"))
+				);
+			RealCurve.PostInfinityExtrap =
+				static_cast<ERichCurveExtrapolation>(
+					StaticEnum<ERichCurveExtrapolation>()->GetValueByNameString(CurveData->GetStringField("PostInfinityExtrap"))
+				);
 
 			// Update Curve Table
 			CurveTable->OnCurveTableChanged().Broadcast();

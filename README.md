@@ -47,6 +47,7 @@ JsonAsAsset (or sometimes refered as *`JAA`*) is a plugin to create assets from 
      
 ###### Curve Asset Types
  - CurveFloat
+ - CurveTable
  - CurveVector
  - CurveLinearColor
  - CurveLinearColorAtlas
