@@ -136,7 +136,14 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 
 					JsonReader = TJsonReaderFactory<>::Create(MappingsURLResponse->GetContentAsString());
 					if (TArray<TSharedPtr<FJsonValue>> JsonArray; FJsonSerializer::Deserialize(JsonReader, JsonArray)) {
-						TSharedPtr<FJsonObject> MappingsObject = JsonArray[1]->AsObject();
+						TSharedPtr<FJsonValue> Value; {
+							if (JsonArray.IsValidIndex(1))
+								Value = JsonArray[1];
+							else Value = JsonArray[0];
+						}
+
+						if (Value == nullptr) return FReply::Handled();
+						TSharedPtr<FJsonObject> MappingsObject = Value->AsObject();
 
 						FString FileName = MappingsObject->GetStringField("fileName");
 						FString URL = MappingsObject->GetStringField("url");
