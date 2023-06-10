@@ -243,11 +243,11 @@ namespace JsonAsAssetAPI.Controllers
                 {
                     switch (LocalObject)
                     {
-                        case UTexture2D texture:
-                            UTexture2D TextureObject = (UTexture2D)Provider.LoadObject(path);
+                        case UTexture texture:
+                            UTexture TextureObject = (UTexture)Provider.LoadObject(path);
 
                             // .bin support
-                            if (type == "application/octet-stream" && TextureObject.Mips.FirstOrDefault()?.Data.Data is { } mipData)
+                            if (type == "application/octet-stream" && TextureObject.GetFirstMip().BulkData.Data is { } mipData)
                                 return File(mipData, type);
 
                             // Texture data
