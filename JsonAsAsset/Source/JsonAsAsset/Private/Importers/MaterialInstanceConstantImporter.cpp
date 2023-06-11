@@ -140,7 +140,9 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 		TArray<TSharedPtr<FJsonValue>> Local_StaticComponentMaskParametersObjects;
 		const TSharedPtr<FJsonObject>* StaticParams;
 
-		if (EditorOnlyData.Num() > 0) {
+		if (Properties->TryGetObjectField("StaticParametersRuntime", StaticParams)) {
+			Local_StaticParameterObjects = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
+		} else if (EditorOnlyData.Num() > 0) {
 			for (TSharedPtr<FJsonObject> Ed : EditorOnlyData) {
 				const TSharedPtr<FJsonObject> Props = Ed->GetObjectField("Properties");
 
@@ -155,8 +157,6 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 				}
 			}
 		} else if (Properties->TryGetObjectField("StaticParameters", StaticParams)) {
-			Local_StaticParameterObjects = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
-		} else if (Properties->TryGetObjectField("StaticParametersRuntime", StaticParams)) {
 			Local_StaticParameterObjects = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
 		}
 
