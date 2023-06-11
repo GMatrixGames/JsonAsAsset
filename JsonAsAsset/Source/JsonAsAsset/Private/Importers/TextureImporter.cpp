@@ -32,46 +32,50 @@ bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, const TArray<uin
 }
 
 bool UTextureImporter::ImportTextureCube(UTexture*& OutTextureCube, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
-	// create the cube texture
 	UTextureCube* TextureCube = NewObject<UTextureCube>(Package, UTextureCube::StaticClass(), *FileName, RF_Public | RF_Standalone);
-
-	const uint8* ImageData = Data.GetData();
-
-	ImportTexture_Data(TextureCube, Properties->GetObjectField("Properties"));
 
 	float InSizeX = Properties->GetNumberField("SizeX");
 	float InSizeY = Properties->GetNumberField("SizeY");
 
-	EPixelFormat InFormat = static_cast<EPixelFormat>(StaticEnum<EPixelFormat>()->GetValueByNameString(Properties->GetStringField("PixelFormat")));
+	TextureCube->Source.Init(InSizeX, InSizeY, 6, 1, ETextureSourceFormat::TSF_BGRA8);
 
-	TextureCube->SetPlatformData(new FTexturePlatformData());
-	TextureCube->GetPlatformData()->SizeX = InSizeX;
-	TextureCube->GetPlatformData()->SizeY = InSizeY;
-
-	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-	const int64 Length = *ImageData + Data.Num();
-
-	TSharedPtr<IImageWrapper> HdrImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::HDR);
-	if (HdrImageWrapper->SetCompressed(ImageData, Length)) {
-		TArray64<uint8> UnCompressedData;
-		if (HdrImageWrapper->GetRaw(ERGBFormat::BGRE, 8, UnCompressedData)) {
-			if (TextureCube) {
-				TextureCube->Source.Init(
-					HdrImageWrapper->GetWidth(),
-					HdrImageWrapper->GetHeight(),
-					/*NumSlices=*/ 1,
-					/*NumMips=*/ 1,
-					TSF_BGRE8,
-					UnCompressedData.GetData()
-				);
-
-				TextureCube->CompressionSettings = TC_HDR;
-				TextureCube->SRGB = false;
-
-				UE_LOG(LogEditorFactories, Display, TEXT("HDR Image imported as LongLat cube map."));
+	int32 MipSize = CalculateImageBytes(InSizeX, InSizeY, 0, ETextureSourceFormat::TSF_BGRA8);
+	uint8* SliceData = TextureCube->Source.LockMip(0);
+	/*switch (ETextureSourceFormat::TSF_BGRA8)
+	{
+		case TSF_BGRA8:
+		{
+			TArray<FColor> OutputBuffer;
+			for (int32 SliceIndex = 0; SliceIndex < 6; SliceIndex++)
+			{
+				if (CubeResource->ReadPixels(OutputBuffer, FReadSurfaceDataFlags(RCM_UNorm, (ECubeFace)SliceIndex)))
+				{
+					FMemory::Memcpy((FColor*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetData(), MipSize);
+				}
 			}
 		}
-	}
+		break;
+		case TSF_RGBA16F:
+		{
+			TArray<FFloat16Color> OutputBuffer;
+			for (int32 SliceIndex = 0; SliceIndex < 6; SliceIndex++)
+			{
+				if (CubeResource->ReadPixels(OutputBuffer, FReadSurfaceDataFlags(RCM_UNorm, (ECubeFace)SliceIndex)))
+				{
+					FMemory::Memcpy((FFloat16Color*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetData(), MipSize);
+				}
+			}
+		}
+		break;
+	}*/
+
+	TextureCube->Source.UnlockMip(0);
+	TextureCube->SRGB = false;
+	// If HDR source image then choose HDR compression settings..
+	TextureCube->CompressionSettings = ETextureSourceFormat::TSF_BGRA8 == TSF_RGBA16F ? TextureCompressionSettings::TC_HDR : TextureCompressionSettings::TC_Default;
+	// Default to no mip generation for cube render target captures.
+	TextureCube->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
+	TextureCube->PostEditChange();
 
 	if (TextureCube) {
 		OutTextureCube = TextureCube;

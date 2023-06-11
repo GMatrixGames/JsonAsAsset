@@ -184,92 +184,86 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 }
 
 bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutTexture) {
-	if (Path.IsEmpty()) return false;
+	if (Path.IsEmpty()) 
+		return false;
 
-	FHttpModule* HttpModule = &FHttpModule::Get();
+	TSharedPtr<FJsonObject> JsonObject = API_RequestExports(Path);
+	if (JsonObject == nullptr)
+		return false;
+
+	TArray<TSharedPtr<FJsonValue>> Response = JsonObject->GetArrayField("jsonOutput");
+	if (Response.IsEmpty())
+		return false;
+
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+	TSharedPtr<FJsonObject> JsonExport = Response[0]->AsObject();
+	FString Type = JsonExport->GetStringField("Type");
+	UTexture* Texture = nullptr;
+
+	// --------------- Download Texture Data ------------
+	FHttpModule* HttpModule = &FHttpModule::Get();
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
 	HttpRequest->SetURL(Settings->Url + "/api/v1/export?path=" + Path);
-	HttpRequest->SetHeader("content-type", "image/png");
+	HttpRequest->SetHeader("content-type", 
+		Type == "TextureCube" ?
+		"application/octet-stream"
+		: "image/png"
+	);
 	HttpRequest->SetVerb(TEXT("GET"));
 
 	const TSharedPtr<IHttpResponse> HttpResponse = FRemoteUtilities::ExecuteRequestSync(HttpRequest);
-	if (!HttpResponse.IsValid()) 
+	if (!HttpResponse.IsValid() || HttpResponse->GetResponseCode() != 200)
 		return false;
 
-	const TArray<uint8> Data = HttpResponse->GetContent();
+	TArray<uint8> Data = HttpResponse->GetContent();
+	if (Data.Num() == 0)
+		return false;
+	// --------------- Download Texture Data ------------
 
-	FString PackagePath;
-	FString AssetName;
-	Path.Split(".", &PackagePath, &AssetName);
+	FString PackagePath; FString AssetName; {
+		Path.Split(".", &PackagePath, &AssetName);
+	}
 
-	const TSharedRef<IHttpRequest> NewRequest = HttpModule->CreateRequest();
+	UPackage* Package = CreatePackage(*PackagePath);
+	UPackage* OutermostPkg = Package->GetOutermost();
+	Package->FullyLoad();
 
-	NewRequest->SetURL(Settings->Url + "/api/v1/export?raw=true&path=" + Path);
-	NewRequest->SetVerb(TEXT("GET"));
+	// Create Importer
+	const UTextureImporter* Importer = new UTextureImporter(AssetName, Path, Response[0]->AsObject(), Package, OutermostPkg);
 
-	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
-	if (!NewResponse.IsValid()) 
+	if (Type == "Texture2D")
+		Importer->ImportTexture2D(Texture, Data, JsonExport->GetObjectField("Properties"));
+	if (Type == "TextureCube")
+		Importer->ImportTextureCube(Texture, Data, JsonExport);
+	if (Type == "TextureRenderTarget2D")
+		Importer->ImportRenderTarget2D(Texture, JsonExport->GetObjectField("Properties"));
+
+	if (Texture == nullptr)
 		return false;
 
-	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());
-	TSharedPtr<FJsonObject> JsonObject;
-	if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
-		TArray<TSharedPtr<FJsonValue>> JsonArray = JsonObject->GetArrayField("jsonOutput");
+	FAssetRegistryModule::AssetCreated(Texture);
+	if (!Texture->MarkPackageDirty())
+		return false;
 
-		UPackage* OutermostPkg;
-		UPackage* Package = CreatePackage(*PackagePath);
-		OutermostPkg = Package->GetOutermost();
-		Package->FullyLoad();
+	Package->SetDirtyFlag(true);
+	Texture->PostEditChange();
+	Texture->AddToRoot();
+	Package->FullyLoad();
 
-		const UTextureImporter* Importer = new UTextureImporter(AssetName, Path, JsonArray[0]->AsObject(), Package, OutermostPkg);
-
-		if (JsonArray.IsEmpty())
-			// No valid entries
-			return false;
-
-		TSharedPtr<FJsonObject> FinalJsonObject = JsonArray[0]->AsObject();
-		UTexture* Texture = nullptr;
-
-		// Texture 2D
-		if (FinalJsonObject->GetStringField("Type") == "Texture2D")
-			Importer->ImportTexture2D(Texture, Data, FinalJsonObject->GetObjectField("Properties"));
-		// Texture Cube
-		if (FinalJsonObject->GetStringField("Type") == "TextureCube")
-			Importer->ImportTextureCube(Texture, Data, FinalJsonObject);
-		// Texture Render Target 2D
-		if (FinalJsonObject->GetStringField("Type") == "TextureRenderTarget2D")
-			Importer->ImportRenderTarget2D(Texture, FinalJsonObject->GetObjectField("Properties"));
-
-		if (Texture == nullptr)
-			return false;
-
-		FAssetRegistryModule::AssetCreated(Texture);
-
-		if (!Texture->MarkPackageDirty()) 
-			return false;
-
-		Package->SetDirtyFlag(true);
-		Texture->PostEditChange();
-		Texture->AddToRoot();
-
-		Package->FullyLoad();
-
-		// Save texture
-		if (Settings->bAllowPackageSaving) {
-			FSavePackageArgs SaveArgs; {
-				SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-				SaveArgs.SaveFlags = SAVE_NoError;
-			}
-
-			const FString PackageName = Package->GetName();
-			const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
-			UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
+	// Save texture
+	if (Settings->bAllowPackageSaving) {
+		FSavePackageArgs SaveArgs; {
+			SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+			SaveArgs.SaveFlags = SAVE_NoError;
 		}
 
-		OutTexture = Texture;
+		const FString PackageName = Package->GetName();
+		const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
 	}
+
+	OutTexture = Texture;
 
 	return true;
 }

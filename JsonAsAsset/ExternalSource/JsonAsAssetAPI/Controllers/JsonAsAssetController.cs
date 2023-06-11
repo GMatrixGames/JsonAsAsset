@@ -260,7 +260,7 @@ namespace JsonAsAssetAPI.Controllers
                                     jsonOutput = new { TextureObject }
                                 });
 
-                            return File(TextureData.Encode(SKEncodedImageFormat.Png, quality: 100).AsStream(), "image/png");
+                            return File(TextureData.Encode(SKEncodedImageFormat.Png, quality: 100).AsStream(), type);
 
                         case USoundWave wave:
                             wave.Decode(true, out var audioFormat, out var data);
