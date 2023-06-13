@@ -47,32 +47,30 @@ bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, TArray<uint8>& D
 	return false;
 }
 
-bool UTextureImporter::ImportTextureCube(UTexture*& OutTextureCube, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
+bool UTextureImporter::ImportTextureCube(UTexture*& OutTextureCube, TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
 	UTextureCube* TextureCube = NewObject<UTextureCube>(Package, UTextureCube::StaticClass(), *FileName, RF_Public | RF_Standalone);
 
-	float InSizeX = Properties->GetNumberField("SizeX");
-	float InSizeY = Properties->GetNumberField("SizeY");
+	TextureCube->SetPlatformData(new FTexturePlatformData());
 
-	TextureCube->Source.Init(InSizeX, InSizeY, 6, 1, TSF_BGRA8);
+	ImportTexture_Data(TextureCube, Properties);
+	FTexturePlatformData* PlatformData = TextureCube->GetPlatformData();
 
-	int32 MipSize = CalculateImageBytes(InSizeX, InSizeY, 0, TSF_BGRA8);
-	uint8* SliceData = TextureCube->Source.LockMip(0);
-	TArray<uint8> OutputBuffer;
+	const int SizeX = Properties->GetNumberField("SizeX");
+	const int SizeY = Properties->GetNumberField("SizeY") / 6;
 
-	for (int32 SliceIndex = 0; SliceIndex < 6; SliceIndex++) {
-		for (int DataIdx = 0; MipSize; DataIdx++) {
-			OutputBuffer.Add(Data[DataIdx]);
-		}
+	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat)) PlatformData->PixelFormat = static_cast<EPixelFormat>(TextureCube->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
 
-		FMemory::Memcpy(SliceData + SliceIndex * MipSize, OutputBuffer.GetData(), MipSize);
-	}
+	int Size = SizeX * SizeY * (PlatformData->PixelFormat == PF_BC6H ? 16 : 4);
+	if (PlatformData->PixelFormat == PF_FloatRGBA) Size = Data.Num();
+	uint8* DecompressedData = static_cast<uint8*>(FMemory::Malloc(Size));
 
+	ETextureSourceFormat Format = TSF_BGRA8;
+	if (TextureCube->CompressionSettings == TC_HDR) Format = TSF_RGBA16F;
+	TextureCube->Source.Init(SizeX, SizeY, 1, 1, Format);
+	uint8_t* Dest = TextureCube->Source.LockMip(0);
+	FMemory::Memcpy(Dest, DecompressedData, Size);
 	TextureCube->Source.UnlockMip(0);
-	TextureCube->SRGB = false;
-	// If HDR source image then choose HDR compression settings..
-	TextureCube->CompressionSettings = TSF_BGRA8 == TSF_RGBA16F ? TextureCompressionSettings::TC_HDR : TextureCompressionSettings::TC_Default;
-	// Default to no mip generation for cube render target captures.
-	TextureCube->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
+
 	TextureCube->PostEditChange();
 
 	if (TextureCube) {
