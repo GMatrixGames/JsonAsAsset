@@ -7,8 +7,8 @@ public class NVTT : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty/nvtt/"));
-        PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty/nvtt/"));
+        PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty/nvtt"));
+        PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty/nvtt"));
 
         PrivateDependencyModuleNames.AddRange(new[]
         {

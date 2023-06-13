@@ -8,7 +8,7 @@ public class Detex : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty/detex"));
-		// PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty/detex"));
+		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty/detex"));
 
 		PrivateDependencyModuleNames.AddRange(new[]
 		{
