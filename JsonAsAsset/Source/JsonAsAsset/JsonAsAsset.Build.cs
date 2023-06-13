@@ -7,54 +7,43 @@ public class JsonAsAsset : ModuleRules
 	public JsonAsAsset(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		CppStandard = CppStandardVersion.Cpp20;
 
-		PublicDependencyModuleNames.AddRange(new string[]
-			{
-				"Core",
-				"Json",
-				"JsonUtilities",
-				"UMG",
-				"RenderCore",
-				"HTTP",
-				"DeveloperSettings",
-				"Niagara"
-			}
-		);
-
-		PrivateDependencyModuleNames.AddRange(new string[]
-			{
-				"Projects",
-				"InputCore",
-				"UnrealEd",
-				"ToolMenus",
-				"CoreUObject",
-				"Engine",
-				"Slate",
-				"SlateCore",
-				"AnimationDataController",
-				"MaterialEditor",
-				"ImageWriteQueue",
-				"Landscape",
-				"AssetTools",
-				"EditorStyle",
-				"Settings",
-				"PhysicsCore",
-				"InterchangeEngine",
-				"InterchangeNodes",
-				"InterchangeCommonParser",
-				"InterchangeFactoryNodes",
-				"InterchangeImport",
-				"InterchangePipelines",
-				"MessageLog",
-				"ToolWidgets",
-				"PluginUtils",
-				"RHI"
-			}
-		);
-
-		if (Target.Version.MajorVersion == 4)
+		PublicDependencyModuleNames.AddRange(new[]
 		{
-			PrivateDependencyModuleNames.Add("AnimationDataController");
-		}
+			"Core",
+			"Json",
+			"JsonUtilities",
+			"UMG",
+			"RenderCore",
+			"HTTP",
+			"DeveloperSettings",
+			"Niagara"
+		});
+
+		PrivateDependencyModuleNames.AddRange(new[]
+		{
+			"Projects",
+			"InputCore",
+			"UnrealEd",
+			"ToolMenus",
+			"CoreUObject",
+			"Engine",
+			"Slate",
+			"SlateCore",
+			"AnimationDataController",
+			"MaterialEditor",
+			"Landscape",
+			"AssetTools",
+			"EditorStyle",
+			"Settings",
+			"PhysicsCore",
+			"MessageLog",
+			"ToolWidgets",
+			"PluginUtils",
+			"RHI",
+			"Detex",
+			"NVTT"
+		});
 	}
 }

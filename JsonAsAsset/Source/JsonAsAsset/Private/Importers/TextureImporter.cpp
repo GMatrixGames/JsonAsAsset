@@ -1,21 +1,19 @@
 ﻿#include "Importers/TextureImporter.h"
 
+#include "detex.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/TextureCube.h"
-#include "Factories/TextureFactory.h"
 #include "Factories/TextureRenderTargetFactoryNew.h"
+#include "nvimage/DirectDrawSurface.h"
+#include "nvimage/Image.h"
 #include "Utilities/MathUtilities.h"
-#include <IImageWrapper.h>
+#include "Utilities/TextureDecode/TextureNVTT.h"
 
-#include "Factories.h"
-#include "IImageWrapperModule.h"
-
-bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
+bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, TArray<uint8> Data, const TSharedPtr<FJsonObject>& Properties) const {
 	const TSharedPtr<FJsonObject> SubObjectProperties = Properties->GetObjectField("Properties");
 
 	// NEW: .bin support
-	UTexture2D* Texture2D =
-		NewObject<UTexture2D>(OutermostPkg, UTexture2D::StaticClass(), *FileName, RF_Standalone | RF_Public); 
+	UTexture2D* Texture2D = NewObject<UTexture2D>(OutermostPkg, UTexture2D::StaticClass(), *FileName, RF_Standalone | RF_Public);
 	Texture2D->SetPlatformData(new FTexturePlatformData());
 
 	ImportTexture2D_Data(Texture2D, SubObjectProperties);
@@ -23,17 +21,19 @@ bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, const TArray<uin
 
 	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat)) PlatformData->PixelFormat = static_cast<EPixelFormat>(Texture2D->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
 
-	float SizeX = Properties->GetNumberField("SizeX");
-	float SizeY = Properties->GetNumberField("SizeY");
+	const int SizeX = Properties->GetNumberField("SizeX");
+	const int SizeY = Properties->GetNumberField("SizeY");
 
-	Texture2D->Source.Init(SizeX, SizeY, 1, 1, 
-		TSF_BGRA8 // Maybe HDR here?
-	);
+	const int Size = SizeX * SizeY * (PlatformData->PixelFormat == PF_FloatRGBA || PlatformData->PixelFormat == PF_BC6H) ? 16 : 4;
+	uint8* DecompressedData = static_cast<uint8*>(FMemory::Malloc(Size));
 
-	uint8_t* dest = Texture2D->Source.LockMip(0);
-	FMemory::Memcpy(dest, Data.GetData(), Data.Num());
+	GetDecompressedTextureData(Data.GetData(), DecompressedData, SizeX, SizeY, Size, PlatformData->PixelFormat);
 
+	Texture2D->Source.Init(SizeX, SizeY, 1, 1, TSF_BGRA8);
+	uint8_t* Dest = Texture2D->Source.LockMip(0);
+	FMemory::Memcpy(Dest, DecompressedData, Size);
 	Texture2D->Source.UnlockMip(0);
+
 	Texture2D->UpdateResource();
 
 	if (Texture2D) {
@@ -50,42 +50,24 @@ bool UTextureImporter::ImportTextureCube(UTexture*& OutTextureCube, const TArray
 	float InSizeX = Properties->GetNumberField("SizeX");
 	float InSizeY = Properties->GetNumberField("SizeY");
 
-	TextureCube->Source.Init(InSizeX, InSizeY, 6, 1, ETextureSourceFormat::TSF_BGRA8);
+	TextureCube->Source.Init(InSizeX, InSizeY, 6, 1, TSF_BGRA8);
 
-	int32 MipSize = CalculateImageBytes(InSizeX, InSizeY, 0, ETextureSourceFormat::TSF_BGRA8);
+	int32 MipSize = CalculateImageBytes(InSizeX, InSizeY, 0, TSF_BGRA8);
 	uint8* SliceData = TextureCube->Source.LockMip(0);
-	/*switch (ETextureSourceFormat::TSF_BGRA8)
-	{
-		case TSF_BGRA8:
-		{
-			TArray<FColor> OutputBuffer;
-			for (int32 SliceIndex = 0; SliceIndex < 6; SliceIndex++)
-			{
-				if (CubeResource->ReadPixels(OutputBuffer, FReadSurfaceDataFlags(RCM_UNorm, (ECubeFace)SliceIndex)))
-				{
-					FMemory::Memcpy((FColor*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetData(), MipSize);
-				}
-			}
+	TArray<uint8> OutputBuffer;
+
+	for (int32 SliceIndex = 0; SliceIndex < 6; SliceIndex++) {
+		for (int DataIdx = 0; MipSize; DataIdx++) {
+			OutputBuffer.Add(Data[DataIdx]);
 		}
-		break;
-		case TSF_RGBA16F:
-		{
-			TArray<FFloat16Color> OutputBuffer;
-			for (int32 SliceIndex = 0; SliceIndex < 6; SliceIndex++)
-			{
-				if (CubeResource->ReadPixels(OutputBuffer, FReadSurfaceDataFlags(RCM_UNorm, (ECubeFace)SliceIndex)))
-				{
-					FMemory::Memcpy((FFloat16Color*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetData(), MipSize);
-				}
-			}
-		}
-		break;
-	}*/
+
+		FMemory::Memcpy(SliceData + SliceIndex * MipSize, OutputBuffer.GetData(), MipSize);
+	}
 
 	TextureCube->Source.UnlockMip(0);
 	TextureCube->SRGB = false;
 	// If HDR source image then choose HDR compression settings..
-	TextureCube->CompressionSettings = ETextureSourceFormat::TSF_BGRA8 == TSF_RGBA16F ? TextureCompressionSettings::TC_HDR : TextureCompressionSettings::TC_Default;
+	TextureCube->CompressionSettings = TSF_BGRA8 == TSF_RGBA16F ? TextureCompressionSettings::TC_HDR : TextureCompressionSettings::TC_Default;
 	// Default to no mip generation for cube render target captures.
 	TextureCube->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
 	TextureCube->PostEditChange();
@@ -98,8 +80,7 @@ bool UTextureImporter::ImportTextureCube(UTexture*& OutTextureCube, const TArray
 	return false;
 }
 
-bool UTextureImporter::ImportVolumeTexture(UTexture*& OutTexture2D, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const
-{
+bool UTextureImporter::ImportVolumeTexture(UTexture*& OutTexture2D, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
 	return false;
 }
 
@@ -220,4 +201,58 @@ bool UTextureImporter::ImportTexture_Data(UTexture* InTexture, const TSharedPtr<
 	if (FString LightingGuid; Properties->TryGetStringField("LightingGuid", LightingGuid)) InTexture->SetLightingGuid(FGuid(LightingGuid));
 
 	return false;
+}
+
+void UTextureImporter::GetDecompressedTextureData(uint8* Data, uint8*& OutData, const int SizeX, const int SizeY, const int TotalSize, const EPixelFormat Format) const {
+	if (Format == PF_BC7) {
+		detexTexture Texture;
+		Texture.data = Data;
+		Texture.format = DETEX_TEXTURE_FORMAT_BPTC;
+		Texture.width = SizeX;
+		Texture.height = SizeY;
+		Texture.width_in_blocks = SizeX / 4;
+		Texture.height_in_blocks = SizeY / 4;
+		detexDecompressTextureLinear(&Texture, OutData, DETEX_PIXEL_FORMAT_BGRA8);
+	} else if (Format == PF_BC6H) {
+		detexTexture Texture;
+		Texture.data = Data;
+		Texture.format = DETEX_TEXTURE_FORMAT_BPTC_FLOAT;
+		Texture.width = SizeX;
+		Texture.height = SizeY;
+		Texture.width_in_blocks = SizeX / 4;
+		Texture.height_in_blocks = SizeY / 4;
+		detexDecompressTextureLinear(&Texture, OutData, DETEX_PIXEL_FORMAT_BGRA8);
+	} else {
+		nv::DDSHeader Header;
+		nv::Image Image;
+
+		uint FourCC;
+		switch (Format) {
+		case PF_BC4:
+			FourCC = FOURCC_ATI1;
+			break;
+		case PF_BC5:
+			FourCC = FOURCC_ATI2;
+			break;
+		case PF_DXT1:
+			FourCC = FOURCC_DXT1;
+			break;
+		case PF_DXT3:
+			FourCC = FOURCC_DXT3;
+			break;
+		case PF_DXT5:
+			FourCC = FOURCC_DXT5;
+			break;
+		default: FourCC = 0;
+		}
+		
+		Header.setFourCC(FourCC);
+		Header.setWidth(SizeX);
+		Header.setHeight(SizeY);
+		Header.setNormalFlag(Format == PF_BC5);
+		DecodeDDS(Data, SizeX, SizeY, Header, Image);
+
+		// Fallback to raw data
+		FMemory::Memcpy(OutData, Image.pixels(), TotalSize);
+	}
 }

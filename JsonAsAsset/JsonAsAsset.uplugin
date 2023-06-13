@@ -19,14 +19,29 @@
 		{
 			"Name": "JsonAsAsset",
 			"Type": "Editor",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"BlacklistPlatforms": [
+				"Android"
+			]
+		},
+		{
+			"Name": "Detex",
+			"Type": "Editor",
+			"LoadingPhase": "Default",
+			"BlacklistPlatforms": [
+				"Android"
+			]
+		},
+		{
+			"Name": "NVTT",
+			"Type": "Editor",
+			"LoadingPhase": "Default",
+			"BlacklistPlatforms": [
+				"Android"
+			]
 		}
 	],
 	"Plugins": [
-		{
-			"Name": "Interchange",
-			"Enabled": true
-		},
 		{
 			"Name": "Niagara",
 			"Enabled": true
