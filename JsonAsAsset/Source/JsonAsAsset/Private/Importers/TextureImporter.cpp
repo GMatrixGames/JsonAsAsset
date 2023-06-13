@@ -9,7 +9,7 @@
 #include "Utilities/MathUtilities.h"
 #include "Utilities/TextureDecode/TextureNVTT.h"
 
-bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, TArray<uint8> Data, const TSharedPtr<FJsonObject>& Properties) const {
+bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
 	const TSharedPtr<FJsonObject> SubObjectProperties = Properties->GetObjectField("Properties");
 
 	// NEW: .bin support
@@ -24,7 +24,7 @@ bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, TArray<uint8> Da
 	const int SizeX = Properties->GetNumberField("SizeX");
 	const int SizeY = Properties->GetNumberField("SizeY");
 
-	const int Size = SizeX * SizeY * (PlatformData->PixelFormat == PF_FloatRGBA || PlatformData->PixelFormat == PF_BC6H) ? 16 : 4;
+	const int Size = SizeX * SizeY * (PlatformData->PixelFormat == PF_FloatRGBA || PlatformData->PixelFormat == PF_BC6H ? 16 : 4);
 	uint8* DecompressedData = static_cast<uint8*>(FMemory::Malloc(Size));
 
 	GetDecompressedTextureData(Data.GetData(), DecompressedData, SizeX, SizeY, Size, PlatformData->PixelFormat);
