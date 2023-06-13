@@ -2,7 +2,6 @@ JsonAsAsset/Binaries/*
 !JsonAsAsset/Binaries/*/JsonAsAsset_API/*
 JsonAsAsset/Intermediate/*
 .vscode/settings.json
-JsonAsAsset/Source/JsonAsAsset/Private/Importers/MaterialInstanceConstantImporter.cpp
 
 *.exe
 
