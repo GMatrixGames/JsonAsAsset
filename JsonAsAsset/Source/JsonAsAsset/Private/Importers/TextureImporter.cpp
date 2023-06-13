@@ -11,17 +11,30 @@
 #include "IImageWrapperModule.h"
 
 bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
-	UTextureFactory* TextureFactory = NewObject<UTextureFactory>();
-	TextureFactory->AddToRoot();
-	TextureFactory->SuppressImportOverwriteDialog();
+	const TSharedPtr<FJsonObject> SubObjectProperties = Properties->GetObjectField("Properties");
 
-	const uint8* ImageData = Data.GetData();
-	UTexture2D* Texture2D = Cast<UTexture2D>(TextureFactory->FactoryCreateBinary(UTexture2D::StaticClass(), Package, *FileName, RF_Standalone | RF_Public, nullptr,
-	                                                                             *FPaths::GetExtension(FileName + ".png").ToLower(), ImageData, ImageData + Data.Num(), GWarn));
-	if (Texture2D == nullptr)
-		return false;
+	// NEW: .bin support
+	UTexture2D* Texture2D =
+		NewObject<UTexture2D>(OutermostPkg, UTexture2D::StaticClass(), *FileName, RF_Standalone | RF_Public); 
+	Texture2D->SetPlatformData(new FTexturePlatformData());
 
-	ImportTexture2D_Data(Texture2D, Properties);
+	ImportTexture2D_Data(Texture2D, SubObjectProperties);
+	FTexturePlatformData* PlatformData = Texture2D->GetPlatformData();
+
+	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat)) PlatformData->PixelFormat = static_cast<EPixelFormat>(Texture2D->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
+
+	float SizeX = Properties->GetNumberField("SizeX");
+	float SizeY = Properties->GetNumberField("SizeY");
+
+	Texture2D->Source.Init(SizeX, SizeY, 1, 1, 
+		TSF_BGRA8 // Maybe HDR here?
+	);
+
+	uint8_t* dest = Texture2D->Source.LockMip(0);
+	FMemory::Memcpy(dest, Data.GetData(), Data.Num());
+
+	Texture2D->Source.UnlockMip(0);
+	Texture2D->UpdateResource();
 
 	if (Texture2D) {
 		OutTexture2D = Texture2D;

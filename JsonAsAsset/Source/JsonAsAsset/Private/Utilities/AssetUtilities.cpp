@@ -205,11 +205,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
 	HttpRequest->SetURL(Settings->Url + "/api/v1/export?path=" + Path);
-	HttpRequest->SetHeader("content-type", 
-		Type == "TextureCube" ?
-		"application/octet-stream"
-		: "image/png"
-	);
+	HttpRequest->SetHeader("content-type", "application/octet-stream");
 	HttpRequest->SetVerb(TEXT("GET"));
 
 	const TSharedPtr<IHttpResponse> HttpResponse = FRemoteUtilities::ExecuteRequestSync(HttpRequest);
@@ -230,10 +226,11 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	Package->FullyLoad();
 
 	// Create Importer
-	const UTextureImporter* Importer = new UTextureImporter(AssetName, Path, Response[0]->AsObject(), Package, OutermostPkg);
+	const UTextureImporter* Importer = 
+		new UTextureImporter(AssetName, Path, Response[0]->AsObject(), Package, OutermostPkg);
 
 	if (Type == "Texture2D")
-		Importer->ImportTexture2D(Texture, Data, JsonExport->GetObjectField("Properties"));
+		Importer->ImportTexture2D(Texture, Data, JsonExport);
 	if (Type == "TextureCube")
 		Importer->ImportTextureCube(Texture, Data, JsonExport);
 	if (Type == "TextureRenderTarget2D")
