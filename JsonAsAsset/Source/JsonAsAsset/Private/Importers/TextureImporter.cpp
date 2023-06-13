@@ -19,17 +19,20 @@ bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, TArray<uint8>& D
 	ImportTexture2D_Data(Texture2D, SubObjectProperties);
 	FTexturePlatformData* PlatformData = Texture2D->GetPlatformData();
 
-	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat)) PlatformData->PixelFormat = static_cast<EPixelFormat>(Texture2D->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
-
 	const int SizeX = Properties->GetNumberField("SizeX");
 	const int SizeY = Properties->GetNumberField("SizeY");
 
-	const int Size = SizeX * SizeY * (PlatformData->PixelFormat == PF_FloatRGBA || PlatformData->PixelFormat == PF_BC6H ? 16 : 4);
+	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat)) PlatformData->PixelFormat = static_cast<EPixelFormat>(Texture2D->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
+
+	int Size = SizeX * SizeY * (PlatformData->PixelFormat == PF_BC6H ? 16 : 4);
+	if (PlatformData->PixelFormat == PF_FloatRGBA) Size = Data.Num();
 	uint8* DecompressedData = static_cast<uint8*>(FMemory::Malloc(Size));
 
 	GetDecompressedTextureData(Data.GetData(), DecompressedData, SizeX, SizeY, Size, PlatformData->PixelFormat);
 
-	Texture2D->Source.Init(SizeX, SizeY, 1, 1, TSF_BGRA8);
+	ETextureSourceFormat Format = TSF_BGRA8;
+	if (Texture2D->CompressionSettings == TC_HDR) Format = TSF_RGBA16F;
+	Texture2D->Source.Init(SizeX, SizeY, 1, 1, Format);
 	uint8_t* Dest = Texture2D->Source.LockMip(0);
 	FMemory::Memcpy(Dest, DecompressedData, Size);
 	Texture2D->Source.UnlockMip(0);
@@ -222,6 +225,36 @@ void UTextureImporter::GetDecompressedTextureData(uint8* Data, uint8*& OutData, 
 		Texture.width_in_blocks = SizeX / 4;
 		Texture.height_in_blocks = SizeY / 4;
 		detexDecompressTextureLinear(&Texture, OutData, DETEX_PIXEL_FORMAT_BGRA8);
+	} else if (Format == PF_G8) {
+		const uint8* s = Data;
+		uint8* d = OutData;
+		for (int i = 0; i < SizeX * SizeY; i++) {
+			const uint8 b = *s++;
+			*d++ = b;
+			*d++ = b;
+			*d++ = b;
+			*d++ = 255;
+		}
+		/**
+		 // I don't know what's going on here
+	} else if (Format == PF_G16) {
+		const uint8* s = Data;
+		uint8* d = OutData;
+		for (int Y = 0; Y < SizeY; Y++) {
+			const uint16* SrcPtr = (uint16*)(s + Y * (SizeX * 2));
+			FColor* DestPtr = reinterpret_cast<FColor*>(d + Y * SizeX);
+	
+			for (int X = 0; X < SizeX; X++) {
+				const int Value = FColor::Requantize16to8(*SrcPtr);
+	
+				*DestPtr = FColor(Value, Value, Value);
+				++SrcPtr;
+				++DestPtr;
+			}
+		}
+		*/
+	} else if (Format == PF_B8G8R8A8 || Format == PF_FloatRGBA) {
+		FMemory::Memcpy(OutData, Data, TotalSize);
 	} else {
 		nv::DDSHeader Header;
 		nv::Image Image;
@@ -245,7 +278,7 @@ void UTextureImporter::GetDecompressedTextureData(uint8* Data, uint8*& OutData, 
 			break;
 		default: FourCC = 0;
 		}
-		
+
 		Header.setFourCC(FourCC);
 		Header.setWidth(SizeX);
 		Header.setHeight(SizeY);
