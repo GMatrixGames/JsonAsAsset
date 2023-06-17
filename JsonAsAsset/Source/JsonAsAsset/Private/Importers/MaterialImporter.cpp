@@ -73,186 +73,20 @@ bool UMaterialImporter::ImportData() {
 		// Create Material Factory (factory automatically creates the M)
 		UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
 		UMaterial* Material = Cast<UMaterial>(MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), OutermostPkg, *FileName, RF_Standalone | RF_Public, nullptr, GWarn));
+
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
-		Material->StateId = FGuid(Properties->GetStringField("StateId"));
+		TSharedPtr<FJsonObject> SerializerProperties = TSharedPtr(Properties);
+		if (SerializerProperties->HasField("ShadingModel")) // ShadingModel set manually
+			SerializerProperties->RemoveField("ShadingModel");
 
-		FString MaterialDomain;
-		if (Properties->TryGetStringField("MaterialDomain", MaterialDomain)) {
-			Material->MaterialDomain = static_cast<EMaterialDomain>(StaticEnum<EMaterialDomain>()->GetValueByNameString(MaterialDomain));
-		}
-
-		FString BlendMode;
-		if (Properties->TryGetStringField("BlendMode", BlendMode)) {
-			Material->BlendMode = static_cast<EBlendMode>(StaticEnum<EBlendMode>()->GetValueByNameString(BlendMode));
-		}
-
-		FString ShadingModel;
-		if (Properties->TryGetStringField("ShadingModel", ShadingModel) && ShadingModel != "EMaterialShadingModel::MSM_FromMaterialExpression") {
+		GetObjectSerializer()->DeserializeObjectProperties(SerializerProperties, Material);
+		
+		if (FString ShadingModel; Properties->TryGetStringField("ShadingModel", ShadingModel) && ShadingModel != "EMaterialShadingModel::MSM_FromMaterialExpression")
 			Material->SetShadingModel(static_cast<EMaterialShadingModel>(StaticEnum<EMaterialShadingModel>()->GetValueByNameString(ShadingModel)));
-		}
-
-		const TSharedPtr<FJsonObject>* ShadingModelsPtr;
-		if (Properties->TryGetObjectField("ShadingModels", ShadingModelsPtr)) {
-			int ShadingModelField;
-			if (ShadingModelsPtr->Get()->TryGetNumberField("ShadingModelField", ShadingModelField)) Material->GetShadingModels().SetShadingModelField(ShadingModelField);
-		}
-
-		bool AllowTranslucentCustomDepthWrites;
-		if (Properties->TryGetBoolField("AllowTranslucentCustomDepthWrites", AllowTranslucentCustomDepthWrites)) Material->AllowTranslucentCustomDepthWrites = AllowTranslucentCustomDepthWrites;
-		bool bAllowDevelopmentShaderCompile;
-		if (Properties->TryGetBoolField("bAllowDevelopmentShaderCompile", bAllowDevelopmentShaderCompile)) Material->bAllowDevelopmentShaderCompile = bAllowDevelopmentShaderCompile;
-		bool bAllowNegativeEmissiveColor;
-		if (Properties->TryGetBoolField("bAllowNegativeEmissiveColor", bAllowNegativeEmissiveColor)) Material->bAllowNegativeEmissiveColor = bAllowNegativeEmissiveColor;
-		bool bApplyCloudFogging;
-		if (Properties->TryGetBoolField("bApplyCloudFogging", bApplyCloudFogging)) Material->bApplyCloudFogging = bApplyCloudFogging;
-		bool bAutomaticallySetUsageInEditor;
-		if (Properties->TryGetBoolField("bAutomaticallySetUsageInEditor", bAutomaticallySetUsageInEditor)) Material->bAutomaticallySetUsageInEditor = bAutomaticallySetUsageInEditor;
-		bool bCanMaskedBeAssumedOpaque;
-		if (Properties->TryGetBoolField("bCanMaskedBeAssumedOpaque", bCanMaskedBeAssumedOpaque)) Material->bCanMaskedBeAssumedOpaque = bCanMaskedBeAssumedOpaque;
-		bool bCastDynamicShadowAsMasked;
-		if (Properties->TryGetBoolField("bCastDynamicShadowAsMasked", bCastDynamicShadowAsMasked)) Material->bCastDynamicShadowAsMasked = bCastDynamicShadowAsMasked;
-		bool bCastRayTracedShadows;
-		if (Properties->TryGetBoolField("bCastRayTracedShadows", bCastRayTracedShadows)) Material->bCastRayTracedShadows = bCastRayTracedShadows;
-		bool bComputeFogPerPixel;
-		if (Properties->TryGetBoolField("bComputeFogPerPixel", bComputeFogPerPixel)) Material->bComputeFogPerPixel = bComputeFogPerPixel;
-		bool bContactShadows;
-		if (Properties->TryGetBoolField("bContactShadows", bContactShadows)) Material->bContactShadows = bContactShadows;
-		bool bDisableDepthTest;
-		if (Properties->TryGetBoolField("bDisableDepthTest", bDisableDepthTest)) Material->bDisableDepthTest = bDisableDepthTest;
-		bool bEnableMobileSeparateTranslucency;
-		if (Properties->TryGetBoolField("bEnableMobileSeparateTranslucency", bEnableMobileSeparateTranslucency)) Material->bEnableMobileSeparateTranslucency = bEnableMobileSeparateTranslucency;
-		bool bEnableStencilTest;
-		if (Properties->TryGetBoolField("bEnableStencilTest", bEnableStencilTest)) Material->bEnableStencilTest = bEnableStencilTest;
-		bool bForwardBlendsSkyLightCubemaps;
-		if (Properties->TryGetBoolField("bForwardBlendsSkyLightCubemaps", bForwardBlendsSkyLightCubemaps)) Material->bForwardBlendsSkyLightCubemaps = bForwardBlendsSkyLightCubemaps;
-		bool bForwardRenderUsePreintegratedGFForSimpleIBL;
-		if (Properties->TryGetBoolField("bForwardRenderUsePreintegratedGFForSimpleIBL", bForwardRenderUsePreintegratedGFForSimpleIBL)) Material->bForwardRenderUsePreintegratedGFForSimpleIBL = bForwardRenderUsePreintegratedGFForSimpleIBL;
-		bool bFullyRough;
-		if (Properties->TryGetBoolField("bFullyRough", bFullyRough)) Material->bFullyRough = bFullyRough;
-		bool bGenerateSphericalParticleNormals;
-		if (Properties->TryGetBoolField("bGenerateSphericalParticleNormals", bGenerateSphericalParticleNormals)) Material->bGenerateSphericalParticleNormals = bGenerateSphericalParticleNormals;
-		bool bIsBlendable;
-		if (Properties->TryGetBoolField("bIsBlendable", bIsBlendable)) Material->bIsBlendable = bIsBlendable;
-		bool bIsFunctionPreviewMaterial;
-		if (Properties->TryGetBoolField("bIsFunctionPreviewMaterial", bIsFunctionPreviewMaterial)) Material->bIsFunctionPreviewMaterial = bIsFunctionPreviewMaterial;
-		bool bIsMaterialEditorStatsMaterial;
-		if (Properties->TryGetBoolField("bIsMaterialEditorStatsMaterial", bIsMaterialEditorStatsMaterial)) Material->bIsMaterialEditorStatsMaterial = bIsMaterialEditorStatsMaterial;
-		bool bIsPreviewMaterial;
-		if (Properties->TryGetBoolField("bIsPreviewMaterial", bIsPreviewMaterial)) Material->bIsPreviewMaterial = bIsPreviewMaterial;
-		bool bIsSky;
-		if (Properties->TryGetBoolField("bIsSky", bIsSky)) Material->bIsSky = bIsSky;
-		bool BlendableOutputAlpha;
-		if (Properties->TryGetBoolField("BlendableOutputAlpha", BlendableOutputAlpha)) Material->BlendableOutputAlpha = BlendableOutputAlpha;
-		bool bNormalCurvatureToRoughness;
-		if (Properties->TryGetBoolField("bNormalCurvatureToRoughness", bNormalCurvatureToRoughness)) Material->bNormalCurvatureToRoughness = bNormalCurvatureToRoughness;
-		bool bOutputTranslucentVelocity;
-		if (Properties->TryGetBoolField("bOutputTranslucentVelocity", bOutputTranslucentVelocity)) Material->bOutputTranslucentVelocity = bOutputTranslucentVelocity;
-		bool bScreenSpaceReflections;
-		if (Properties->TryGetBoolField("bScreenSpaceReflections", bScreenSpaceReflections)) Material->bScreenSpaceReflections = bScreenSpaceReflections;
-		bool bTangentSpaceNormal;
-		if (Properties->TryGetBoolField("bTangentSpaceNormal", bTangentSpaceNormal)) Material->bTangentSpaceNormal = bTangentSpaceNormal;
-		bool bUseAlphaToCoverage;
-		if (Properties->TryGetBoolField("bUseAlphaToCoverage", bUseAlphaToCoverage)) Material->bUseAlphaToCoverage = bUseAlphaToCoverage;
-		bool bUsedAsSpecialEngineMaterial;
-		if (Properties->TryGetBoolField("bUsedAsSpecialEngineMaterial", bUsedAsSpecialEngineMaterial)) Material->bUsedAsSpecialEngineMaterial = bUsedAsSpecialEngineMaterial;
-		bool bUsedWithBeamTrails;
-		if (Properties->TryGetBoolField("bUsedWithBeamTrails", bUsedWithBeamTrails)) Material->bUsedWithBeamTrails = bUsedWithBeamTrails;
-		bool bUsedWithClothing;
-		if (Properties->TryGetBoolField("bUsedWithClothing", bUsedWithClothing)) Material->bUsedWithClothing = bUsedWithClothing;
-		bool bUsedWithEditorCompositing;
-		if (Properties->TryGetBoolField("bUsedWithEditorCompositing", bUsedWithEditorCompositing)) Material->bUsedWithEditorCompositing = bUsedWithEditorCompositing;
-		bool bUsedWithGeometryCache;
-		if (Properties->TryGetBoolField("bUsedWithGeometryCache", bUsedWithGeometryCache)) Material->bUsedWithGeometryCache = bUsedWithGeometryCache;
-		bool bUsedWithGeometryCollections;
-		if (Properties->TryGetBoolField("bUsedWithGeometryCollections", bUsedWithGeometryCollections)) Material->bUsedWithGeometryCollections = bUsedWithGeometryCollections;
-		bool bUsedWithHairStrands;
-		if (Properties->TryGetBoolField("bUsedWithHairStrands", bUsedWithHairStrands)) Material->bUsedWithHairStrands = bUsedWithHairStrands;
-		bool bUsedWithInstancedStaticMeshes;
-		if (Properties->TryGetBoolField("bUsedWithInstancedStaticMeshes", bUsedWithInstancedStaticMeshes)) Material->bUsedWithInstancedStaticMeshes = bUsedWithInstancedStaticMeshes;
-		bool bUsedWithLidarPointCloud;
-		if (Properties->TryGetBoolField("bUsedWithLidarPointCloud", bUsedWithLidarPointCloud)) Material->bUsedWithLidarPointCloud = bUsedWithLidarPointCloud;
-		bool bUsedWithMeshParticles;
-		if (Properties->TryGetBoolField("bUsedWithMeshParticles", bUsedWithMeshParticles)) Material->bUsedWithMeshParticles = bUsedWithMeshParticles;
-		bool bUsedWithMorphTargets;
-		if (Properties->TryGetBoolField("bUsedWithMorphTargets", bUsedWithMorphTargets)) Material->bUsedWithMorphTargets = bUsedWithMorphTargets;
-		bool bUsedWithNiagaraMeshParticles;
-		if (Properties->TryGetBoolField("bUsedWithNiagaraMeshParticles", bUsedWithNiagaraMeshParticles)) Material->bUsedWithNiagaraMeshParticles = bUsedWithNiagaraMeshParticles;
-		bool bUsedWithNiagaraRibbons;
-		if (Properties->TryGetBoolField("bUsedWithNiagaraRibbons", bUsedWithNiagaraRibbons)) Material->bUsedWithNiagaraRibbons = bUsedWithNiagaraRibbons;
-		bool bUsedWithNiagaraSprites;
-		if (Properties->TryGetBoolField("bUsedWithNiagaraSprites", bUsedWithNiagaraSprites)) Material->bUsedWithNiagaraSprites = bUsedWithNiagaraSprites;
-		bool bUsedWithParticleSprites;
-		if (Properties->TryGetBoolField("bUsedWithParticleSprites", bUsedWithParticleSprites)) Material->bUsedWithParticleSprites = bUsedWithParticleSprites;
-		bool bUsedWithSkeletalMesh;
-		if (Properties->TryGetBoolField("bUsedWithSkeletalMesh", bUsedWithSkeletalMesh)) Material->bUsedWithSkeletalMesh = bUsedWithSkeletalMesh;
-		bool bUsedWithSplineMeshes;
-		if (Properties->TryGetBoolField("bUsedWithSplineMeshes", bUsedWithSplineMeshes)) Material->bUsedWithSplineMeshes = bUsedWithSplineMeshes;
-		bool bUsedWithStaticLighting;
-		if (Properties->TryGetBoolField("bUsedWithStaticLighting", bUsedWithStaticLighting)) Material->bUsedWithStaticLighting = bUsedWithStaticLighting;
-		bool bUsedWithVirtualHeightfieldMesh;
-		if (Properties->TryGetBoolField("bUsedWithVirtualHeightfieldMesh", bUsedWithVirtualHeightfieldMesh)) Material->bUsedWithVirtualHeightfieldMesh = bUsedWithVirtualHeightfieldMesh;
-		bool bUsedWithWater;
-		if (Properties->TryGetBoolField("bUsedWithWater", bUsedWithWater)) Material->bUsedWithWater = bUsedWithWater;
-		bool bUseEmissiveForDynamicAreaLighting;
-		if (Properties->TryGetBoolField("bUseEmissiveForDynamicAreaLighting", bUseEmissiveForDynamicAreaLighting)) Material->bUseEmissiveForDynamicAreaLighting = bUseEmissiveForDynamicAreaLighting;
-		bool bUseHQForwardReflections;
-		if (Properties->TryGetBoolField("bUseHQForwardReflections", bUseHQForwardReflections)) Material->bUseHQForwardReflections = bUseHQForwardReflections;
-		bool bUseLightmapDirectionality;
-		if (Properties->TryGetBoolField("bUseLightmapDirectionality", bUseLightmapDirectionality)) Material->bUseLightmapDirectionality = bUseLightmapDirectionality;
-		bool bUseMaterialAttributes;
-		if (Properties->TryGetBoolField("bUseMaterialAttributes", bUseMaterialAttributes)) Material->bUseMaterialAttributes = bUseMaterialAttributes;
-		bool bUsePlanarForwardReflections;
-		if (Properties->TryGetBoolField("bUsePlanarForwardReflections", bUsePlanarForwardReflections)) Material->bUsePlanarForwardReflections = bUsePlanarForwardReflections;
-		bool bUsesDistortion;
-		if (Properties->TryGetBoolField("bUsesDistortion", bUsesDistortion)) Material->bUsesDistortion = bUsesDistortion;
-		bool bUseTranslucencyVertexFog;
-		if (Properties->TryGetBoolField("bUseTranslucencyVertexFog", bUseTranslucencyVertexFog)) Material->bUseTranslucencyVertexFog = bUseTranslucencyVertexFog;
-		bool bWriteOnlyAlpha;
-		if (Properties->TryGetBoolField("bWriteOnlyAlpha", bWriteOnlyAlpha)) Material->bWriteOnlyAlpha = bWriteOnlyAlpha;
-		bool DitheredLODTransition;
-		if (Properties->TryGetBoolField("DitheredLODTransition", DitheredLODTransition)) Material->DitheredLODTransition = DitheredLODTransition;
-		bool DitherOpacityMask;
-		if (Properties->TryGetBoolField("DitherOpacityMask", DitherOpacityMask)) Material->DitherOpacityMask = DitherOpacityMask;
-		bool TwoSided;
-		if (Properties->TryGetBoolField("TwoSided", TwoSided)) Material->TwoSided = TwoSided;
-		bool Wireframe;
-		if (Properties->TryGetBoolField("Wireframe", Wireframe)) Material->Wireframe = Wireframe;
-
-		int32 BlendablePriority;
-		if (Properties->TryGetNumberField("BlendablePriority", BlendablePriority)) Material->BlendablePriority = BlendablePriority;
-		int32 EditorPitch;
-		if (Properties->TryGetNumberField("EditorPitch", EditorPitch)) Material->EditorPitch = EditorPitch;
-		int32 EditorX;
-		if (Properties->TryGetNumberField("EditorX", EditorX)) Material->EditorX = EditorX;
-		int32 EditorY;
-		if (Properties->TryGetNumberField("EditorY", EditorY)) Material->EditorY = EditorY;
-		int32 EditorYaw;
-		if (Properties->TryGetNumberField("EditorYaw", EditorYaw)) Material->EditorYaw = EditorYaw;
-		int32 NumCustomizedUVs;
-		if (Properties->TryGetNumberField("NumCustomizedUVs", NumCustomizedUVs)) Material->NumCustomizedUVs = NumCustomizedUVs;
-
-		float OpacityMaskClipValue;
-		if (Properties->TryGetNumberField("OpacityMaskClipValue", OpacityMaskClipValue)) Material->OpacityMaskClipValue = OpacityMaskClipValue;
-		float RefractionDepthBias;
-		if (Properties->TryGetNumberField("RefractionDepthBias", RefractionDepthBias)) Material->RefractionDepthBias = RefractionDepthBias;
-		float TranslucencyDirectionalLightingIntensity;
-		if (Properties->TryGetNumberField("TranslucencyDirectionalLightingIntensity", TranslucencyDirectionalLightingIntensity)) Material->TranslucencyDirectionalLightingIntensity = TranslucencyDirectionalLightingIntensity;
-		float TranslucentBackscatteringExponent;
-		if (Properties->TryGetNumberField("TranslucentBackscatteringExponent", TranslucentBackscatteringExponent)) Material->TranslucentBackscatteringExponent = TranslucentBackscatteringExponent;
-		float TranslucentSelfShadowDensityScale;
-		if (Properties->TryGetNumberField("TranslucentSelfShadowDensityScale", TranslucentSelfShadowDensityScale)) Material->TranslucentSelfShadowDensityScale = TranslucentSelfShadowDensityScale;
-		float TranslucentSelfShadowSecondDensityScale;
-		if (Properties->TryGetNumberField("TranslucentSelfShadowSecondDensityScale", TranslucentSelfShadowSecondDensityScale)) Material->TranslucentSelfShadowSecondDensityScale = TranslucentSelfShadowSecondDensityScale;
-		float TranslucentSelfShadowSecondOpacity;
-		if (Properties->TryGetNumberField("TranslucentSelfShadowSecondOpacity", TranslucentSelfShadowSecondOpacity)) Material->TranslucentSelfShadowSecondOpacity = TranslucentSelfShadowSecondOpacity;
-		float TranslucentShadowDensityScale;
-		if (Properties->TryGetNumberField("TranslucentShadowDensityScale", TranslucentShadowDensityScale)) Material->TranslucentShadowDensityScale = TranslucentShadowDensityScale;
-		float TranslucentShadowStartOffset;
-		if (Properties->TryGetNumberField("TranslucentShadowStartOffset", TranslucentShadowStartOffset)) Material->TranslucentShadowStartOffset = TranslucentShadowStartOffset;
-
-		const TSharedPtr<FJsonObject>* TranslucentMultipleScatteringExtinction;
-		if (JsonObject->TryGetObjectField("TranslucentMultipleScatteringExtinction", TranslucentMultipleScatteringExtinction)) Material->TranslucentMultipleScatteringExtinction = FMathUtilities::ObjectToLinearColor(TranslucentMultipleScatteringExtinction->Get());
+		if (const TSharedPtr<FJsonObject>* ShadingModelsPtr; Properties->TryGetObjectField("ShadingModels", ShadingModelsPtr))
+			if (int ShadingModelField; ShadingModelsPtr->Get()->TryGetNumberField("ShadingModelField", ShadingModelField))
+				Material->GetShadingModels().SetShadingModelField(ShadingModelField);
 
 		// Clear any default expressions the engine adds (ex: Result)
 		Material->GetExpressionCollection().Empty();
@@ -272,185 +106,22 @@ bool UMaterialImporter::ImportData() {
 		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);
 
 		if (!Settings->bSkipResultNodeConnection) {
-			const TSharedPtr<FJsonObject>* APtr = nullptr;
-			if (EdProps->TryGetObjectField("MaterialAttributes", APtr) && APtr != nullptr) {
-				FJsonObject* AObject = APtr->Get();
-				FName AExpressionName = GetExpressionName(AObject);
-				if (CreatedExpressionMap.Contains(AExpressionName)) {
-					FExpressionInput ExpressionInput = PopulateExpressionInput(AObject, *CreatedExpressionMap.Find(AExpressionName));
-					FMaterialAttributesInput* A = reinterpret_cast<FMaterialAttributesInput*>(&ExpressionInput);
-					Material->GetEditorOnlyData()->MaterialAttributes = *A;
-				}
+			TArray<FString> IgnoredProperties = TArray<FString> {
+				"ParameterGroupData",
+				"ExpressionCollection",
+				"CustomizedUVs"
+			};
+
+			const TSharedPtr<FJsonObject> RawConnectionData = TSharedPtr(EdProps);
+			for (FString Property : IgnoredProperties) {
+				if (RawConnectionData->HasField(Property))
+					RawConnectionData->RemoveField(Property);
 			}
 
-			const TSharedPtr<FJsonObject>* BaseColorPtr;
-			if (EdProps->TryGetObjectField("BaseColor", BaseColorPtr) && BaseColorPtr != nullptr) {
-				FJsonObject* BaseColorObject = BaseColorPtr->Get();
-				FName BaseColorExpressionName = GetExpressionName(BaseColorObject);
+			// Connect all pins using deserializer
+			GetObjectSerializer()->DeserializeObjectProperties(RawConnectionData, Material->GetEditorOnlyData());
 
-				if (CreatedExpressionMap.Contains(BaseColorExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(BaseColorObject, *CreatedExpressionMap.Find(BaseColorExpressionName), "Color");
-					FColorMaterialInput* BaseColor = reinterpret_cast<FColorMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->BaseColor = *BaseColor;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* MetallicPtr;
-			if (EdProps->TryGetObjectField("Metallic", MetallicPtr) && MetallicPtr != nullptr) {
-				FJsonObject* MetallicObject = MetallicPtr->Get();
-				FName MetallicExpressionName = GetExpressionName(MetallicObject);
-
-				if (CreatedExpressionMap.Contains(MetallicExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(MetallicObject, *CreatedExpressionMap.Find(MetallicExpressionName), "Scalar");
-					FScalarMaterialInput* Metallic = reinterpret_cast<FScalarMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->Metallic = *Metallic;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* SpecularPtr;
-			if (EdProps->TryGetObjectField("Specular", SpecularPtr) && SpecularPtr != nullptr) {
-				FJsonObject* SpecularObject = SpecularPtr->Get();
-				FName SpecularExpressionName = GetExpressionName(SpecularObject);
-
-				if (CreatedExpressionMap.Contains(SpecularExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(SpecularObject, *CreatedExpressionMap.Find(SpecularExpressionName), "Scalar");
-					FScalarMaterialInput* Specular = reinterpret_cast<FScalarMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->Specular = *Specular;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* RoughnessPtr;
-			if (EdProps->TryGetObjectField("Roughness", RoughnessPtr) && RoughnessPtr != nullptr) {
-				FJsonObject* RoughnessObject = RoughnessPtr->Get();
-				FName RoughnessExpressionName = GetExpressionName(RoughnessObject);
-
-				if (CreatedExpressionMap.Contains(RoughnessExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(RoughnessObject, *CreatedExpressionMap.Find(RoughnessExpressionName), "Scalar");
-					FScalarMaterialInput* Roughness = reinterpret_cast<FScalarMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->Roughness = *Roughness;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* AnisotropyPtr;
-			if (EdProps->TryGetObjectField("Anisotropy", AnisotropyPtr) && AnisotropyPtr != nullptr) {
-				FJsonObject* AnisotropyObject = AnisotropyPtr->Get();
-				FName AnisotropyExpressionName = GetExpressionName(AnisotropyObject);
-
-				if (CreatedExpressionMap.Contains(AnisotropyExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(AnisotropyObject, *CreatedExpressionMap.Find(AnisotropyExpressionName), "Scalar");
-					FScalarMaterialInput* Anisotropy = reinterpret_cast<FScalarMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->Anisotropy = *Anisotropy;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* NormalPtr;
-			if (EdProps->TryGetObjectField("Normal", NormalPtr) && NormalPtr != nullptr) {
-				FJsonObject* NormalObject = NormalPtr->Get();
-				FName NormalExpressionName = GetExpressionName(NormalObject);
-
-				if (CreatedExpressionMap.Contains(NormalExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(NormalObject, *CreatedExpressionMap.Find(NormalExpressionName), "Vector");
-					FVectorMaterialInput* Normal = reinterpret_cast<FVectorMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->Normal = *Normal;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* TangentPtr;
-			if (EdProps->TryGetObjectField("Tangent", TangentPtr) && TangentPtr != nullptr) {
-				FJsonObject* TangentObject = TangentPtr->Get();
-				FName TangentExpressionName = GetExpressionName(TangentObject);
-
-				if (CreatedExpressionMap.Contains(TangentExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(TangentObject, *CreatedExpressionMap.Find(TangentExpressionName), "Vector");
-					FVectorMaterialInput* Tangent = reinterpret_cast<FVectorMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->Tangent = *Tangent;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* EmissiveColorPtr;
-			if (EdProps->TryGetObjectField("EmissiveColor", EmissiveColorPtr) && EmissiveColorPtr != nullptr) {
-				FJsonObject* EmissiveColorObject = EmissiveColorPtr->Get();
-				FName EmissiveColorExpressionName = GetExpressionName(EmissiveColorObject);
-
-				if (CreatedExpressionMap.Contains(EmissiveColorExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(EmissiveColorObject, *CreatedExpressionMap.Find(EmissiveColorExpressionName), "Color");
-					FColorMaterialInput* EmissiveColor = reinterpret_cast<FColorMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->EmissiveColor = *EmissiveColor;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* OpacityPtr;
-			if (EdProps->TryGetObjectField("Opacity", OpacityPtr) && OpacityPtr != nullptr) {
-				FJsonObject* OpacityObject = OpacityPtr->Get();
-				FName OpacityExpressionName = GetExpressionName(OpacityObject);
-
-				if (CreatedExpressionMap.Contains(OpacityExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(OpacityObject, *CreatedExpressionMap.Find(OpacityExpressionName), "Scalar");
-					FScalarMaterialInput* Opacity = reinterpret_cast<FScalarMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->Opacity = *Opacity;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* OpacityMaskPtr;
-			if (EdProps->TryGetObjectField("OpacityMask", OpacityMaskPtr) && OpacityMaskPtr != nullptr) {
-				FJsonObject* OpacityMaskObject = OpacityMaskPtr->Get();
-				FName OpacityMaskExpressionName = GetExpressionName(OpacityMaskObject);
-
-				if (CreatedExpressionMap.Contains(OpacityMaskExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(OpacityMaskObject, *CreatedExpressionMap.Find(OpacityMaskExpressionName), "Scalar");
-					FScalarMaterialInput* OpacityMask = reinterpret_cast<FScalarMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->OpacityMask = *OpacityMask;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* WorldPositionOffsetPtr;
-			if (EdProps->TryGetObjectField("WorldPositionOffset", WorldPositionOffsetPtr) && WorldPositionOffsetPtr != nullptr) {
-				FJsonObject* WorldPositionOffsetObject = WorldPositionOffsetPtr->Get();
-				FName WorldPositionOffsetExpressionName = GetExpressionName(WorldPositionOffsetObject);
-
-				if (CreatedExpressionMap.Contains(WorldPositionOffsetExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(WorldPositionOffsetObject, *CreatedExpressionMap.Find(WorldPositionOffsetExpressionName), "Vector");
-					FVectorMaterialInput* WorldPositionOffset = reinterpret_cast<FVectorMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->WorldPositionOffset = *WorldPositionOffset;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* SubsurfaceColorPtr;
-			if (EdProps->TryGetObjectField("SubsurfaceColor", SubsurfaceColorPtr) && SubsurfaceColorPtr != nullptr) {
-				FJsonObject* SubsurfaceColorObject = SubsurfaceColorPtr->Get();
-				FName SubsurfaceColorExpressionName = GetExpressionName(SubsurfaceColorObject);
-
-				if (CreatedExpressionMap.Contains(SubsurfaceColorExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(SubsurfaceColorObject, *CreatedExpressionMap.Find(SubsurfaceColorExpressionName), "Color");
-					FColorMaterialInput* SubsurfaceColor = reinterpret_cast<FColorMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->SubsurfaceColor = *SubsurfaceColor;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* ClearCoatPtr;
-			if (EdProps->TryGetObjectField("ClearCoat", ClearCoatPtr) && ClearCoatPtr != nullptr) {
-				FJsonObject* ClearCoatObject = ClearCoatPtr->Get();
-				FName ClearCoatExpressionName = GetExpressionName(ClearCoatObject);
-
-				if (CreatedExpressionMap.Contains(ClearCoatExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(ClearCoatObject, *CreatedExpressionMap.Find(ClearCoatExpressionName), "Scalar");
-					FScalarMaterialInput* ClearCoat = reinterpret_cast<FScalarMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->ClearCoat = *ClearCoat;
-				}
-			}
-
-			const TSharedPtr<FJsonObject>* AmbientOcclusionPtr;
-			if (EdProps->TryGetObjectField("AmbientOcclusion", AmbientOcclusionPtr) && AmbientOcclusionPtr != nullptr) {
-				FJsonObject* AmbientOcclusionObject = AmbientOcclusionPtr->Get();
-				FName AmbientOcclusionExpressionName = GetExpressionName(AmbientOcclusionObject);
-
-				if (CreatedExpressionMap.Contains(AmbientOcclusionExpressionName)) {
-					FExpressionInput Ex = PopulateExpressionInput(AmbientOcclusionObject, *CreatedExpressionMap.Find(AmbientOcclusionExpressionName), "Scalar");
-					FScalarMaterialInput* AmbientOcclusion = reinterpret_cast<FScalarMaterialInput*>(&Ex);
-					Material->GetEditorOnlyData()->AmbientOcclusion = *AmbientOcclusion;
-				}
-			}
-
+			// CustomizedUVs defined here
 			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; EdProps->TryGetArrayField("CustomizedUVs", InputsPtr)) {
 				int i = 0;
 				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
