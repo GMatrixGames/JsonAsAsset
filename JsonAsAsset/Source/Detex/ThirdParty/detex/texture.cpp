@@ -29,7 +29,7 @@ static detexDecompressBlockFuncType decompress_function[] = {
 	NULL, // detexDecompressBlockBC1,
 	NULL, // detexDecompressBlockBC1A,
 	NULL, // detexDecompressBlockBC2,
-	NULL, // detexDecompressBlockBC3,
+	detexDecompressBlockBC3,
 	NULL, // detexDecompressBlockRGTC1,
 	NULL, // detexDecompressBlockSIGNED_RGTC1,
 	NULL, // detexDecompressBlockRGTC2,

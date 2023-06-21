@@ -224,6 +224,15 @@ void UTextureImporter::GetDecompressedTextureData(uint8* Data, uint8*& OutData, 
 		Texture.width_in_blocks = SizeX / 4;
 		Texture.height_in_blocks = SizeY / 4;
 		detexDecompressTextureLinear(&Texture, OutData, DETEX_PIXEL_FORMAT_BGRA8);
+	} else if (Format == PF_DXT5) {
+		detexTexture Texture;
+		Texture.data = Data;
+		Texture.format = DETEX_TEXTURE_FORMAT_BC3;
+		Texture.width = SizeX;
+		Texture.height = SizeY;
+		Texture.width_in_blocks = SizeX / 4;
+		Texture.height_in_blocks = SizeY / 4;
+		detexDecompressTextureLinear(&Texture, OutData, DETEX_PIXEL_FORMAT_BGRA8);
 	} else if (Format == PF_G8) {
 		const uint8* s = Data;
 		uint8* d = OutData;
@@ -253,9 +262,6 @@ void UTextureImporter::GetDecompressedTextureData(uint8* Data, uint8*& OutData, 
 			break;
 		case PF_DXT3:
 			FourCC = FOURCC_DXT3;
-			break;
-		case PF_DXT5:
-			FourCC = FOURCC_DXT5;
 			break;
 		default: FourCC = 0;
 		}

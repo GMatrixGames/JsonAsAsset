@@ -705,7 +705,9 @@ uint8_t * DETEX_RESTRICT target_pixel_buffer) {
 static void ConvertPixel64RGBX16ToPixel48RGB16(uint8_t * DETEX_RESTRICT source_pixel_buffer, int nu_pixels,
 uint8_t * DETEX_RESTRICT target_pixel_buffer) {
 	uint64_t *source_pixel64_buffer = (uint64_t *)source_pixel_buffer;
-	uint16_t *target_pixel16_buffer = (uint16_t *)target_pixel16_buffer;
+	// See https://github.com/dazKind/detex/commit/f3cb10b4f3f626c7ada8db1784385b99c169eb79
+	//uint16_t *target_pixel16_buffer = (uint16_t *)target_pixel16_buffer;
+	uint16_t *target_pixel16_buffer = (uint16_t *)target_pixel_buffer;
 	for (int i = 0; i < nu_pixels; i++) {
 		uint64_t pixel = *source_pixel64_buffer;
 		target_pixel16_buffer[0] = detexPixel64GetR16(pixel);
