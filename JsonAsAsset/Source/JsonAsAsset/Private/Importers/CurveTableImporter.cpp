@@ -3,7 +3,6 @@
 #include "Importers/CurveTableImporter.h"
 
 #include "Dom/JsonObject.h"
-#include "Factories/CurveTableFactory.h"
 #include "Utilities/AssetUtilities.h"
 
 bool UCurveTableImporter::ImportData() {

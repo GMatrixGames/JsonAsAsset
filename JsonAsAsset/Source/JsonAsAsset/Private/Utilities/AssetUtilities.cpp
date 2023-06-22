@@ -109,7 +109,7 @@ UObject* FAssetUtilities::GetSelectedAsset() {
 
 // Constructing assets ect..
 template <typename T>
-bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, TObjectPtr<T>& OutObject, bool& bSuccess) {
+bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T*& OutObject, bool& bSuccess) {
 	// Supported Assets
 	if (Type == "Texture2D" ||
 		Type == "TextureCube" ||
@@ -191,24 +191,22 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	if (JsonObject == nullptr)
 		return false;
 
-	TArray<TSharedPtr<FJsonValue>> Response = JsonObject->GetArrayField("jsonOutput");
-	if (Response.IsEmpty())
-		return false;
+	TSharedPtr<FJsonObject> Response = JsonObject->GetArrayField("jsonOutput")[0]->AsObject();
 
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-	TSharedPtr<FJsonObject> JsonExport = Response[0]->AsObject();
+	TSharedPtr<FJsonObject> JsonExport = Response;
 	FString Type = JsonExport->GetStringField("Type");
 	UTexture* Texture = nullptr;
 
 	// --------------- Download Texture Data ------------
 	FHttpModule* HttpModule = &FHttpModule::Get();
-	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
+	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = HttpModule->CreateRequest();
 
 	HttpRequest->SetURL(Settings->Url + "/api/v1/export?path=" + Path);
 	HttpRequest->SetHeader("content-type", "application/octet-stream");
 	HttpRequest->SetVerb(TEXT("GET"));
 
-	const TSharedPtr<IHttpResponse> HttpResponse = FRemoteUtilities::ExecuteRequestSync(HttpRequest);
+	const TSharedPtr<IHttpResponse, ESPMode::ThreadSafe> HttpResponse = FRemoteUtilities::ExecuteRequestSync(HttpRequest);
 	if (!HttpResponse.IsValid() || HttpResponse->GetResponseCode() != 200)
 		return false;
 
@@ -226,7 +224,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	Package->FullyLoad();
 
 	// Create Importer
-	const UTextureImporter* Importer = new UTextureImporter(AssetName, Path, Response[0]->AsObject(), Package, OutermostPkg);
+	const UTextureImporter* Importer = new UTextureImporter(AssetName, Path, Response, Package, OutermostPkg);
 
 	if (Type == "Texture2D")
 		Importer->ImportTexture2D(Texture, Data, JsonExport);
@@ -256,7 +254,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 
 		const FString PackageName = Package->GetName();
 		const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
-		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
+		UPackage::SavePackage(Package, nullptr, RF_Standalone, *PackageFileName, GWarn, nullptr, false, true, SAVE_NoError);
 	}
 
 	OutTexture = Texture;
@@ -265,21 +263,16 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 }
 
 void FAssetUtilities::CreatePlugin(FString PluginName) {
-	FPluginUtils::FNewPluginParamsWithDescriptor CreationParams;
-	CreationParams.Descriptor.bCanContainContent = true;
-
-	CreationParams.Descriptor.FriendlyName = PluginName;
-	CreationParams.Descriptor.Version = 1;
-	CreationParams.Descriptor.VersionName = TEXT("1.0");
-	CreationParams.Descriptor.Category = TEXT("Other");
+	FPluginUtils::FNewPluginParams CreationParams;
+	CreationParams.bCanContainContent = true;
 
 	FText FailReason;
-	FPluginUtils::FLoadPluginParams LoadParams;
+	FPluginUtils::FMountPluginParams LoadParams;
 	LoadParams.bEnablePluginInProject = true;
 	LoadParams.bUpdateProjectPluginSearchPath = true;
 	LoadParams.bSelectInContentBrowser = false;
 
-	FPluginUtils::CreateAndLoadNewPlugin(PluginName, FPaths::ProjectPluginsDir(), CreationParams, LoadParams);
+	FPluginUtils::MountPlugin(PluginName, FPaths::ProjectPluginsDir(), LoadParams, FailReason);
 
 #define LOCTEXT_NAMESPACE "UMG"
 #if WITH_EDITOR
@@ -293,7 +286,6 @@ void FAssetUtilities::CreatePlugin(FString PluginName) {
 	Info.bUseLargeFont = true;
 	Info.bUseSuccessFailIcons = false;
 	Info.WidthOverride = FOptionalSize(350);
-	Info.SubText = FText::FromString(FString("Created successfully"));
 
 	TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 	NotificationPtr->SetCompletionState(SNotificationItem::CS_Success);
@@ -303,7 +295,7 @@ void FAssetUtilities::CreatePlugin(FString PluginName) {
 
 const TSharedPtr<FJsonObject> FAssetUtilities::API_RequestExports(const FString& Path) {
 	FHttpModule* HttpModule = &FHttpModule::Get();
-	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
+	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = HttpModule->CreateRequest();
 
 	FString PackagePath;
 	FString AssetName;
@@ -311,11 +303,11 @@ const TSharedPtr<FJsonObject> FAssetUtilities::API_RequestExports(const FString&
 
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
-	const TSharedRef<IHttpRequest> NewRequest = HttpModule->CreateRequest();
+	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> NewRequest = HttpModule->CreateRequest();
 	NewRequest->SetURL(Settings->Url + "/api/v1/export?raw=true&path=" + Path);
 	NewRequest->SetVerb(TEXT("GET"));
 
-	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
+	const TSharedPtr<IHttpResponse, ESPMode::ThreadSafe> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
 	if (!NewResponse.IsValid()) return TSharedPtr<FJsonObject>();
 
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());

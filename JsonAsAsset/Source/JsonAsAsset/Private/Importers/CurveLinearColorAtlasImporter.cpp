@@ -43,12 +43,9 @@ bool UCurveLinearColorAtlasImporter::ImportData() {
 		if (bool bHasAnyDirtyTextures; Properties->TryGetBoolField("bHasAnyDirtyTextures", bHasAnyDirtyTextures)) Object->bHasAnyDirtyTextures = bHasAnyDirtyTextures;
 		if (bool bIsDirty; Properties->TryGetBoolField("bIsDirty", bIsDirty)) Object->bIsDirty = bIsDirty;
 		if (bool bShowDebugColorsForNullGradients; Properties->TryGetBoolField("bShowDebugColorsForNullGradients", bShowDebugColorsForNullGradients)) Object->bShowDebugColorsForNullGradients = bShowDebugColorsForNullGradients;
-		if (bool bSquareResolution; Properties->TryGetBoolField("bSquareResolution", bSquareResolution)) Object->bSquareResolution = bSquareResolution;
 
-		if (float TextureSize; Properties->TryGetNumberField("TextureSize", TextureSize))
+		if (uint32 TextureSize; Properties->TryGetNumberField(TEXT("TextureSize"), TextureSize))
 			Object->TextureSize = Properties->GetNumberField("TextureSize");
-		if (float TextureHeight; Properties->TryGetNumberField("TextureHeight", TextureHeight))
-			Object->TextureHeight = Properties->GetNumberField("TextureHeight");
 
 		FProperty* TextureSizeProperty = FindFProperty<FProperty>(Object->GetClass(), "TextureSize");
 		FPropertyChangedEvent TextureSizePropertyPropertyChangedEvent(TextureSizeProperty, EPropertyChangeType::ValueSet);
@@ -59,7 +56,7 @@ bool UCurveLinearColorAtlasImporter::ImportData() {
 		FPropertyChangedEvent PropertyChangedEvent(GradientCurvesProperty, EPropertyChangeType::ArrayAdd);
 
 		const TArray<TSharedPtr<FJsonValue>> GradientCurves = Properties->GetArrayField("GradientCurves");
-		TArray<TObjectPtr<UCurveLinearColor>> CurvesLocal;
+		TArray<UCurveLinearColor*> CurvesLocal;
 
 		CurvesLocal = LoadObject(GradientCurves, CurvesLocal);
 		Object->GradientCurves = CurvesLocal;

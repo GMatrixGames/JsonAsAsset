@@ -26,9 +26,7 @@
 #include "Importers/MaterialFunctionImporter.h"
 #include "Importers/MaterialImporter.h"
 #include "Importers/MaterialParameterCollectionImporter.h"
-#include "Importers/NiagaraParameterCollectionImporter.h"
 #include "Importers/MaterialInstanceConstantImporter.h"
-#include "Importers/SoundCueImporter.h"
 #include "Importers/PhysicalMaterialImporter.h"
 #include "Importers/TextureImporter.h"
 #include "Importers/DataAssetImporter.h"
@@ -47,12 +45,12 @@
 #define LOCTEXT_NAMESPACE "IImporter"
 
 template <typename T>
-TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, FString Name, FString Path) {
+T* IImporter::DownloadWrapper(T* InObject, FString Type, FString Name, FString Path) {
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
 	// If the asset can be found locally
 	if (InObject == nullptr && HandleReference(Path)) {
-		TObjectPtr<T> Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
+		T* Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
 
 		return Object;
 	}
@@ -68,7 +66,7 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 	) {
 		const UObject* DefaultObject = T::StaticClass()->ClassDefaultObject;
 
-		if (DefaultObject != nullptr) {
+		if (DefaultObject != nullptr && Path != FString("")) {
 			bool bRemoteDownloadStatus = false;
 			bool bTriedDownload = false;
 
@@ -109,7 +107,7 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 }
 
 template <typename T>
-void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object) {
+void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, T*& Object) {
 	FString Type;
 	FString Name;
 	PackageIndex->Get()->GetStringField("ObjectName").Split("'", &Type, &Name);
@@ -120,11 +118,12 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	Path = Path.Replace(TEXT("Engine/Content"), TEXT("/Engine"));
 
 	Name = Name.Replace(TEXT("'"), TEXT(""));
+	Name.Split(":", &Name, nullptr);
 
 #pragma warning( push )
 #pragma warning( disable : 4101) // Hide LoadObject Fail
 	// Define found object
-	TObjectPtr<T> Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
+	T* Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
 
 	// Material Expressions may be formatted differently
 	if (!Obj && Name.StartsWith("MaterialExpression")) {
@@ -140,7 +139,7 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 }
 
 template <typename T>
-TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array) {
+TArray<T*> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<T*> Array) {
 	for (const TSharedPtr<FJsonValue> ArrayElement : PackageArray) {
 		const TSharedPtr<FJsonObject> Ptr = ArrayElement->AsObject();
 
@@ -151,7 +150,7 @@ TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>
 		Ptr->GetStringField("ObjectPath").Split(".", &Path, nullptr);
 		Name = Name.Replace(TEXT("'"), TEXT(""));
 
-		TObjectPtr<T> Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
+		T* Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
 		Array.Add(DownloadWrapper(Object, Type, Name, Path));
 	}
 
@@ -228,7 +227,7 @@ void IImporter::SavePackage() {
 	const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
 
 	if (Settings->bAllowPackageSaving)
-		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
+		UPackage::SavePackage(Package, nullptr, RF_Standalone, *PackageFileName, GWarn, nullptr, false, true, SAVE_NoError);
 }
 
 bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, const bool bHideNotifications) {
@@ -265,7 +264,6 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 				else if (Type == "Skeleton") Importer = new USkeletonImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 				else if (Type == "SkeletalMeshLODSettings") Importer = new USkeletalMeshLODSettingsImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
-				else if (Type == "SoundCue") Importer = new USoundCueImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 				else if (Type == "ReverbEffect") Importer = new UReverbEffectImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SoundAttenuation") Importer = new USoundAttenuationImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SoundConcurrency") Importer = new USoundConcurrencyImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
@@ -277,7 +275,6 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 				else if (Type == "PhysicalMaterial") Importer = new UPhysicalMaterialImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
 				else if (Type == "LandscapeGrassType") Importer = new ULandscapeGrassTypeImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "NiagaraParameterCollection") Importer = new UNiagaraParameterCollectionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
 				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
@@ -390,7 +387,6 @@ void IImporter::AppendNotification(const FText& Text, const FText& SubText, floa
 	Info.bUseLargeFont = true;
 	Info.bUseSuccessFailIcons = bUseSuccessFailIcons;
 	Info.WidthOverride = FOptionalSize(WidthOverride);
-	Info.SubText = SubText;
 
 	const TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 	NotificationPtr->SetCompletionState(CompletionState);
@@ -402,7 +398,6 @@ void IImporter::AppendNotification(const FText& Text, const FText& SubText, floa
 	Info.bUseLargeFont = true;
 	Info.bUseSuccessFailIcons = bUseSuccessFailIcons;
 	Info.WidthOverride = FOptionalSize(WidthOverride);
-	Info.SubText = SubText;
 	Info.Image = SlateBrush;
 
 	const TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);

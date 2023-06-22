@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "VectorTypes.h"
 #include "Math/Color.h"
 
 class FMathUtilities {

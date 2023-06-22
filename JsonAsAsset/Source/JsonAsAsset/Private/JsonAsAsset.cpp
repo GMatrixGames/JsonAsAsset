@@ -7,7 +7,6 @@
 // ------------------------------------------------------ |
 #include "Developer/DesktopPlatform/Public/IDesktopPlatform.h"
 #include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
-#include "Interfaces/IMainFrameModule.h"
 #include "Styling/SlateIconFinder.h"
 #include "Misc/MessageDialog.h"
 #include "Json.h"
@@ -52,10 +51,10 @@
 #include "Widgets/Views/STableRow.h"
 #include "Widgets/Views/SListView.h"
 #include "Styling/CoreStyle.h"
-#include "Styling/StyleColors.h"
-#include "Styling/AppStyle.h"
-#include "SPrimaryButton.h"
 #include <TlHelp32.h>
+
+#include "Interfaces/IMainFrameModule.h"
+#include "Logging/MessageLog.h"
 
 #ifdef _MSC_VER
 #undef GetObject
@@ -92,7 +91,6 @@ void FJsonAsAssetModule::StartupModule() {
 		);
 
 		FNotificationInfo Info(TitleText);
-		Info.SubText = MessageText;
 
 		Info.HyperlinkText = LOCTEXT("UnrealSoftwareRequirements", "JsonAsAsset Docs");
 		Info.Hyperlink = FSimpleDelegate::CreateStatic([]() { 
@@ -172,9 +170,6 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 
 		if (!IsProcessRunning("JsonAsAssetAPI.exe") && bIsLocalHost) {
 			FNotificationInfo Info(LOCTEXT("JsonAsAssetNotificationTitle", "Local Fetch API"));
-			Info.SubText = LOCTEXT("JsonAsAssetNotificationText",
-				"Please start the Local Fetch API to use JsonAsAsset with no issues, if you need any assistance figuring out Local Fetch and the settings, please take a look at the documentation:"
-			);
 
 			Info.HyperlinkText = LOCTEXT("UnrealSoftwareRequirements", "JsonAsAsset Docs");
 			Info.Hyperlink = FSimpleDelegate::CreateStatic([]() {
@@ -246,7 +241,7 @@ void FJsonAsAssetModule::RegisterMenus() {
 	FToolMenuOwnerScoped OwnerScoped(this);
 
 	// Register JsonAsAsset toolbar dropdown button
-	UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
+	UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar");
 	FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("JsonAsAsset");
 
 	FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitComboButton(
@@ -323,10 +318,10 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 	MenuBuilder.BeginSection("JsonAsAssetSection", FText::FromString("JSON Tools v" + Plugin->GetDescriptor().VersionName));
 	{
 		MenuBuilder.AddSubMenu(
-			LOCTEXT("JsonAsAssetMenu", "Asset Types"),
-			LOCTEXT("JsonAsAssetMenuToolTip", "List of supported assets for JsonAsAsset"),
+			LOCTEXT("JsonAsAssetTypes", "Asset Types"),
+			LOCTEXT("JsonAsAssetTypesMenuToolTip", "List of supported assets for JsonAsAsset"),
 			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
-				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Asset Classes"));
+				InnerMenuBuilder.BeginSection("JsonAsAssetAssetTypeSection", LOCTEXT("JsonAsAssetAssetTypeSection", "Asset Classes"));
 				{
 					for (FString& Asset : IImporter::GetAcceptedTypes()) {
 						InnerMenuBuilder.AddMenuEntry(
@@ -344,13 +339,13 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 				InnerMenuBuilder.EndSection();
 			}),
 			false,
-			FSlateIcon(FAppStyle::Get().GetStyleSetName(), "LevelEditor.Tabs.Viewports")
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports")
 		);
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("JsonAsAssetButton", "Documentation"),
-			LOCTEXT("JsonAsAssetButtonTooltip", "Documentation for JsonAsAsset"),
-			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Documentation"),
+			LOCTEXT("JsonAsAssetDocumentationButton", "Documentation"),
+			LOCTEXT("JsonAsAssetDocumentationButtonTooltip", "Documentation for JsonAsAsset"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "Icons.Documentation"),
 			FUIAction(
 				FExecuteAction::CreateLambda([this]() {
 					FString TheURL = "https://github.com/Tectors/JsonAsAsset";
@@ -388,9 +383,9 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 			// Export Directory Missing
 			if (Settings->ExportDirectory.Path.IsEmpty())
 				MenuBuilder.AddMenuEntry(
-					LOCTEXT("JsonAsAssetButton", "Export Directory Missing"),
-					LOCTEXT("JsonAsAssetButtonTooltip", "Change your exports directory in JsonAsAsset's Plugin Settings"),
-					FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.WarningWithColor"),
+					LOCTEXT("JsonAsAssetExportDirectoryButton", "Export Directory Missing"),
+					LOCTEXT("JsonAsAssetExportDirectoryButtonTooltip", "Change your exports directory in JsonAsAsset's Plugin Settings"),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "Icons.WarningWithColor"),
 					FUIAction(
 						FExecuteAction::CreateLambda([this]() {
 							// Send user to plugin
@@ -405,12 +400,12 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 	}
 
 	if (Settings->bEnableLocalFetch) {
-		MenuBuilder.BeginSection("JsonAsAssetSection", FText::FromString("Json-As-Asset API"));
+		MenuBuilder.BeginSection("JsonAsAssetAPISection", FText::FromString("Json-As-Asset API"));
 		MenuBuilder.AddSubMenu(
-			LOCTEXT("JsonAsAssetMenu", "Asset Types"),
-			LOCTEXT("JsonAsAssetMenuToolTip", "List of supported classes that can be locally fetched using the API"),
+			LOCTEXT("JsonAsAssetAPIAssetTypesMenu", "Asset Types"),
+			LOCTEXT("JsonAsAssetAPIAssetTypesMenuToolTip", "List of supported classes that can be locally fetched using the API"),
 			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
-				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Asset Classes"));
+				InnerMenuBuilder.BeginSection("JsonAsAssetClassesSection", LOCTEXT("JsonAsAssetClassesSection", "Asset Classes"));
 				{
 					TArray<FString> AcceptedTypes;
 					const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
@@ -455,10 +450,10 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 		);
 
 		MenuBuilder.AddSubMenu(
-			LOCTEXT("JsonAsAssetMenu", "Command-line Application"),
+			LOCTEXT("JsonAsAssetCommandLineMenu", "Command-line Application"),
 			LOCTEXT("", ""),
 			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
-				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Console"));
+				InnerMenuBuilder.BeginSection("JsonAsAssetCommandLineSection", LOCTEXT("JsonAsAssetCommandLineSection", "Console"));
 				{
 					InnerMenuBuilder.AddMenuEntry(
 						FText::FromString("Execute JsonAsAsset API (.EXE)"),
@@ -545,9 +540,9 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 
 	MenuBuilder.AddSeparator();
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("JsonAsAssetButton", "Open Plugin Settings"),
-		LOCTEXT("JsonAsAssetButtonTooltip", "Brings you to the JsonAsAsset Settings"),
-		FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Settings"),
+		LOCTEXT("JsonAsAssetPluginSettingsButton", "Open Plugin Settings"),
+		LOCTEXT("JsonAsAssetPluginSettingsButtonTooltip", "Brings you to the JsonAsAsset Settings"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "Icons.Settings"),
 		FUIAction(
 			FExecuteAction::CreateLambda([this]() {
 				// Send user to plugin
@@ -558,9 +553,9 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 		NAME_None
 	);
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("JsonAsAssetButton", "Open Message Log"),
-		LOCTEXT("JsonAsAssetButtonTooltip", "Message Log for JsonAsAsset\n> Allows you to see what went wrong, and what went great"),
-		FSlateIcon(FAppStyle::GetAppStyleSetName(), "MessageLog.TabIcon"),
+		LOCTEXT("JsonAsAssetMessageLogButton", "Open Message Log"),
+		LOCTEXT("JsonAsAssetMessageLogButtonTooltip", "Message Log for JsonAsAsset\n> Allows you to see what went wrong, and what went great"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "MessageLog.TabIcon"),
 		FUIAction(
 			FExecuteAction::CreateLambda([this]() {
 				FMessageLog MessageLogger = FMessageLog(FName("JsonAsAsset"));
@@ -570,191 +565,9 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 		NAME_None
 	);
 
-
-	MenuBuilder.AddSeparator();
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("JsonAsAssetButton", "About JsonAsAsset"),
-		LOCTEXT("JsonAsAssetButtonTooltip", "More information about JsonAsAsset"),
-		FSlateIcon(FAppStyle::GetAppStyleSetName(), "MessageLog.Action"),
-		FUIAction(
-			FExecuteAction::CreateLambda([this]() {
-				TSharedPtr<SWindow> AboutWindow =
-					SNew(SWindow)
-					.Title(LOCTEXT("AboutJsonAsAsset", "About JsonAsAsset"))
-					.ClientSize(FVector2D(720.f, 470.f))
-					.SupportsMaximize(false).SupportsMinimize(false)
-					.SizingRule(ESizingRule::FixedSize)
-					[
-						SNew(SAboutJsonAsAsset)
-					];
-
-				IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
-				TSharedPtr<SWindow> ParentWindow = MainFrame.GetParentWindow();
-
-				if (ParentWindow.IsValid())
-					FSlateApplication::Get().AddModalWindow(AboutWindow.ToSharedRef(), ParentWindow.ToSharedRef());
-				else FSlateApplication::Get().AddWindow(AboutWindow.ToSharedRef());
-			})
-		),
-		NAME_None
-	);
-
 	return MenuBuilder.MakeWidget();
 }
 
-#undef LOCTEXT_NAMESPACE
-
-#define LOCTEXT_NAMESPACE "AboutJsonAsAsset"
-void SAboutJsonAsAsset::Construct(const FArguments& InArgs) {
-	// Plugin Details
-	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("JsonAsAsset");
-
-	#ifdef _MSC_VER
-	#pragma warning(push)
-	#pragma warning(disable : 4428)
-	#endif
-		AboutLines.Add(MakeShareable(new FLineDefinition(LOCTEXT("JsonAsAssetDetails", "JsonAsAsset is a plugin used to convert JSON to uassets inside of the content browser. We will not be liable or responsible for activity you may do with this plugin, nor any loss or damage caused by this plugin."), 9, FLinearColor(1.f, 1.f, 1.f), FMargin(0.f, 2.f))));
-	#ifdef _MSC_VER
-	#pragma warning(pop)
-	#endif
-
-	FText Version = FText::FromString("Version: " + Plugin->GetDescriptor().VersionName + " (" + Plugin->GetDescriptor().EngineVersion + ")");
-	FText Title = FText::FromString("JsonAsAsset");
-
-	ChildSlot
-	[
-		SNew(SBorder)
-		.Padding(16.f).BorderImage(FAppStyle::Get().GetBrush("Brushes.Panel"))
-		[
-			SNew(SVerticalBox)
-
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew(SImage).Image(FJsonAsAssetStyle::Get().GetBrush(TEXT("JsonAsAsset.AboutScreen")))
-			]
-
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(0.f, 16.f, 0.f, 0.f)
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.FillWidth(1.0)
-				[
-					SNew(SVerticalBox)
-					+SVerticalBox::Slot()
-					.Padding(0.f, 4.f)
-					[
-						SNew(STextBlock)
-						.ColorAndOpacity(FStyleColors::ForegroundHover)
-						.Font(FAppStyle::Get().GetFontStyle("AboutScreen.TitleFont"))
-						.Text(Title)
-					]
-
-					+SVerticalBox::Slot()
-					.Padding(0.f, 4.f)
-					[
-						SNew(SEditableText)
-						.IsReadOnly(true)
-						.ColorAndOpacity(FStyleColors::ForegroundHover)
-						.Text(Version)
-					]
-				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Right)
-				.Padding(0.0f, 0.0f, 8.f, 0.0f)
-				[
-					SAssignNew(FModelButton, SButton)
-						.ButtonStyle(FAppStyle::Get(), "SimpleButton")
-						.OnClicked(this, &SAboutJsonAsAsset::OnFModelButtonClicked)
-						.ContentPadding(0.f).ToolTipText(LOCTEXT("FModelButton", "FModel Application"))
-					[
-						SNew(SImage)
-						.Image(FJsonAsAssetStyle::Get().GetBrush(TEXT("JsonAsAsset.FModelLogo")))
-						.ColorAndOpacity(FSlateColor::UseForeground())
-					]
-				]
-
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Right)
-					.Padding(0.0f, 0.0f, 8.f, 0.0f)
-					[
-						SAssignNew(GithubButton, SButton)
-						.ButtonStyle(FAppStyle::Get(), "SimpleButton")
-						.OnClicked(this, &SAboutJsonAsAsset::OnGithubButtonClicked)
-						.ContentPadding(0.f).ToolTipText(LOCTEXT("GithubButton", "JsonAsAsset Github Page"))
-					[
-						SNew(SImage)
-						.Image(FJsonAsAssetStyle::Get().GetBrush(TEXT("JsonAsAsset.GithubLogo")))
-						.ColorAndOpacity(FSlateColor::UseForeground())
-					]
-				]
-			]
-
-			+SVerticalBox::Slot()
-			.Padding(FMargin(0.f, 16.f))
-			.AutoHeight()
-			[
-				SNew(SListView<TSharedRef<FLineDefinition>>)
-				.ListViewStyle(&FAppStyle::Get().GetWidgetStyle<FTableViewStyle>("SimpleListView"))
-				.ListItemsSource(&AboutLines)
-				.OnGenerateRow(this, &SAboutJsonAsAsset::MakeAboutTextItemWidget)
-				.SelectionMode(ESelectionMode::None)
-			] 
-
-			+SVerticalBox::Slot()
-			.Padding(FMargin(0.f, 16.f, 0.0f, 0.0f))
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
-
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Bottom)
-			]
-		]
-	];
-}
-
-TSharedRef<ITableRow> SAboutJsonAsAsset::MakeAboutTextItemWidget(TSharedRef<FLineDefinition> Item, const TSharedRef<STableViewBase>& OwnerTable) {
-	if (Item->Text.IsEmpty())
-		return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
-			.Style(&FAppStyle::Get().GetWidgetStyle<FTableRowStyle>("SimpleTableView.Row"))
-			.Padding(6.0f) [
-				SNew(SSpacer)
-			];
-	else
-		return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
-			.Style(&FAppStyle::Get().GetWidgetStyle<FTableRowStyle>("SimpleTableView.Row"))
-			.Padding(Item->Margin) [
-				SNew(STextBlock)
-				.LineHeightPercentage(1.3f)
-				.AutoWrapText(true)
-				.ColorAndOpacity(Item->TextColor)
-				.Font(FCoreStyle::GetDefaultFontStyle("Regular", Item->FontSize))
-				.Text(Item->Text)
-			];
-}
-
-FReply SAboutJsonAsAsset::OnFModelButtonClicked() {
-	FString TheURL = "https://fmodel.app";
-	FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr);
-
-	return FReply::Handled();
-}
-
-FReply SAboutJsonAsAsset::OnGithubButtonClicked() {
-	FString TheURL = "https://github.com/Tectors/JsonAsAsset";
-	FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr);
-
-	return FReply::Handled();
-}
 #undef LOCTEXT_NAMESPACE
 
 IMPLEMENT_MODULE(FJsonAsAssetModule, JsonAsAsset)

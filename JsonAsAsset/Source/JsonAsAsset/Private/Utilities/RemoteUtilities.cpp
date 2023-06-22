@@ -7,7 +7,7 @@
 #include "Interfaces/IHttpResponse.h"
 #include "Serialization/JsonSerializer.h"
 
-TSharedPtr<IHttpResponse, ESPMode::ThreadSafe> FRemoteUtilities::ExecuteRequestSync(TSharedRef<IHttpRequest> HttpRequest, float LoopDelay) {
+TSharedPtr<IHttpResponse, ESPMode::ThreadSafe> FRemoteUtilities::ExecuteRequestSync(TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest, float LoopDelay) {
 	const bool bStartedRequest = HttpRequest->ProcessRequest();
 	if (!bStartedRequest) {
 		UE_LOG(LogJson, Error, TEXT("Failed to start HTTP Request."));

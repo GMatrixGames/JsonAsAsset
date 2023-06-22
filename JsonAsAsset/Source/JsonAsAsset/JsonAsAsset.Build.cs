@@ -7,7 +7,7 @@ public class JsonAsAsset : ModuleRules
 	public JsonAsAsset(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-		CppStandard = CppStandardVersion.Cpp20;
+		CppStandard = CppStandardVersion.Cpp17;
 
 		PublicDependencyModuleNames.AddRange(new[]
 		{
@@ -18,7 +18,8 @@ public class JsonAsAsset : ModuleRules
 			"RenderCore",
 			"HTTP",
 			"DeveloperSettings",
-			"Niagara"
+			"Niagara",
+			"GeometricObjects"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new[]
@@ -31,7 +32,6 @@ public class JsonAsAsset : ModuleRules
 			"Engine",
 			"Slate",
 			"SlateCore",
-			"AnimationDataController",
 			"MaterialEditor",
 			"Landscape",
 			"AssetTools",
@@ -39,11 +39,11 @@ public class JsonAsAsset : ModuleRules
 			"Settings",
 			"PhysicsCore",
 			"MessageLog",
-			"ToolWidgets",
 			"PluginUtils",
 			"RHI",
 			"Detex",
-			"NVTT"
+			"NVTT",
+			"MainFrame"
 		});
 	}
 }

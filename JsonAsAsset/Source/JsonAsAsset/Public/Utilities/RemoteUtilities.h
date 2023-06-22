@@ -6,5 +6,5 @@
 
 class FRemoteUtilities {
 public:
-	static TSharedPtr<IHttpResponse, ESPMode::ThreadSafe> ExecuteRequestSync(TSharedRef<IHttpRequest> HttpRequest, float LoopDelay = 0.1);
+	static TSharedPtr<IHttpResponse, ESPMode::ThreadSafe> ExecuteRequestSync(TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest, float LoopDelay = 0.1);
 };

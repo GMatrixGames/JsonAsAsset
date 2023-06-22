@@ -188,10 +188,10 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 
 		if (!bSubgraph) {
 			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent))
-				FuncCasted->GetExpressionCollection().AddExpression(Expression);
+				FuncCasted->FunctionExpressions.Add(Expression);
 
 			if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) {
-				MatCasted->GetEditorOnlyData()->ExpressionCollection.Expressions.Add(Expression);
+				MatCasted->Expressions.Add(Expression);
 				Expression->UpdateMaterialExpressionGuid(true, false);
 				MatCasted->AddExpressionParameter(Expression, MatCasted->EditorParameters);
 			}
@@ -215,8 +215,8 @@ void UMaterialGraph_Interface::MaterialGraphNode_ConstructComments(UObject* Pare
 			MaterialGraphNode_ExpressionWrapper(Parent, Comment, Properties);
 			GetObjectSerializer()->DeserializeObjectProperties(Properties, Comment);
 
-			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddComment(Comment);
-			else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddComment(Comment);
+			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->FunctionEditorComments.Add(Comment);
+			else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->EditorComments.Add(Comment);
 		}
 }
 
@@ -237,21 +237,6 @@ UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Pa
 		return nullptr;
 
 	const UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Type.ToString());
-
-	if (!Class) {
-		TArray<FString> Redirects = TArray{
-			FLinkerLoad::FindNewPathNameForClass("/Script/InterchangeImport." + Type.ToString(), false),
-			FLinkerLoad::FindNewPathNameForClass("/Script/Landscape." + Type.ToString(), false)
-		};
-		
-		for (FString RedirectedPath : Redirects) {
-			if (!RedirectedPath.IsEmpty() && !Class)
-				Class = FindObject<UClass>(nullptr, *RedirectedPath);
-		}
-
-		if (!Class) 
-			Class = FindObject<UClass>(ANY_PACKAGE, *Type.ToString().Replace(TEXT("MaterialExpressionPhysicalMaterialOutput"), TEXT("MaterialExpressionLandscapePhysicalMaterialOutput")));
-	}
 
 	return NewObject<UMaterialExpression>
 	(
@@ -294,7 +279,7 @@ FExpressionInput UMaterialGraph_Interface::PopulateExpressionInput(const FJsonOb
 		if (FScalarMaterialInput* ScalarInput = reinterpret_cast<FScalarMaterialInput*>(&Input)) {
 			bool UseConstant;
 			if (JsonProperties->TryGetBoolField("UseConstant", UseConstant)) ScalarInput->UseConstant = UseConstant;
-			float Constant;
+			double Constant;
 			if (JsonProperties->TryGetNumberField("Constant", Constant)) ScalarInput->Constant = Constant;
 			Input = FExpressionInput(*ScalarInput);
 		}
@@ -303,7 +288,7 @@ FExpressionInput UMaterialGraph_Interface::PopulateExpressionInput(const FJsonOb
 			bool UseConstant;
 			if (JsonProperties->TryGetBoolField("UseConstant", UseConstant)) VectorInput->UseConstant = UseConstant;
 			const TSharedPtr<FJsonObject>* Constant;
-			if (JsonProperties->TryGetObjectField("Constant", Constant)) VectorInput->Constant = FMathUtilities::ObjectToVector3f(Constant->Get());
+			if (JsonProperties->TryGetObjectField("Constant", Constant)) VectorInput->Constant = FMathUtilities::ObjectToVector(Constant->Get());
 			Input = FExpressionInput(*VectorInput);
 		}
 	}

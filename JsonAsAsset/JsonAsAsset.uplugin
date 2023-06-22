@@ -2,7 +2,6 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "1.2.1",
-	"EngineVersion": "5.1.0",
 	"FriendlyName": "JsonAsAsset",
 	"Description": "A editor plugin to allow JSON files from FModel to a asset in the Content Browser.",
 	"Category": "Asset Import",
@@ -48,6 +47,10 @@
 		},
 		{
 			"Name": "PluginUtils",
+			"Enabled": true
+		},
+		{
+			"Name": "GeometryProcessing",
 			"Enabled": true
 		}
 	]

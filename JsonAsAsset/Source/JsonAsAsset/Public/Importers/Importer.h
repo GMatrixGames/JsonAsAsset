@@ -92,10 +92,10 @@ private:
 public:
 	template <class T = UObject>
 	// Loads a reference to a object	
-	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);
+	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, T*& Object);
 	template <class T = UObject>
 	// Loads a array of references
-	TArray<TObjectPtr<T>> LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array);
+	TArray<T*> LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<T*> Array);
 
 	// Refers to AcceptedTypes to see if type is valid ------------------
 	static bool CanImport(const FString& ImporterType) { return AcceptedTypes.Contains(ImporterType); }
@@ -138,7 +138,7 @@ protected:
 
 	// Wrapper for remote downloading
 	template <class T = UObject>
-	TObjectPtr<T> DownloadWrapper(TObjectPtr<T> InObject, FString Type, FString Name, FString Path);
+	T* DownloadWrapper(T* InObject, FString Type, FString Name, FString Path);
 
 	FName GetExportNameOfSubobject(const FString& PackageIndex);
 	TArray<TSharedPtr<FJsonValue>> FilterExportsByOuter(const FString& Outer);

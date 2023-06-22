@@ -202,7 +202,7 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 	}
 	else if (const FObjectPropertyBase* ObjectProperty = CastField<const FObjectPropertyBase>(Property)) {
 		// Need to serialize full UObject for object property
-		TObjectPtr<UObject> Object = NULL;
+		UObject* Object = NULL;
 
 		// Use IImporter to import the object
 		IImporter* Importer = new IImporter();

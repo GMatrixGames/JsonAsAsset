@@ -14,10 +14,10 @@ bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, TArray<uint8>& D
 
 	// NEW: .bin support
 	UTexture2D* Texture2D = NewObject<UTexture2D>(OutermostPkg, UTexture2D::StaticClass(), *FileName, RF_Standalone | RF_Public);
-	Texture2D->SetPlatformData(new FTexturePlatformData());
+	Texture2D->PlatformData = new FTexturePlatformData();
 
 	ImportTexture2D_Data(Texture2D, SubObjectProperties);
-	FTexturePlatformData* PlatformData = Texture2D->GetPlatformData();
+	FTexturePlatformData* PlatformData = Texture2D->PlatformData;
 
 	const int SizeX = Properties->GetNumberField("SizeX");
 	const int SizeY = Properties->GetNumberField("SizeY");
@@ -51,10 +51,10 @@ bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, TArray<uint8>& D
 bool UTextureImporter::ImportTextureCube(UTexture*& OutTextureCube, TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
 	UTextureCube* TextureCube = NewObject<UTextureCube>(Package, UTextureCube::StaticClass(), *FileName, RF_Public | RF_Standalone);
 
-	TextureCube->SetPlatformData(new FTexturePlatformData());
+	TextureCube->PlatformData = new FTexturePlatformData();
 
 	ImportTexture_Data(TextureCube, Properties);
-	FTexturePlatformData* PlatformData = TextureCube->GetPlatformData();
+	FTexturePlatformData* PlatformData = TextureCube->PlatformData;
 
 	const int SizeX = Properties->GetNumberField("SizeX");
 	const int SizeY = Properties->GetNumberField("SizeY") / 6;
@@ -134,7 +134,7 @@ bool UTextureImporter::ImportTexture2D_Data(UTexture2D* InTexture2D, const TShar
 	if (bool bHasBeenPaintedInEditor; Properties->TryGetBoolField("bHasBeenPaintedInEditor", bHasBeenPaintedInEditor)) InTexture2D->bHasBeenPaintedInEditor = bHasBeenPaintedInEditor;
 
 	// --------- Platform Data --------- //
-	FTexturePlatformData* PlatformData = InTexture2D->GetPlatformData();
+	FTexturePlatformData* PlatformData = InTexture2D->PlatformData;
 
 	if (int SizeX; Properties->TryGetNumberField("SizeX", SizeX)) PlatformData->SizeX = SizeX;
 	if (int SizeY; Properties->TryGetNumberField("SizeY", SizeY)) PlatformData->SizeY = SizeY;
@@ -152,14 +152,14 @@ bool UTextureImporter::ImportTexture_Data(UTexture* InTexture, const TSharedPtr<
 	if (InTexture == nullptr) return false;
 
 	// Adjust parameters
-	if (float AdjustBrightness; Properties->TryGetNumberField("AdjustBrightness", AdjustBrightness)) InTexture->AdjustBrightness = AdjustBrightness;
-	if (float AdjustBrightnessCurve; Properties->TryGetNumberField("AdjustBrightnessCurve", AdjustBrightnessCurve)) InTexture->AdjustBrightnessCurve = AdjustBrightnessCurve;
-	if (float AdjustHue; Properties->TryGetNumberField("AdjustHue", AdjustHue)) InTexture->AdjustHue = AdjustHue;
-	if (float AdjustMaxAlpha; Properties->TryGetNumberField("AdjustMaxAlpha", AdjustMaxAlpha)) InTexture->AdjustMaxAlpha = AdjustMaxAlpha;
-	if (float AdjustMinAlpha; Properties->TryGetNumberField("AdjustMinAlpha", AdjustMinAlpha)) InTexture->AdjustMinAlpha = AdjustMinAlpha;
-	if (float AdjustRGBCurve; Properties->TryGetNumberField("AdjustRGBCurve", AdjustRGBCurve)) InTexture->AdjustRGBCurve = AdjustRGBCurve;
-	if (float AdjustSaturation; Properties->TryGetNumberField("AdjustSaturation", AdjustSaturation)) InTexture->AdjustSaturation = AdjustSaturation;
-	if (float AdjustVibrance; Properties->TryGetNumberField("AdjustVibrance", AdjustVibrance)) InTexture->AdjustVibrance = AdjustVibrance;
+	if (double AdjustBrightness; Properties->TryGetNumberField("AdjustBrightness", AdjustBrightness)) InTexture->AdjustBrightness = AdjustBrightness;
+	if (double AdjustBrightnessCurve; Properties->TryGetNumberField("AdjustBrightnessCurve", AdjustBrightnessCurve)) InTexture->AdjustBrightnessCurve = AdjustBrightnessCurve;
+	if (double AdjustHue; Properties->TryGetNumberField("AdjustHue", AdjustHue)) InTexture->AdjustHue = AdjustHue;
+	if (double AdjustMaxAlpha; Properties->TryGetNumberField("AdjustMaxAlpha", AdjustMaxAlpha)) InTexture->AdjustMaxAlpha = AdjustMaxAlpha;
+	if (double AdjustMinAlpha; Properties->TryGetNumberField("AdjustMinAlpha", AdjustMinAlpha)) InTexture->AdjustMinAlpha = AdjustMinAlpha;
+	if (double AdjustRGBCurve; Properties->TryGetNumberField("AdjustRGBCurve", AdjustRGBCurve)) InTexture->AdjustRGBCurve = AdjustRGBCurve;
+	if (double AdjustSaturation; Properties->TryGetNumberField("AdjustSaturation", AdjustSaturation)) InTexture->AdjustSaturation = AdjustSaturation;
+	if (double AdjustVibrance; Properties->TryGetNumberField("AdjustVibrance", AdjustVibrance)) InTexture->AdjustVibrance = AdjustVibrance;
 
 	if (const TSharedPtr<FJsonObject>* AlphaCoverageThresholds; Properties->TryGetObjectField("AlphaCoverageThresholds", AlphaCoverageThresholds))
 		InTexture->AlphaCoverageThresholds = FMathUtilities::ObjectToVector(AlphaCoverageThresholds->Get());
@@ -171,9 +171,9 @@ bool UTextureImporter::ImportTexture_Data(UTexture* InTexture, const TSharedPtr<
 	if (bool bUseLegacyGamma; Properties->TryGetBoolField("bUseLegacyGamma", bUseLegacyGamma)) InTexture->bUseLegacyGamma = bUseLegacyGamma;
 
 	if (const TSharedPtr<FJsonObject>* ChromaKeyColor; Properties->TryGetObjectField("ChromaKeyColor", ChromaKeyColor)) InTexture->ChromaKeyColor = FMathUtilities::ObjectToColor(ChromaKeyColor->Get());
-	if (float ChromaKeyThreshold; Properties->TryGetNumberField("ChromaKeyThreshold", ChromaKeyThreshold)) InTexture->ChromaKeyThreshold = ChromaKeyThreshold;
+	if (double ChromaKeyThreshold; Properties->TryGetNumberField("ChromaKeyThreshold", ChromaKeyThreshold)) InTexture->ChromaKeyThreshold = ChromaKeyThreshold;
 
-	if (float CompositePower; Properties->TryGetNumberField("CompositePower", CompositePower)) InTexture->CompositePower = CompositePower;
+	if (double CompositePower; Properties->TryGetNumberField("CompositePower", CompositePower)) InTexture->CompositePower = CompositePower;
 	// if (const TSharedPtr<FJsonObject>* CompositeTexture; Properties->TryGetObjectField("CompositeTexture", CompositeTexture));
 	if (FString CompositeTextureMode; Properties->TryGetStringField("CompositeTextureMode", CompositeTextureMode)) InTexture->CompositeTextureMode = static_cast<ECompositeTextureMode>(StaticEnum<ECompositeTextureMode>()->GetValueByNameString(CompositeTextureMode));
 
