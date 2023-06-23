@@ -105,7 +105,7 @@ Upon launching your unreal engine project, you should of seen a notification ask
 
 First, open up to the JsonAsAsset plugin settings (basically do what's on the picture on the right) and make sure you are looking at the property "Export Directory".
 
-Now open up FModel, and go to your settings. `(Settings -> General)` There will be a setting called "Output Directory", copy that and go back to Unreal Engine. Now you need to click on the three dots and jump to the folder you copied, then press "Select Folder".
+Now open up FModel, and go to your settings. `(Settings -> General)` There will be a setting called "Output Directory", copy that and go back to Unreal Engine. Now you need to click on the three dots and jump to the folder you copied and go to the folder named "Exports", then press "Select Folder".
 
 -------------------
 
