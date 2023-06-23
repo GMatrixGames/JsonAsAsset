@@ -113,6 +113,7 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 	// Supported Assets
 	if (Type == "Texture2D" ||
 		Type == "TextureCube" ||
+		Type == "VolumeTexture" ||
 		Type == "TextureRenderTarget2D" ||
 		Type == "MaterialParameterCollection" ||
 		Type == "CurveFloat" ||
@@ -136,7 +137,8 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 		if (Type ==
 			"Texture2D" ||
 			Type == "TextureRenderTarget2D" ||
-			Type == "TextureCube"
+			Type == "TextureCube" ||
+			Type == "VolumeTexture"
 			) {
 			UTexture* Texture;
 
@@ -232,6 +234,8 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 		Importer->ImportTexture2D(Texture, Data, JsonExport);
 	if (Type == "TextureCube")
 		Importer->ImportTextureCube(Texture, Data, JsonExport);
+	if (Type == "VolumeTexture")
+		Importer->ImportVolumeTexture(Texture, Data, JsonExport);
 	if (Type == "TextureRenderTarget2D")
 		Importer->ImportRenderTarget2D(Texture, JsonExport->GetObjectField("Properties"));
 

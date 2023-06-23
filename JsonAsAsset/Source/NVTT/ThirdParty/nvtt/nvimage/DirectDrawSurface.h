@@ -173,7 +173,7 @@ namespace nv {
 
 		NVTT_API void setWidth(uint w);
 		NVTT_API void setHeight(uint h);
-		void setDepth(uint d);
+		NVTT_API void setDepth(uint d);
 		void setMipmapCount(uint count);
 		void setTexture2D();
 		void setTexture3D();

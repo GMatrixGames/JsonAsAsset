@@ -3,6 +3,7 @@
 #include "detex.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/TextureCube.h"
+#include "Engine/VolumeTexture.h"
 #include "Factories/TextureRenderTargetFactoryNew.h"
 #include "nvimage/DirectDrawSurface.h"
 #include "nvimage/Image.h"
@@ -21,6 +22,7 @@ bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, TArray<uint8>& D
 
 	const int SizeX = Properties->GetNumberField("SizeX");
 	const int SizeY = Properties->GetNumberField("SizeY");
+	const int SizeZ = Properties->GetNumberField("SizeZ");
 
 	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat)) PlatformData->PixelFormat = static_cast<EPixelFormat>(Texture2D->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
 
@@ -28,7 +30,7 @@ bool UTextureImporter::ImportTexture2D(UTexture*& OutTexture2D, TArray<uint8>& D
 	if (PlatformData->PixelFormat == PF_FloatRGBA || PlatformData->PixelFormat == PF_G16) Size = Data.Num();
 	uint8* DecompressedData = static_cast<uint8*>(FMemory::Malloc(Size));
 
-	GetDecompressedTextureData(Data.GetData(), DecompressedData, SizeX, SizeY, Size, PlatformData->PixelFormat);
+	GetDecompressedTextureData(Data.GetData(), DecompressedData, SizeX, SizeY, SizeZ, Size, PlatformData->PixelFormat);
 
 	ETextureSourceFormat Format = TSF_BGRA8;
 	if (Texture2D->CompressionSettings == TC_HDR) Format = TSF_RGBA16F;
@@ -82,7 +84,36 @@ bool UTextureImporter::ImportTextureCube(UTexture*& OutTextureCube, TArray<uint8
 	return false;
 }
 
-bool UTextureImporter::ImportVolumeTexture(UTexture*& OutTexture2D, const TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
+bool UTextureImporter::ImportVolumeTexture(UTexture*& OutVolumeTexture, TArray<uint8>& Data, const TSharedPtr<FJsonObject>& Properties) const {
+	UVolumeTexture* VolumeTexture = NewObject<UVolumeTexture>(Package, UVolumeTexture::StaticClass(), *FileName, RF_Public | RF_Standalone);
+
+	VolumeTexture->SetPlatformData(new FTexturePlatformData());
+
+	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat)) VolumeTexture->GetPlatformData()->PixelFormat = static_cast<EPixelFormat>(VolumeTexture->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
+
+	ImportTexture_Data(VolumeTexture, Properties);
+	const int SizeX = Properties->GetNumberField("SizeX");
+	const int SizeY = Properties->GetNumberField("SizeY");
+	const int SizeZ = Properties->GetNumberField("SizeZ");
+
+	int Size = SizeX * SizeY * SizeZ;
+	// if (PlatformData->PixelFormat == PF_FloatRGBA || PlatformData->PixelFormat == PF_G16) Size = Data.Num();
+	uint8* DecompressedData = static_cast<uint8*>(FMemory::Malloc(Size));
+
+	GetDecompressedTextureData(Data.GetData(), DecompressedData, SizeX, SizeY, SizeZ, Size, VolumeTexture->GetPlatformData()->PixelFormat);
+
+	VolumeTexture->Source.Init(SizeX, SizeY, SizeZ, 1, TSF_BGRA8);
+
+	uint8_t* Dest = VolumeTexture->Source.LockMip(0);
+	FMemory::Memcpy(Dest, DecompressedData, Size);
+	VolumeTexture->Source.UnlockMip(0);
+	VolumeTexture->UpdateResource();
+
+	if (VolumeTexture) {
+		OutVolumeTexture = VolumeTexture;
+		return true;
+	}
+
 	return false;
 }
 
@@ -205,7 +236,7 @@ bool UTextureImporter::ImportTexture_Data(UTexture* InTexture, const TSharedPtr<
 	return false;
 }
 
-void UTextureImporter::GetDecompressedTextureData(uint8* Data, uint8*& OutData, const int SizeX, const int SizeY, const int TotalSize, const EPixelFormat Format) const {
+void UTextureImporter::GetDecompressedTextureData(uint8* Data, uint8*& OutData, const int SizeX, const int SizeY, const int SizeZ, const int TotalSize, const EPixelFormat Format) const {
 	if (Format == PF_BC7) {
 		detexTexture Texture;
 		Texture.data = Data;
@@ -269,8 +300,9 @@ void UTextureImporter::GetDecompressedTextureData(uint8* Data, uint8*& OutData, 
 		Header.setFourCC(FourCC);
 		Header.setWidth(SizeX);
 		Header.setHeight(SizeY);
+		Header.setDepth(SizeZ);
 		Header.setNormalFlag(Format == PF_BC5);
-		DecodeDDS(Data, SizeX, SizeY, Header, Image);
+		DecodeDDS(Data, SizeX, SizeY, SizeZ, Header, Image);
 
 		// Fallback to raw data
 		FMemory::Memcpy(OutData, Image.pixels(), TotalSize);

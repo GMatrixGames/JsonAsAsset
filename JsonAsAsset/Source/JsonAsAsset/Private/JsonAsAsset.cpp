@@ -418,6 +418,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 					if (Settings->bEnableLocalFetch) {
 						AcceptedTypes.Add("Texture2D");
 						AcceptedTypes.Add("TextureCube");
+						AcceptedTypes.Add("VolumeTexture");
 						AcceptedTypes.Add("TextureRenderTarget2D");
 						AcceptedTypes.Add("CurveFloat");
 						AcceptedTypes.Add("CurveLinearColor");
