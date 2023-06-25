@@ -476,7 +476,7 @@ void DDSHeader::setHeight(uint h)
 void DDSHeader::setDepth(uint d)
 {
 	this->flags |= DDSD_DEPTH;
-	this->height = d;
+	this->depth = d;
 }
 
 void DDSHeader::setMipmapCount(uint count)
