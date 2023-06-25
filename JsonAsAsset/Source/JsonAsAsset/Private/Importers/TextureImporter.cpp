@@ -88,19 +88,20 @@ bool UTextureImporter::ImportVolumeTexture(UTexture*& OutVolumeTexture, TArray<u
 	UVolumeTexture* VolumeTexture = NewObject<UVolumeTexture>(Package, UVolumeTexture::StaticClass(), *FileName, RF_Public | RF_Standalone);
 
 	VolumeTexture->SetPlatformData(new FTexturePlatformData());
-
-	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat)) VolumeTexture->GetPlatformData()->PixelFormat = static_cast<EPixelFormat>(VolumeTexture->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
+	if (FString PixelFormat; Properties->TryGetStringField("PixelFormat", PixelFormat))
+		VolumeTexture->GetPlatformData()->PixelFormat = static_cast<EPixelFormat>(VolumeTexture->GetPixelFormatEnum()->GetValueByNameString(PixelFormat));
 
 	ImportTexture_Data(VolumeTexture, Properties);
+
 	const int SizeX = Properties->GetNumberField("SizeX");
 	const int SizeY = Properties->GetNumberField("SizeY");
 	const int SizeZ = Properties->GetNumberField("SizeZ");
-
 	int Size = SizeX * SizeY * SizeZ;
-	// if (PlatformData->PixelFormat == PF_FloatRGBA || PlatformData->PixelFormat == PF_G16) Size = Data.Num();
-	uint8* DecompressedData = static_cast<uint8*>(FMemory::Malloc(Size));
 
-	GetDecompressedTextureData(Data.GetData(), DecompressedData, SizeX, SizeY, SizeZ, Size, VolumeTexture->GetPlatformData()->PixelFormat);
+	// Decompression
+	uint8* DecompressedData = static_cast<uint8*>(FMemory::Malloc(Size)); {
+		GetDecompressedTextureData(Data.GetData(), DecompressedData, SizeX, SizeY, SizeZ, Size, VolumeTexture->GetPlatformData()->PixelFormat);
+	}
 
 	VolumeTexture->Source.Init(SizeX, SizeY, SizeZ, 1, TSF_BGRA8);
 
@@ -182,129 +183,190 @@ bool UTextureImporter::ImportTexture2D_Data(UTexture2D* InTexture2D, const TShar
 bool UTextureImporter::ImportTexture_Data(UTexture* InTexture, const TSharedPtr<FJsonObject>& Properties) const {
 	if (InTexture == nullptr) return false;
 
-	// Adjust parameters
-	if (float AdjustBrightness; Properties->TryGetNumberField("AdjustBrightness", AdjustBrightness)) InTexture->AdjustBrightness = AdjustBrightness;
-	if (float AdjustBrightnessCurve; Properties->TryGetNumberField("AdjustBrightnessCurve", AdjustBrightnessCurve)) InTexture->AdjustBrightnessCurve = AdjustBrightnessCurve;
-	if (float AdjustHue; Properties->TryGetNumberField("AdjustHue", AdjustHue)) InTexture->AdjustHue = AdjustHue;
-	if (float AdjustMaxAlpha; Properties->TryGetNumberField("AdjustMaxAlpha", AdjustMaxAlpha)) InTexture->AdjustMaxAlpha = AdjustMaxAlpha;
-	if (float AdjustMinAlpha; Properties->TryGetNumberField("AdjustMinAlpha", AdjustMinAlpha)) InTexture->AdjustMinAlpha = AdjustMinAlpha;
-	if (float AdjustRGBCurve; Properties->TryGetNumberField("AdjustRGBCurve", AdjustRGBCurve)) InTexture->AdjustRGBCurve = AdjustRGBCurve;
-	if (float AdjustSaturation; Properties->TryGetNumberField("AdjustSaturation", AdjustSaturation)) InTexture->AdjustSaturation = AdjustSaturation;
-	if (float AdjustVibrance; Properties->TryGetNumberField("AdjustVibrance", AdjustVibrance)) InTexture->AdjustVibrance = AdjustVibrance;
+	// TODO: Replace with serializer
+	if (float AdjustBrightness; Properties->TryGetNumberField("AdjustBrightness", AdjustBrightness)) 
+		InTexture->AdjustBrightness = AdjustBrightness;
+	if (float AdjustBrightnessCurve; Properties->TryGetNumberField("AdjustBrightnessCurve", AdjustBrightnessCurve)) 
+		InTexture->AdjustBrightnessCurve = AdjustBrightnessCurve;
+	if (float AdjustHue; Properties->TryGetNumberField("AdjustHue", AdjustHue)) 
+		InTexture->AdjustHue = AdjustHue;
+	if (float AdjustMaxAlpha; Properties->TryGetNumberField("AdjustMaxAlpha", AdjustMaxAlpha)) 
+		InTexture->AdjustMaxAlpha = AdjustMaxAlpha;
+	if (float AdjustMinAlpha; Properties->TryGetNumberField("AdjustMinAlpha", AdjustMinAlpha)) 
+		InTexture->AdjustMinAlpha = AdjustMinAlpha;
+	if (float AdjustRGBCurve; Properties->TryGetNumberField("AdjustRGBCurve", AdjustRGBCurve))
+		InTexture->AdjustRGBCurve = AdjustRGBCurve;
+	if (float AdjustSaturation; Properties->TryGetNumberField("AdjustSaturation", AdjustSaturation)) 
+		InTexture->AdjustSaturation = AdjustSaturation;
+	if (float AdjustVibrance; Properties->TryGetNumberField("AdjustVibrance", AdjustVibrance)) 
+		InTexture->AdjustVibrance = AdjustVibrance;
 
 	if (const TSharedPtr<FJsonObject>* AlphaCoverageThresholds; Properties->TryGetObjectField("AlphaCoverageThresholds", AlphaCoverageThresholds))
 		InTexture->AlphaCoverageThresholds = FMathUtilities::ObjectToVector(AlphaCoverageThresholds->Get());
 
-	if (bool bChromaKeyTexture; Properties->TryGetBoolField("bChromaKeyTexture", bChromaKeyTexture)) InTexture->bChromaKeyTexture = bChromaKeyTexture;
-	if (bool bFlipGreenChannel; Properties->TryGetBoolField("bFlipGreenChannel", bFlipGreenChannel)) InTexture->bFlipGreenChannel = bFlipGreenChannel;
-	if (bool bNoTiling; Properties->TryGetBoolField("bNoTiling", bNoTiling)) InTexture->bNoTiling = bNoTiling;
-	if (bool bPreserveBorder; Properties->TryGetBoolField("bPreserveBorder", bPreserveBorder)) InTexture->bPreserveBorder = bPreserveBorder;
-	if (bool bUseLegacyGamma; Properties->TryGetBoolField("bUseLegacyGamma", bUseLegacyGamma)) InTexture->bUseLegacyGamma = bUseLegacyGamma;
+	if (bool bChromaKeyTexture; Properties->TryGetBoolField("bChromaKeyTexture", bChromaKeyTexture)) 
+		InTexture->bChromaKeyTexture = bChromaKeyTexture;
+	if (bool bFlipGreenChannel; Properties->TryGetBoolField("bFlipGreenChannel", bFlipGreenChannel)) 
+		InTexture->bFlipGreenChannel = bFlipGreenChannel;
+	if (bool bNoTiling; Properties->TryGetBoolField("bNoTiling", bNoTiling)) 
+		InTexture->bNoTiling = bNoTiling;
+	if (bool bPreserveBorder; Properties->TryGetBoolField("bPreserveBorder", bPreserveBorder)) 
+		InTexture->bPreserveBorder = bPreserveBorder;
+	if (bool bUseLegacyGamma; Properties->TryGetBoolField("bUseLegacyGamma", bUseLegacyGamma)) 
+		InTexture->bUseLegacyGamma = bUseLegacyGamma;
 
-	if (const TSharedPtr<FJsonObject>* ChromaKeyColor; Properties->TryGetObjectField("ChromaKeyColor", ChromaKeyColor)) InTexture->ChromaKeyColor = FMathUtilities::ObjectToColor(ChromaKeyColor->Get());
-	if (float ChromaKeyThreshold; Properties->TryGetNumberField("ChromaKeyThreshold", ChromaKeyThreshold)) InTexture->ChromaKeyThreshold = ChromaKeyThreshold;
+	if (const TSharedPtr<FJsonObject>* ChromaKeyColor; Properties->TryGetObjectField("ChromaKeyColor", ChromaKeyColor)) 
+		InTexture->ChromaKeyColor = FMathUtilities::ObjectToColor(ChromaKeyColor->Get());
+	if (float ChromaKeyThreshold; Properties->TryGetNumberField("ChromaKeyThreshold", ChromaKeyThreshold)) 
+		InTexture->ChromaKeyThreshold = ChromaKeyThreshold;
 
-	if (float CompositePower; Properties->TryGetNumberField("CompositePower", CompositePower)) InTexture->CompositePower = CompositePower;
-	// if (const TSharedPtr<FJsonObject>* CompositeTexture; Properties->TryGetObjectField("CompositeTexture", CompositeTexture));
-	if (FString CompositeTextureMode; Properties->TryGetStringField("CompositeTextureMode", CompositeTextureMode)) InTexture->CompositeTextureMode = static_cast<ECompositeTextureMode>(StaticEnum<ECompositeTextureMode>()->GetValueByNameString(CompositeTextureMode));
+	if (float CompositePower; Properties->TryGetNumberField("CompositePower", CompositePower)) 
+		InTexture->CompositePower = CompositePower;
+	if (FString CompositeTextureMode; Properties->TryGetStringField("CompositeTextureMode", CompositeTextureMode)) 
+		InTexture->CompositeTextureMode = static_cast<ECompositeTextureMode>(StaticEnum<ECompositeTextureMode>()->GetValueByNameString(CompositeTextureMode));
 
-	if (bool CompressionNoAlpha; Properties->TryGetBoolField("CompressionNoAlpha", CompressionNoAlpha)) InTexture->CompressionNoAlpha = CompressionNoAlpha;
-	if (bool CompressionNone; Properties->TryGetBoolField("CompressionNone", CompressionNone)) InTexture->CompressionNone = CompressionNone;
-	if (FString CompressionQuality; Properties->TryGetStringField("CompressionQuality", CompressionQuality)) InTexture->CompressionQuality = static_cast<ETextureCompressionQuality>(StaticEnum<ETextureCompressionQuality>()->GetValueByNameString(CompressionQuality));
-	if (FString CompressionSettings; Properties->TryGetStringField("CompressionSettings", CompressionSettings)) InTexture->CompressionSettings = static_cast<TextureCompressionSettings>(StaticEnum<TextureCompressionSettings>()->GetValueByNameString(CompressionSettings));
-	if (bool CompressionYCoCg; Properties->TryGetBoolField("CompressionYCoCg", CompressionYCoCg)) InTexture->CompressionYCoCg = CompressionYCoCg;
-	if (bool DeferCompression; Properties->TryGetBoolField("DeferCompression", DeferCompression)) InTexture->DeferCompression = DeferCompression;
-	if (FString Filter; Properties->TryGetStringField("Filter", Filter)) InTexture->Filter = static_cast<TextureFilter>(StaticEnum<TextureFilter>()->GetValueByNameString(Filter));
+	if (bool CompressionNoAlpha; Properties->TryGetBoolField("CompressionNoAlpha", CompressionNoAlpha)) 
+		InTexture->CompressionNoAlpha = CompressionNoAlpha;
+	if (bool CompressionNone; Properties->TryGetBoolField("CompressionNone", CompressionNone)) 
+		InTexture->CompressionNone = CompressionNone;
+	if (FString CompressionQuality; Properties->TryGetStringField("CompressionQuality", CompressionQuality)) 
+		InTexture->CompressionQuality = static_cast<ETextureCompressionQuality>(StaticEnum<ETextureCompressionQuality>()->GetValueByNameString(CompressionQuality));
+	if (FString CompressionSettings; Properties->TryGetStringField("CompressionSettings", CompressionSettings))
+		InTexture->CompressionSettings = static_cast<TextureCompressionSettings>(StaticEnum<TextureCompressionSettings>()->GetValueByNameString(CompressionSettings));
+	if (bool CompressionYCoCg; Properties->TryGetBoolField("CompressionYCoCg", CompressionYCoCg)) 
+		InTexture->CompressionYCoCg = CompressionYCoCg;
+	if (bool DeferCompression; Properties->TryGetBoolField("DeferCompression", DeferCompression)) 
+		InTexture->DeferCompression = DeferCompression;
+	if (FString Filter; Properties->TryGetStringField("Filter", Filter)) 
+		InTexture->Filter = static_cast<TextureFilter>(StaticEnum<TextureFilter>()->GetValueByNameString(Filter));
 
 	// TODO: Add LayerFormatSettings
 
-	if (FString LODGroup; Properties->TryGetStringField("LODGroup", LODGroup)) InTexture->LODGroup = static_cast<TextureGroup>(StaticEnum<TextureGroup>()->GetValueByNameString(LODGroup));
-	if (FString LossyCompressionAmount; Properties->TryGetStringField("LossyCompressionAmount", LossyCompressionAmount)) InTexture->LossyCompressionAmount = static_cast<ETextureLossyCompressionAmount>(StaticEnum<ETextureLossyCompressionAmount>()->GetValueByNameString(LossyCompressionAmount));
+	if (FString LODGroup; Properties->TryGetStringField("LODGroup", LODGroup)) 
+		InTexture->LODGroup = static_cast<TextureGroup>(StaticEnum<TextureGroup>()->GetValueByNameString(LODGroup));
+	if (FString LossyCompressionAmount; Properties->TryGetStringField("LossyCompressionAmount", LossyCompressionAmount)) 
+		InTexture->LossyCompressionAmount = static_cast<ETextureLossyCompressionAmount>(StaticEnum<ETextureLossyCompressionAmount>()->GetValueByNameString(LossyCompressionAmount));
 
-	if (int MaxTextureSize; Properties->TryGetNumberField("MaxTextureSize", MaxTextureSize)) InTexture->MaxTextureSize = MaxTextureSize;
-	if (FString MipGenSettings; Properties->TryGetStringField("MipGenSettings", MipGenSettings)) InTexture->MipGenSettings = static_cast<TextureMipGenSettings>(StaticEnum<TextureMipGenSettings>()->GetValueByNameString(MipGenSettings));
-	if (FString MipLoadOptions; Properties->TryGetStringField("MipLoadOptions", MipLoadOptions)) InTexture->MipLoadOptions = static_cast<ETextureMipLoadOptions>(StaticEnum<ETextureMipLoadOptions>()->GetValueByNameString(MipLoadOptions));
+	if (int MaxTextureSize; Properties->TryGetNumberField("MaxTextureSize", MaxTextureSize))
+		InTexture->MaxTextureSize = MaxTextureSize;
+	if (FString MipGenSettings; Properties->TryGetStringField("MipGenSettings", MipGenSettings)) 
+		InTexture->MipGenSettings = static_cast<TextureMipGenSettings>(StaticEnum<TextureMipGenSettings>()->GetValueByNameString(MipGenSettings));
+	if (FString MipLoadOptions; Properties->TryGetStringField("MipLoadOptions", MipLoadOptions)) 
+		InTexture->MipLoadOptions = static_cast<ETextureMipLoadOptions>(StaticEnum<ETextureMipLoadOptions>()->GetValueByNameString(MipLoadOptions));
 
 	if (const TSharedPtr<FJsonObject>* PaddingColor; Properties->TryGetObjectField("PaddingColor", PaddingColor)) InTexture->PaddingColor = FMathUtilities::ObjectToColor(PaddingColor->Get());
-	if (FString PowerOfTwoMode; Properties->TryGetStringField("PowerOfTwoMode", PowerOfTwoMode)) InTexture->PowerOfTwoMode = static_cast<ETexturePowerOfTwoSetting::Type>(StaticEnum<ETexturePowerOfTwoSetting::Type>()->GetValueByNameString(PowerOfTwoMode));
+	if (FString PowerOfTwoMode; Properties->TryGetStringField("PowerOfTwoMode", PowerOfTwoMode))
+		InTexture->PowerOfTwoMode = static_cast<ETexturePowerOfTwoSetting::Type>(StaticEnum<ETexturePowerOfTwoSetting::Type>()->GetValueByNameString(PowerOfTwoMode));
 
-	if (bool SRGB; Properties->TryGetBoolField("SRGB", SRGB)) InTexture->SRGB = SRGB;
-	if (bool VirtualTextureStreaming; Properties->TryGetBoolField("VirtualTextureStreaming", VirtualTextureStreaming)) InTexture->VirtualTextureStreaming = VirtualTextureStreaming;
+	if (bool SRGB; Properties->TryGetBoolField("SRGB", SRGB))
+		InTexture->SRGB = SRGB;
+	if (bool VirtualTextureStreaming; Properties->TryGetBoolField("VirtualTextureStreaming", VirtualTextureStreaming))
+		InTexture->VirtualTextureStreaming = VirtualTextureStreaming;
 
-	if (FString LightingGuid; Properties->TryGetStringField("LightingGuid", LightingGuid)) InTexture->SetLightingGuid(FGuid(LightingGuid));
+	if (FString LightingGuid; Properties->TryGetStringField("LightingGuid", LightingGuid)) 
+		InTexture->SetLightingGuid(FGuid(LightingGuid));
 
 	return false;
 }
 
 void UTextureImporter::GetDecompressedTextureData(uint8* Data, uint8*& OutData, const int SizeX, const int SizeY, const int SizeZ, const int TotalSize, const EPixelFormat Format) const {
-	if (Format == PF_BC7) {
-		detexTexture Texture;
-		Texture.data = Data;
-		Texture.format = DETEX_TEXTURE_FORMAT_BPTC;
-		Texture.width = SizeX;
-		Texture.height = SizeY;
-		Texture.width_in_blocks = SizeX / 4;
-		Texture.height_in_blocks = SizeY / 4;
-		detexDecompressTextureLinear(&Texture, OutData, DETEX_PIXEL_FORMAT_BGRA8);
-	} else if (Format == PF_BC6H) {
-		detexTexture Texture;
-		Texture.data = Data;
-		Texture.format = DETEX_TEXTURE_FORMAT_BPTC_FLOAT;
-		Texture.width = SizeX;
-		Texture.height = SizeY;
-		Texture.width_in_blocks = SizeX / 4;
-		Texture.height_in_blocks = SizeY / 4;
-		detexDecompressTextureLinear(&Texture, OutData, DETEX_PIXEL_FORMAT_BGRA8);
-	} else if (Format == PF_DXT5) {
-		detexTexture Texture;
-		Texture.data = Data;
-		Texture.format = DETEX_TEXTURE_FORMAT_BC3;
-		Texture.width = SizeX;
-		Texture.height = SizeY;
-		Texture.width_in_blocks = SizeX / 4;
-		Texture.height_in_blocks = SizeY / 4;
-		detexDecompressTextureLinear(&Texture, OutData, DETEX_PIXEL_FORMAT_BGRA8);
-	} else if (Format == PF_G8) {
-		const uint8* s = Data;
-		uint8* d = OutData;
-		for (int i = 0; i < SizeX * SizeY; i++) {
-			const uint8 b = *s++;
-			*d++ = b;
-			*d++ = b;
-			*d++ = b;
-			*d++ = 255;
-		}
-	} else if (Format == PF_B8G8R8A8 || Format == PF_FloatRGBA || Format == PF_G16) {
-		FMemory::Memcpy(OutData, Data, TotalSize);
-	} else {
-		nv::DDSHeader Header;
-		nv::Image Image;
+	// NOTE: Not all formats are supported, feel free to add
+	//       if needed. Formats may need other dependencies.
+	switch (Format) {
+		case PF_BC7: {
+			detexTexture Texture; {
+				Texture.data = Data;
+				Texture.format = DETEX_TEXTURE_FORMAT_BPTC;
+				Texture.width = SizeX;
+				Texture.height = SizeY;
+				Texture.width_in_blocks = SizeX / 4;
+				Texture.height_in_blocks = SizeY / 4;
+			}
 
-		uint FourCC;
-		switch (Format) {
-		case PF_BC4:
-			FourCC = FOURCC_ATI1;
-			break;
-		case PF_BC5:
-			FourCC = FOURCC_ATI2;
-			break;
-		case PF_DXT1:
-			FourCC = FOURCC_DXT1;
-			break;
-		case PF_DXT3:
-			FourCC = FOURCC_DXT3;
-			break;
-		default: FourCC = 0;
-		}
+			detexDecompressTextureLinear(&Texture, OutData, DETEX_PIXEL_FORMAT_BGRA8);
+		} break;
 
-		Header.setFourCC(FourCC);
-		Header.setWidth(SizeX);
-		Header.setHeight(SizeY);
-		Header.setDepth(SizeZ);
-		Header.setNormalFlag(Format == PF_BC5);
-		DecodeDDS(Data, SizeX, SizeY, SizeZ, Header, Image);
+		case PF_BC6H: {
+			detexTexture Texture; {
+				Texture.data = Data;
+				Texture.format = DETEX_TEXTURE_FORMAT_BPTC_FLOAT;
+				Texture.width = SizeX;
+				Texture.height = SizeY;
+				Texture.width_in_blocks = SizeX / 4;
+				Texture.height_in_blocks = SizeY / 4;
+			}
 
-		// Fallback to raw data
-		FMemory::Memcpy(OutData, Image.pixels(), TotalSize);
+			detexDecompressTextureLinear(&Texture, OutData, DETEX_PIXEL_FORMAT_BGRA8);
+		} break;
+
+		case PF_DXT5: {
+			detexTexture Texture; {
+				Texture.data = Data;
+				Texture.format = DETEX_TEXTURE_FORMAT_BC3;
+				Texture.width = SizeX;
+				Texture.height = SizeY;
+				Texture.width_in_blocks = SizeX / 4;
+				Texture.height_in_blocks = SizeY / 4;
+			}
+
+			detexDecompressTextureLinear(&Texture, OutData, DETEX_PIXEL_FORMAT_BGRA8);
+		} break;
+
+		// Gray/Grey, not Green, typically actually uses a red format with replication of R to RGB
+		case PF_G8: {
+			const uint8* s = Data;
+			uint8* d = OutData;
+
+			for (int i = 0; i < SizeX * SizeY; i++) {
+				const uint8 b = *s++;
+				*d++ = b;
+				*d++ = b;
+				*d++ = b;
+				*d++ = 255;
+			}
+		} break;
+
+		// FloatRGBA: 16F
+		// G16: Gray/Grey like G8
+		case PF_B8G8R8A8: case PF_FloatRGBA: case PF_G16: {
+			FMemory::Memcpy(OutData, Data, TotalSize);
+		} break;
+
+		default: {
+			nv::DDSHeader Header;
+			nv::Image Image;
+
+			uint FourCC;
+			switch (Format) {
+				case PF_BC4:
+					FourCC = FOURCC_ATI1;
+					break;
+
+				case PF_BC5:
+					FourCC = FOURCC_ATI2;
+					break;
+
+				case PF_DXT1:
+					FourCC = FOURCC_DXT1;
+					break;
+
+				case PF_DXT3:
+					FourCC = FOURCC_DXT3;
+					break;
+
+				default: 
+					FourCC = 0;
+			} {
+				Header.setFourCC(FourCC);
+				Header.setWidth(SizeX);
+				Header.setHeight(SizeY);
+				Header.setDepth(SizeZ);
+				Header.setNormalFlag(Format == PF_BC5);
+				DecodeDDS(Data, SizeX, SizeY, SizeZ, Header, Image);
+			}
+
+			// Fallback to raw data
+			FMemory::Memcpy(OutData, Image.pixels(), TotalSize);
+		} break;
 	}
 }
