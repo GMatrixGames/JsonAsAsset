@@ -113,7 +113,7 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 	// Supported Assets
 	if (Type == "Texture2D" ||
 		Type == "TextureCube" ||
-		Type == "VolumeTexture" ||
+		// Type == "VolumeTexture" ||
 		Type == "TextureRenderTarget2D" ||
 		Type == "MaterialParameterCollection" ||
 		Type == "CurveFloat" ||
