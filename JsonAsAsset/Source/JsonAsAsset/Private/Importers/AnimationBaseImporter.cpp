@@ -29,8 +29,6 @@ bool UAnimationBaseImporter::ImportData() {
 		IAnimationDataController& Controller = AnimSequenceBase->GetController();
 #endif
 
-		// Unreal Engine 5.2 and below works with just getting the data model from the animation
-
 		// Some FModel versions have different named objects for curves
 		if (const TSharedPtr<FJsonObject>* RawCurveData; Properties->TryGetObjectField("RawCurveData", RawCurveData)) FloatCurves = Properties->GetObjectField("RawCurveData")->GetArrayField("FloatCurves");
 		else if (JsonObject->TryGetObjectField("CompressedCurveData", RawCurveData)) FloatCurves = JsonObject->GetObjectField("CompressedCurveData")->GetArrayField("FloatCurves");
@@ -38,7 +36,6 @@ bool UAnimationBaseImporter::ImportData() {
 		for (TSharedPtr<FJsonValue> FloatCurveObject : FloatCurves) {
 			// Display Name (for example: jaw_open_pose)
 			FString DisplayName = FloatCurveObject->AsObject()->GetObjectField("Name")->GetStringField("DisplayName");
-			GLog->Log("JsonAsAsset: Added animation curve: " + DisplayName);
 
 			USkeleton* Skeleton = AnimSequenceBase->GetSkeleton();
 			FSmartName NewTrackName;
@@ -61,16 +58,42 @@ bool UAnimationBaseImporter::ImportData() {
 #endif
 			// For Unreal Engine 5.2 and below, just the smart name is required
 #if ENGINE_MINOR_VERSION < 3
-			Controller.AddCurve(FAnimationCurveIdentifier(NewTrackName, ERawCurveTrackTypes::RCT_Float), CurveTypeFlags);
+			AnimSequenceBase->Modify(true);
+
+			IAnimationDataController& LocalOneController = AnimSequenceBase->GetController();
+			LocalOneController.AddCurve(FAnimationCurveIdentifier(NewTrackName, ERawCurveTrackTypes::RCT_Float), CurveTypeFlags);
+
+			TArray<FLinearColor> RandomizedColorArray = {
+				FLinearColor(.904, .323, .539),
+				FLinearColor(.552, .737, .328),
+				FLinearColor(.947, .418, .219),
+				FLinearColor(.156, .624, .921),
+				FLinearColor(.921, .314, .337),
+				FLinearColor(.361, .651, .332),
+				FLinearColor(.982, .565, .254),
+				FLinearColor(.246, .223, .514),
+				FLinearColor(.208, .386, .687),
+				FLinearColor(.223, .590, .337),
+				FLinearColor(.230, .291, .591)
+			}; { // Random Color
+				auto index = rand() % RandomizedColorArray.Num();
+
+				if (RandomizedColorArray.IsValidIndex(index)) // Safe
+					LocalOneController.SetCurveColor(FAnimationCurveIdentifier(NewTrackName, ERawCurveTrackTypes::RCT_Float), RandomizedColorArray[index]);
+			}
+
+			AnimSequenceBase->PostEditChange();
 #endif
 #endif
 #if ENGINE_MAJOR_VERSION == 4
 			AnimSequenceBase->RawCurveData.AddCurveData(NewTrackName, CurveTypeFlags);
 #endif
+		}
 
-			// Each key of the curve
+		for (TSharedPtr<FJsonValue> FloatCurveObject : FloatCurves) {
+			FString DisplayName = FloatCurveObject->AsObject()->GetObjectField("Name")->GetStringField("DisplayName");
+
 			TArray<TSharedPtr<FJsonValue>> Keys = FloatCurveObject->AsObject()->GetObjectField("FloatCurve")->GetArrayField("Keys");
-
 			TArray<FRichCurveKey> _Keys;
 
 			for (int32 key_index = 0; key_index < Keys.Num(); key_index++) {
@@ -94,8 +117,21 @@ bool UAnimationBaseImporter::ImportData() {
 #endif
 			}
 
-			const FAnimationCurveIdentifier CurveId(NewTrackName, ERawCurveTrackTypes::RCT_Float);
-			Controller.SetCurveKeys(CurveId, _Keys, false);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+			FSmartName NewTrackName; { // Create SmartName
+				USkeleton* Skeleton = AnimSequenceBase->GetSkeleton();
+				Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, FName(*DisplayName), NewTrackName);
+			}
+
+			AnimSequenceBase->Modify(true);
+
+			FAnimationCurveIdentifier CurveId(NewTrackName, ERawCurveTrackTypes::RCT_Float);
+			IAnimationDataController& LocalController = AnimSequenceBase->GetController();
+			LocalController.SetCurveKeys(CurveId, _Keys);
+
+			AnimSequenceBase->PostEditChange();
+			GLog->Log("JsonAsAsset: Added animation curve: " + DisplayName);
+#endif
 		}
 
 		UAnimSequence* CastedAnimSequence = Cast<UAnimSequence>(AnimSequenceBase);
