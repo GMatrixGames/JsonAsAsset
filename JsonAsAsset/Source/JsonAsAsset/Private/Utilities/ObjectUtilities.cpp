@@ -541,7 +541,18 @@ UObject* UObjectSerializer::DeserializeExportedObject(int32 ObjectIndex, TShared
 		// Construct new object if we cannot otherwise
 		const EObjectFlags ObjectLoadFlags = (EObjectFlags)ObjectJson->GetIntegerField(TEXT("ObjectFlags"));
 		UObject* Template = GetArchetypeFromRequiredInfo(ObjectClass, OuterObject, *ObjectName, ObjectLoadFlags);
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4 // UE 5.4
+		FStaticConstructObjectParameters ConstructObjectParameters(ObjectClass);
+		ConstructObjectParameters.Outer = OuterObject;
+		ConstructObjectParameters.Name = *ObjectName;
+		ConstructObjectParameters.SetFlags = ObjectLoadFlags;
+		ConstructObjectParameters.InternalSetFlags = EInternalObjectFlags::None;
+		ConstructObjectParameters.Template = Template;
+		ConstructedObject = StaticConstructObject_Internal(ConstructObjectParameters);
+#else
 		ConstructedObject = StaticConstructObject_Internal(ObjectClass, OuterObject, *ObjectName, ObjectLoadFlags, EInternalObjectFlags::None, Template);
+#endif
 	}
 
 	// Record constructed object so when properties reference it through outer chain we do not run into stack overflow
