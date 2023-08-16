@@ -53,7 +53,6 @@ JsonAsAsset (or sometimes refered as *`JAA`*) is a plugin to create assets from 
  - CurveLinearColorAtlas
 
 ###### Skeleton/Animation Asset Types
- - SkeletalMeshLODSettings
  - Animation (curves, sync markers)
 
 ###### Sound Asset Types
@@ -62,7 +61,6 @@ JsonAsAsset (or sometimes refered as *`JAA`*) is a plugin to create assets from 
  - ReverbEffect
 
 ###### Data Asset Types
-- DataAsset
 - DataTable
 
 The plugin features a user-friendly interface that makes it easy for developers to import JSON data from FModel and map it to appropriate data structures within Unreal Engine to create assets based on them. This includes the ability to create curves, materials, animation curve data, and other assets based on the imported data. However, please know that this plugin is not 100% perfect and errors happen sometimes!
