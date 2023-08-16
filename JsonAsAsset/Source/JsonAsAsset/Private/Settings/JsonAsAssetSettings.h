@@ -75,6 +75,7 @@ enum EParseVersion {
 	GAME_UE5_1,
 	GAME_UE5_2,
 	GAME_UE5_3,
+	GAME_UE5_4,
 
 	GAME_UE5_LATEST
 };

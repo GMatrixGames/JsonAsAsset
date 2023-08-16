@@ -9,6 +9,7 @@
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionFeatureLevelSwitch.h"
 #include "Materials/MaterialExpressionShadingPathSwitch.h"
+#include "Materials/MaterialExpressionReroute.h"
 #include "Materials/MaterialExpressionQualitySwitch.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
@@ -18,6 +19,11 @@
 
 #include <MaterialEditingLibrary.h>
 #include <Editor/UnrealEd/Public/FileHelpers.h>
+#include "UObject/ConstructorHelpers.h"
+
+
+#include "Materials/MaterialFunction.h"
+#include "Materials/Material.h"
 
 #include "Materials/MaterialExpressionTextureBase.h"
 
@@ -25,7 +31,7 @@ TSharedPtr<FJsonObject> UMaterialGraph_Interface::FindEditorOnlyData(const FStri
 	TSharedPtr<FJsonObject> EditorOnlyData;
 
 	for (const TSharedPtr<FJsonValue> Value : bFilterByOuter ? FilterExportsByOuter(Outer) : AllJsonObjects) {
-		TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
+		TSharedPtr<FJsonObject> Object = TSharedPtr<FJsonObject>(Value->AsObject());
 
 		FString ExType = Object->GetStringField("Type");
 		FString Name = Object->GetStringField("Name");
@@ -41,8 +47,8 @@ TSharedPtr<FJsonObject> UMaterialGraph_Interface::FindEditorOnlyData(const FStri
 			continue;
 		}
 
-		ExpressionNames.Add(FName(Name));
-		OutExports.Add(FName(Name), FImportData(ExType, Outer, Object));
+		ExpressionNames.Add(FName(*Name));
+		OutExports.Add(FName(*Name), FImportData(ExType, Outer, Object));
 	}
 
 	return EditorOnlyData;
@@ -53,19 +59,25 @@ TMap<FName, UMaterialExpression*> UMaterialGraph_Interface::ConstructExpressions
 
 	for (FName Name : ExpressionNames) {
 		FName Type;
+		FJsonObject* SharedRef = NULL;
 		bool bFound = false;
 
 		for (TTuple<FName, FImportData>& Key : Exports) {
-			if (Key.Key == Name && Key.Value.Outer == FName(Outer)) {
+			TSharedPtr<FJsonObject>* SharedO = new TSharedPtr<FJsonObject>(Key.Value.Json);
+
+			if (Key.Key == Name && Key.Value.Outer == FName(*Outer)) {
 				Type = Key.Value.Type;
+				SharedRef = SharedO->Get();
+
 				bFound = true;
 				break;
 			}
 		}
 
 		if (!bFound) continue;
-		UMaterialExpression* Ex = CreateEmptyExpression(Parent, Name, Type);
-		if (Ex == nullptr) continue;
+		UMaterialExpression* Ex = CreateEmptyExpression(Parent, Name, Type, SharedRef);
+		if (Ex == nullptr)
+			continue;
 
 		CreatedExpressionMap.Add(Name, Ex);
 	}
@@ -75,7 +87,9 @@ TMap<FName, UMaterialExpression*> UMaterialGraph_Interface::ConstructExpressions
 
 FExpressionInput UMaterialGraph_Interface::CreateExpressionInput(TSharedPtr<FJsonObject> JsonProperties, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, FString PropertyName) {
 	// Find Expression Input by PropertyName
-	if (const TSharedPtr<FJsonObject>* Ptr; JsonProperties->TryGetObjectField(PropertyName, Ptr)) {
+	const TSharedPtr<FJsonObject>* Ptr;
+
+	if (JsonProperties->TryGetObjectField(PropertyName, Ptr)) {
 		FJsonObject* AsObject = Ptr->Get();
 		FName ExpressionName = GetExpressionName(AsObject);
 
@@ -109,8 +123,8 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		//  | Checks if the outer is the same as the parent
 		//  | to determine if it's in a subgraph or not.
 		if (bCheckOuter) {
-			if (FString Outer;
-				Type->Json->TryGetStringField("Outer", Outer) &&
+			FString Outer;
+			if (Type->Json->TryGetStringField("Outer", Outer) &&
 				Outer != Parent->GetName()) // Not the same as parent
 
 				continue;
@@ -119,8 +133,9 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		// ------------ Manually check for Material Function Calls ------------ 
 		if (Type->Type == "MaterialExpressionMaterialFunctionCall") {
 			UMaterialExpressionMaterialFunctionCall* MaterialFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression);
+			const TSharedPtr<FJsonObject>* MaterialFunctionPtr;
 
-			if (const TSharedPtr<FJsonObject>* MaterialFunctionPtr; Properties->TryGetObjectField("MaterialFunction", MaterialFunctionPtr)) {
+			if (Properties->TryGetObjectField("MaterialFunction", MaterialFunctionPtr)) {
 				LoadObject(MaterialFunctionPtr, MaterialFunctionCall->MaterialFunction);
 
 				// Notify material function is missing
@@ -139,8 +154,9 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		// Material Nodes with edited properties (ex: 9 objects with the same name ---> array of objects)
 		if (Type->Type == "MaterialExpressionQualitySwitch") {
 			UMaterialExpressionQualitySwitch* QualitySwitch = Cast<UMaterialExpressionQualitySwitch>(Expression);
+			const TArray<TSharedPtr<FJsonValue>>* InputsPtr;
 
-			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
+			if (Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
 				int i = 0;
 				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
 					FJsonObject* InputObject = InputValue->AsObject().Get();
@@ -152,10 +168,12 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 					i++;
 				}
 			}
-		} else if (Type->Type == "MaterialExpressionShadingPathSwitch") {
+		}
+		else if (Type->Type == "MaterialExpressionShadingPathSwitch") {
 			UMaterialExpressionShadingPathSwitch* ShadingPathSwitch = Cast<UMaterialExpressionShadingPathSwitch>(Expression);
+			const TArray<TSharedPtr<FJsonValue>>* InputsPtr;
 
-			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
+			if (Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
 				int i = 0;
 				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
 					FJsonObject* InputObject = InputValue->AsObject().Get();
@@ -167,10 +185,13 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 					i++;
 				}
 			}
-		} else if (Type->Type == "MaterialExpressionFeatureLevelSwitch") {
+		}
+		else if (Type->Type == "MaterialExpressionFeatureLevelSwitch") {
 			UMaterialExpressionFeatureLevelSwitch* FeatureLevelSwitch = Cast<UMaterialExpressionFeatureLevelSwitch>(Expression);
 
-			if (const TArray<TSharedPtr<FJsonValue>>* InputsPtr; Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
+			const TArray<TSharedPtr<FJsonValue>>* InputsPtr;
+
+			if (Type->Json->TryGetArrayField("Inputs", InputsPtr)) {
 				int i = 0;
 				for (const TSharedPtr<FJsonValue> InputValue : *InputsPtr) {
 					FJsonObject* InputObject = InputValue->AsObject().Get();
@@ -188,10 +209,10 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 
 		if (!bSubgraph) {
 			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent))
-				FuncCasted->GetExpressionCollection().AddExpression(Expression);
+				FuncCasted->FunctionExpressions.Add(Expression);
 
 			if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) {
-				MatCasted->GetEditorOnlyData()->ExpressionCollection.Expressions.Add(Expression);
+				MatCasted->Expressions.Add(Expression);
 				Expression->UpdateMaterialExpressionGuid(true, false);
 				MatCasted->AddExpressionParameter(Expression, MatCasted->EditorParameters);
 			}
@@ -200,7 +221,9 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 }
 
 void UMaterialGraph_Interface::MaterialGraphNode_ConstructComments(UObject* Parent, const TSharedPtr<FJsonObject>& Json, TMap<FName, FImportData>& Exports) {
-	if (const TArray<TSharedPtr<FJsonValue>>* StringExpressionComments; Json->TryGetArrayField("EditorComments", StringExpressionComments))
+	const TArray<TSharedPtr<FJsonValue>>* StringExpressionComments;
+
+	if (Json->TryGetArrayField("EditorComments", StringExpressionComments))
 		// Iterate through comments
 		for (const TSharedPtr<FJsonValue> ExpressionComment : *StringExpressionComments) {
 			if (ExpressionComment->IsNull()) continue; // just in-case
@@ -215,8 +238,8 @@ void UMaterialGraph_Interface::MaterialGraphNode_ConstructComments(UObject* Pare
 			MaterialGraphNode_ExpressionWrapper(Parent, Comment, Properties);
 			GetObjectSerializer()->DeserializeObjectProperties(Properties, Comment);
 
-			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddComment(Comment);
-			else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddComment(Comment);
+			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->FunctionEditorComments.Add(Comment);
+			else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->EditorComments.Add(Comment);
 		}
 }
 
@@ -224,41 +247,70 @@ void UMaterialGraph_Interface::MaterialGraphNode_ExpressionWrapper(UObject* Pare
 	if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) Expression->Function = FuncCasted;
 	else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) Expression->Material = MatCasted;
 
-	if (UMaterialExpressionTextureBase* TextureBase = Cast<UMaterialExpressionTextureBase>(Expression))
-		if (const TSharedPtr<FJsonObject>* TexturePtr; Json->TryGetObjectField("Texture", TexturePtr)) {
+	if (UMaterialExpressionTextureBase* TextureBase = Cast<UMaterialExpressionTextureBase>(Expression)) {
+		const TSharedPtr<FJsonObject>* TexturePtr;
+
+		if (Json->TryGetObjectField("Texture", TexturePtr)) {
 			LoadObject(TexturePtr, TextureBase->Texture);
 
 			Expression->UpdateParameterGuid(true, false);
 		}
+	}
 }
 
-UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Parent, FName Name, FName Type) const {
+UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Parent, FName Name, FName Type, FJsonObject* Obj) const {
 	if (IgnoredExpressions.Contains(Type.ToString())) // Unhandled expressions
 		return nullptr;
 
-	const UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Type.ToString());
+	UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Type.ToString());
 
 	if (!Class) {
-		TArray<FString> Redirects = TArray{
-			FLinkerLoad::FindNewPathNameForClass("/Script/InterchangeImport." + Type.ToString(), false),
-			FLinkerLoad::FindNewPathNameForClass("/Script/Landscape." + Type.ToString(), false)
-		};
-		
-		for (FString RedirectedPath : Redirects) {
-			if (!RedirectedPath.IsEmpty() && !Class)
-				Class = FindObject<UClass>(nullptr, *RedirectedPath);
-		}
+		// There is no reroute declaration in UE 4.22
+		if (Type == "MaterialExpressionNamedRerouteDeclaration" || "MaterialExpressionNamedRerouteUsage") {
+			if (Type == "MaterialExpressionNamedRerouteUsage") {
+				UMaterialExpressionReroute* Reroute = NewObject<UMaterialExpressionReroute>(
+					Parent,
+					UMaterialExpressionReroute::StaticClass(),
+					Name
+				);
 
-		if (!Class) 
-			Class = FindObject<UClass>(ANY_PACKAGE, *Type.ToString().Replace(TEXT("MaterialExpressionPhysicalMaterialOutput"), TEXT("MaterialExpressionLandscapePhysicalMaterialOutput")));
+				TSharedPtr<FJsonObject> PackageIndex = Obj->GetObjectField("Properties")->GetObjectField("Declaration");
+				FString PackageName = PackageIndex->GetStringField("ObjectName");
+
+				FString ExpressionName; { // Expression Name
+					PackageName.Split("'", nullptr, &ExpressionName);
+					ExpressionName.Split(":", nullptr, &ExpressionName);
+					ExpressionName = ExpressionName.Replace(TEXT("'"), TEXT(""));
+				}
+
+				FString Path; { // NOTE: i had a FUN time doing this :)
+					FString _Type;
+					FString _Name;
+					PackageIndex->GetStringField("ObjectName").Split("'", &_Type, &_Name);
+					PackageIndex->GetStringField("ObjectPath").Split(".", &Path, nullptr);
+				}
+
+				UMaterialExpressionReroute* ConnectionReroute = Cast<UMaterialExpressionReroute>(StaticLoadObject(UMaterialExpressionReroute::StaticClass(), nullptr, *(Path + "." + Parent->GetFName().ToString() + ":" + ExpressionName)));
+				{ // Set Reroute Expression Input
+					Reroute->Input.Expression = ConnectionReroute;
+					Reroute->Input.ExpressionName = FName(*ExpressionName);
+				}
+				
+				return Reroute;
+			} return NewObject<UMaterialExpression>(
+				Parent,
+				UMaterialExpressionReroute::StaticClass(),
+				Name
+			);
+		}
+		else
+			return nullptr;
 	}
 
-	return NewObject<UMaterialExpression>
-	(
+	return NewObject<UMaterialExpression>(
 		Parent,
-		Class, // Find class using ANY_PACKAGE (may error in the future)
-		Name,
-		RF_Transactional
+		Class,
+		Name
 	);
 }
 
@@ -270,7 +322,7 @@ FExpressionInput UMaterialGraph_Interface::PopulateExpressionInput(const FJsonOb
 	int OutputIndex;
 	if (JsonProperties->TryGetNumberField("OutputIndex", OutputIndex)) Input.OutputIndex = OutputIndex;
 	FString InputName;
-	if (JsonProperties->TryGetStringField("InputName", InputName)) Input.InputName = FName(InputName);
+	if (JsonProperties->TryGetStringField("InputName", InputName)) Input.InputName = FName(*InputName);
 	int Mask;
 	if (JsonProperties->TryGetNumberField("Mask", Mask)) Input.Mask = Mask;
 	int MaskR;
@@ -290,20 +342,22 @@ FExpressionInput UMaterialGraph_Interface::PopulateExpressionInput(const FJsonOb
 			if (JsonProperties->TryGetObjectField("Constant", Constant)) ColorInput->Constant = FMathUtilities::ObjectToLinearColor(Constant->Get()).ToFColor(true);
 			Input = FExpressionInput(*ColorInput);
 		}
-	} else if (Type == "Scalar") {
+	}
+	else if (Type == "Scalar") {
 		if (FScalarMaterialInput* ScalarInput = reinterpret_cast<FScalarMaterialInput*>(&Input)) {
 			bool UseConstant;
 			if (JsonProperties->TryGetBoolField("UseConstant", UseConstant)) ScalarInput->UseConstant = UseConstant;
-			float Constant;
+			double Constant;
 			if (JsonProperties->TryGetNumberField("Constant", Constant)) ScalarInput->Constant = Constant;
 			Input = FExpressionInput(*ScalarInput);
 		}
-	} else if (Type == "Vector") {
+	}
+	else if (Type == "Vector") {
 		if (FVectorMaterialInput* VectorInput = reinterpret_cast<FVectorMaterialInput*>(&Input)) {
 			bool UseConstant;
 			if (JsonProperties->TryGetBoolField("UseConstant", UseConstant)) VectorInput->UseConstant = UseConstant;
 			const TSharedPtr<FJsonObject>* Constant;
-			if (JsonProperties->TryGetObjectField("Constant", Constant)) VectorInput->Constant = FMathUtilities::ObjectToVector3f(Constant->Get());
+			if (JsonProperties->TryGetObjectField("Constant", Constant)) VectorInput->Constant = FMathUtilities::ObjectToVector(Constant->Get());
 			Input = FExpressionInput(*VectorInput);
 		}
 	}
@@ -315,7 +369,7 @@ FExpressionOutput UMaterialGraph_Interface::PopulateExpressionOutput(const FJson
 	FExpressionOutput Output;
 
 	FString OutputName;
-	if (JsonProperties->TryGetStringField("OutputName", OutputName)) Output.OutputName = FName(OutputName);
+	if (JsonProperties->TryGetStringField("OutputName", OutputName)) Output.OutputName = FName(*OutputName);
 	int Mask;
 	if (JsonProperties->TryGetNumberField("Mask", Mask)) Output.Mask = Mask;
 	int MaskR;
@@ -333,9 +387,12 @@ FExpressionOutput UMaterialGraph_Interface::PopulateExpressionOutput(const FJson
 FName UMaterialGraph_Interface::GetExpressionName(const FJsonObject* JsonProperties, FString OverrideParameterName) {
 	const TSharedPtr<FJsonValue> ExpressionField = JsonProperties->TryGetField(OverrideParameterName);
 
-	if (ExpressionField == nullptr || ExpressionField->IsNull()) {
+	if (JsonProperties->Values.Num() == 0)
+		return NAME_None; // Fail safe
+
+	if (ExpressionField.IsValid() || ExpressionField->IsNull()) {
 		// Must be from < 4.25
-		return FName(JsonProperties->GetStringField("ExpressionName"));
+		return FName(*JsonProperties->GetStringField("ExpressionName"));
 	}
 
 	const TSharedPtr<FJsonObject> ExpressionObject = ExpressionField->AsObject();

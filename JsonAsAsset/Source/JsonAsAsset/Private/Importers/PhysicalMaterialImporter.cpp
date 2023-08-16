@@ -2,7 +2,6 @@
 
 #include "Importers/PhysicalMaterialImporter.h"
 
-#include "Chaos/ChaosEngineInterface.h"
 #include "UObject/ReflectedTypeAccessors.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 

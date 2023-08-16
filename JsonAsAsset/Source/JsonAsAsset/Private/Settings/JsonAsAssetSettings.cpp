@@ -1,5 +1,6 @@
 #include "JsonAsAssetSettings.h"
 
+#include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
 #include "Widgets/Input/SButton.h"
@@ -7,8 +8,6 @@
 #include "Widgets/Text/SRichTextBlock.h"
 #include "Framework/Text/SlateHyperlinkRun.h"
 
-#include "Utilities/AssetUtilities.h"
-#include "Utilities/RemoteUtilities.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "Interfaces/IHttpResponse.h"
@@ -16,6 +15,7 @@
 
 #include "Dom/JsonObject.h"
 #include "HttpModule.h"
+#include <JsonAsAsset/Public/Utilities/RemoteUtilities.h>
 
 #define LOCTEXT_NAMESPACE "JsonAsAsset"
 
@@ -53,25 +53,6 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 	TWeakObjectPtr<UJsonAsAssetSettings> Settings = Cast<UJsonAsAssetSettings>(ObjectsBeingCustomized[0].Get());
 
 	IDetailCategoryBuilder& AssetCategory = DetailBuilder.EditCategory("Behavior", FText::GetEmpty(), ECategoryPriority::Important);
-	AssetCategory.AddCustomRow(LOCTEXT("NOTICE", "Notice"), false)
-	.WholeRowWidget
-	[
-		SNew(SBorder)
-		.Padding(1)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.Padding(FMargin(10, 10, 10, 10))
-			.FillWidth(1.0f)
-			[
-				SNew(SRichTextBlock)
-				.Text(LOCTEXT("NOTICEMessage", "<RichTextBlock.TextHighlight>NOTE:</> Please make sure you are using Unreal Engine's file/directory selector, if not, please replace the character \"\\\" with \"/\" so issues do not happen.\n> The character casuses a issue on parsing the path correctly, so it may make shadow folders in your browser and assets not importing correctly."))
-				.TextStyle(FAppStyle::Get(), "MessageLog")
-				.DecoratorStyleSet(&FAppStyle::Get())
-				.AutoWrapText(true)
-			]
-		]
-	];
 
 	DetailBuilder.EditCategory("Local Fetch", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("Local Fetch Encryption", FText::GetEmpty(), ECategoryPriority::Important);
@@ -79,11 +60,11 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 	DetailBuilder.EditCategory("Local Fetch Director", FText::GetEmpty(), ECategoryPriority::Important);
 
 	EncryptionCategory.AddCustomRow(LOCTEXT("EncryptionKeyGenerator", "EncryptionKeyGenerator"))
-		.ValueContent() [
+		.ValueContent()[
 			SNew(SButton)
-			.Text(LOCTEXT("GenerateEncryptionKey", "[FORTNITE] Generate Encryption"))
-			.ToolTipText(LOCTEXT("GenerateEncryptionKey_Tooltip", "Generates encryption keys from a Fortnite API."))
-			.OnClicked_Lambda([this, Settings]() {
+				.Text(LOCTEXT("GenerateEncryptionKey", "[FORTNITE] Generate Encryption"))
+				.ToolTipText(LOCTEXT("GenerateEncryptionKey_Tooltip", "Generates encryption keys from a Fortnite API."))
+				.OnClicked_Lambda([this, Settings]() {
 				UJsonAsAssetSettings* PluginSettings = GetMutableDefault<UJsonAsAssetSettings>();
 				FHttpModule* HttpModule = &FHttpModule::Get();
 
@@ -91,13 +72,14 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 				Request->SetURL("https://fortnitecentral.genxgames.gg/api/v1/aes");
 				Request->SetVerb(TEXT("GET"));
 
-				const TSharedPtr<IHttpResponse> Response = FRemoteUtilities::ExecuteRequestSync(Request);
+				const TSharedPtr<IHttpResponse, ESPMode::ThreadSafe> Response = FRemoteUtilities::ExecuteRequestSync(Request);
 				if (!Response.IsValid()) return FReply::Handled();
 
 				PluginSettings->DynamicKeys.Empty();
 
 				TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
-				if (TSharedPtr<FJsonObject> JsonObject; FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
+				TSharedPtr<FJsonObject> JsonObject;
+				if (FJsonSerializer::Deserialize(JsonReader, JsonObject)) {
 					PluginSettings->ArchiveKey = JsonObject->GetStringField("mainKey");
 
 					for (const TSharedPtr<FJsonValue> Value : JsonObject->GetArrayField("dynamicKeys")) {
@@ -126,23 +108,25 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 							DataFolder = DataFolder + "/.data";
 						}
 					}
-					
+
 					const TSharedRef<IHttpRequest> MappingsURLRequest = HttpModule->CreateRequest();
 					MappingsURLRequest->SetURL("https://fortnitecentral.genxgames.gg/api/v1/mappings");
 					MappingsURLRequest->SetVerb(TEXT("GET"));
 
-					const TSharedPtr<IHttpResponse> MappingsURLResponse = FRemoteUtilities::ExecuteRequestSync(MappingsURLRequest);
+					const TSharedPtr<IHttpResponse, ESPMode::ThreadSafe> MappingsURLResponse = FRemoteUtilities::ExecuteRequestSync(MappingsURLRequest);
 					if (!MappingsURLResponse.IsValid()) return FReply::Handled();
 
 					JsonReader = TJsonReaderFactory<>::Create(MappingsURLResponse->GetContentAsString());
-					if (TArray<TSharedPtr<FJsonValue>> JsonArray; FJsonSerializer::Deserialize(JsonReader, JsonArray)) {
+					TArray<TSharedPtr<FJsonValue>> JsonArray;
+
+					if (FJsonSerializer::Deserialize(JsonReader, JsonArray)) {
 						TSharedPtr<FJsonValue> Value; {
 							if (JsonArray.IsValidIndex(1))
 								Value = JsonArray[1];
 							else Value = JsonArray[0];
 						}
 
-						if (Value == nullptr) return FReply::Handled();
+						if (Value.IsValid()) return FReply::Handled();
 						TSharedPtr<FJsonObject> MappingsObject = Value->AsObject();
 
 						FString FileName = MappingsObject->GetStringField("fileName");
@@ -155,12 +139,12 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 								UJsonAsAssetSettings* PluginSettings = GetMutableDefault<UJsonAsAssetSettings>();
 								PluginSettings->MappingFilePath.FilePath = DataFolder + "/" + FileName;
 								PluginSettings->SaveConfig();
-									PluginSettings->UpdateDefaultConfigFile();
-									PluginSettings->LoadConfig();
+								PluginSettings->UpdateDefaultConfigFile();
+								PluginSettings->LoadConfig();
 							}
 						};
 
-						TSharedRef<IHttpRequest, ESPMode::ThreadSafe> MappingsRequest = FHttpModule::Get().CreateRequest();
+						TSharedRef<IHttpRequest, ESPMode::NotThreadSafe> MappingsRequest = FHttpModule::Get().CreateRequest();
 						MappingsRequest->SetVerb("GET");
 						MappingsRequest->SetURL(URL);
 						MappingsRequest->OnProcessRequestComplete().BindLambda(OnRequestComplete);
@@ -169,9 +153,9 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 				}
 
 				return FReply::Handled();
-			}).IsEnabled_Lambda([this, Settings]() {
-				return Settings->bEnableLocalFetch;
-			})
+					}).IsEnabled_Lambda([this, Settings]() {
+						return Settings->bEnableLocalFetch;
+						})
 		];
 }
 #undef LOCTEXT_NAMESPACE

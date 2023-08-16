@@ -3,6 +3,7 @@
 #include "ObjectUtilities.h"
 #include "Dom/JsonObject.h"
 #include "UObject/Object.h"
+#include "UObject/UnrealType.h"
 #include "PropertyUtilities.generated.h"
 
 class UObjectSerializer;
@@ -52,7 +53,7 @@ private:
 
     UPROPERTY()
         TArray<UStruct*> PinnedStructs;
-    TArray<FProperty*> BlacklistedProperties;
+    TArray<UProperty*> BlacklistedProperties;
 
     TSharedPtr<FStructSerializer> FallbackStructSerializer;
     TMap<UScriptStruct*, TSharedPtr<FStructSerializer>> StructSerializers;
@@ -64,20 +65,20 @@ public:
     void AddStructSerializer(UScriptStruct* Struct, const TSharedPtr<FStructSerializer>& Serializer);
 
     /** Checks whenever we should serialize property in question at all */
-    bool ShouldSerializeProperty(FProperty* Property) const;
+    bool ShouldSerializeProperty(UProperty* Property) const;
 
-    TSharedRef<FJsonValue> SerializePropertyValue(FProperty* Property, const void* Value, TArray<int32>* OutReferencedSubobjects = NULL);
+    TSharedRef<FJsonValue> SerializePropertyValue(UProperty* Property, const void* Value, TArray<int32>* OutReferencedSubobjects = NULL);
     TSharedRef<FJsonObject> SerializeStruct(UScriptStruct* Struct, const void* Value, TArray<int32>* OutReferencedSubobjects = NULL);
 
-    void DeserializePropertyValue(FProperty* Property, const TSharedRef<FJsonValue>& Value, void* OutValue);
+    void DeserializePropertyValue(UProperty* Property, const TSharedRef<FJsonValue>& Value, void* OutValue);
     void DeserializeStruct(UScriptStruct* Struct, const TSharedRef<FJsonObject>& Value, void* OutValue);
 
-    bool ComparePropertyValues(FProperty* Property, const TSharedRef<FJsonValue>& JsonValue, const void* CurrentValue, const TSharedPtr<FObjectCompareContext> Context = MakeShareable(new FObjectCompareContext));
+    bool ComparePropertyValues(UProperty* Property, const TSharedRef<FJsonValue>& JsonValue, const void* CurrentValue, const TSharedPtr<FObjectCompareContext> Context = MakeShareable(new FObjectCompareContext));
     bool CompareStructs(UScriptStruct* Struct, const TSharedRef<FJsonObject>& JsonValue, const void* CurrentValue, const TSharedPtr<FObjectCompareContext> Context = MakeShareable(new FObjectCompareContext));
 private:
 
     FStructSerializer* GetStructSerializer(UScriptStruct* Struct) const;
-    bool ComparePropertyValuesInner(FProperty* Property, const TSharedRef<FJsonValue>& JsonValue, const void* CurrentValue, const TSharedPtr<FObjectCompareContext> Context);
-    void DeserializePropertyValueInner(FProperty* Property, const TSharedRef<FJsonValue>& Value, void* OutValue);
-    TSharedRef<FJsonValue> SerializePropertyValueInner(FProperty* Property, const void* Value, TArray<int32>* OutReferencedSubobjects);
+    bool ComparePropertyValuesInner(UProperty* Property, const TSharedRef<FJsonValue>& JsonValue, const void* CurrentValue, const TSharedPtr<FObjectCompareContext> Context);
+    void DeserializePropertyValueInner(UProperty* Property, const TSharedRef<FJsonValue>& Value, void* OutValue);
+    TSharedRef<FJsonValue> SerializePropertyValueInner(UProperty* Property, const void* Value, TArray<int32>* OutReferencedSubobjects);
 };

@@ -3,7 +3,16 @@
 #include "Utilities/PropertyUtilities.h"
 #include "Utilities/ObjectUtilities.h"
 #include "UObject/TextProperty.h"
-#include "Importers/Importer.h"
+#include "UObject/UnrealType.h"
+#include "UObject/NoExportTypes.h"
+#include "UObject/EnumProperty.h"
+ #include "Importers/Importer.h"
+
+template<typename FieldType>
+FORCEINLINE FieldType* CastField(UField* Src)
+{
+	return Src && Src->IsA<FieldType>() ? static_cast<FieldType*>(Src) : nullptr;
+}
 
 DECLARE_LOG_CATEGORY_CLASS(LogPropertySerializer, Error, Log);
 PRAGMA_DISABLE_OPTIMIZATION
@@ -46,7 +55,7 @@ FFallbackStructSerializer::FFallbackStructSerializer(UPropertySerializer* Serial
 }
 
 void FFallbackStructSerializer::Serialize(UScriptStruct* Struct, const TSharedPtr<FJsonObject> JsonValue, const void* StructData, TArray<int32>* OutReferencedSubobjects) {
-	for (FProperty* Property = Struct->PropertyLink; Property; Property = Property->PropertyLinkNext) {
+	for (UProperty* Property = Struct->PropertyLink; Property; Property = Property->PropertyLinkNext) {
 
 		if (PropertySerializer->ShouldSerializeProperty(Property)) {
 			const void* PropertyValue = Property->ContainerPtrToValuePtr<void>(StructData);
@@ -58,7 +67,7 @@ void FFallbackStructSerializer::Serialize(UScriptStruct* Struct, const TSharedPt
 }
 
 void FFallbackStructSerializer::Deserialize(UScriptStruct* Struct, void* StructData, const TSharedPtr<FJsonObject> JsonValue) {
-	for (FProperty* Property = Struct->PropertyLink; Property; Property = Property->PropertyLinkNext) {
+	for (UProperty* Property = Struct->PropertyLink; Property; Property = Property->PropertyLinkNext) {
 		const FString PropertyName = Property->GetName();
 
 		if (PropertySerializer->ShouldSerializeProperty(Property) && JsonValue->HasField(PropertyName)) {
@@ -73,7 +82,7 @@ void FFallbackStructSerializer::Deserialize(UScriptStruct* Struct, void* StructD
 }
 
 bool FFallbackStructSerializer::Compare(UScriptStruct* Struct, const TSharedPtr<FJsonObject> JsonValue, const void* StructData, const TSharedPtr<FObjectCompareContext> Context) {
-	for (FProperty* Property = Struct->PropertyLink; Property; Property = Property->PropertyLinkNext) {
+	for (UProperty* Property = Struct->PropertyLink; Property; Property = Property->PropertyLinkNext) {
 		const FString PropertyName = Property->GetName();
 
 		if (PropertySerializer->ShouldSerializeProperty(Property) && JsonValue->HasField(PropertyName)) {
@@ -101,7 +110,7 @@ UPropertySerializer::UPropertySerializer() {
 	this->StructSerializers.Add(TimespanStruct, MakeShared<FTimespanSerializer>());
 }
 
-void UPropertySerializer::DeserializePropertyValue(FProperty* Property, const TSharedRef<FJsonValue>& JsonValue, void* Value) {
+void UPropertySerializer::DeserializePropertyValue(UProperty* Property, const TSharedRef<FJsonValue>& JsonValue, void* Value) {
 	// Handle statically sized array properties
 	Property->ArrayDim = 1;
 
@@ -120,16 +129,16 @@ void UPropertySerializer::DeserializePropertyValue(FProperty* Property, const TS
 	}
 }
 
-void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, const TSharedRef<FJsonValue>& JsonValue, void* Value) {
-	const FMapProperty* MapProperty = CastField<const FMapProperty>(Property);
-	const FSetProperty* SetProperty = CastField<const FSetProperty>(Property);
-	const FArrayProperty* ArrayProperty = CastField<const FArrayProperty>(Property);
+void UPropertySerializer::DeserializePropertyValueInner(UProperty* Property, const TSharedRef<FJsonValue>& JsonValue, void* Value) {
+	const UMapProperty* MapProperty = CastField<const UMapProperty>(Property);
+	const USetProperty* SetProperty = CastField<const USetProperty>(Property);
+	const UArrayProperty* ArrayProperty = CastField<const UArrayProperty>(Property);
 
 	TSharedRef<FJsonValue> NewJsonValue = JsonValue;
 
 	if (MapProperty) {
-		FProperty* KeyProperty = MapProperty->KeyProp;
-		FProperty* ValueProperty = MapProperty->ValueProp;
+		UProperty* KeyProperty = MapProperty->KeyProp;
+		UProperty* ValueProperty = MapProperty->ValueProp;
 		FScriptMapHelper MapHelper(MapProperty, Value);
 		const TArray<TSharedPtr<FJsonValue>>& PairArray = NewJsonValue->AsArray();
 
@@ -147,7 +156,7 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 		MapHelper.Rehash();
 
 	} else if (SetProperty) {
-		FProperty* ElementProperty = SetProperty->ElementProp;
+		UProperty* ElementProperty = SetProperty->ElementProp;
 		FScriptSetHelper SetHelper(SetProperty, Value);
 		const TArray<TSharedPtr<FJsonValue>>& SetArray = NewJsonValue->AsArray();
 		SetHelper.EmptyElements();
@@ -169,7 +178,7 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 		ElementProperty->DestroyValue(TempElementStorage);
 		FMemory::Free(TempElementStorage);
 	} else if (ArrayProperty) {
-		FProperty* ElementProperty = ArrayProperty->Inner;
+		UProperty* ElementProperty = ArrayProperty->Inner;
 		FScriptArrayHelper ArrayHelper(ArrayProperty, Value);
 		const TArray<TSharedPtr<FJsonValue>>& SetArray = NewJsonValue->AsArray();
 		ArrayHelper.EmptyValues();
@@ -181,9 +190,9 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 			DeserializePropertyValue(ElementProperty, Element.ToSharedRef(), ValuePtr);
 		}
 	}
-	else if (Property->IsA<FMulticastDelegateProperty>()) {
-	} else if (Property->IsA<FDelegateProperty>()) {
-	} else if (const FInterfaceProperty* InterfaceProperty = CastField<const FInterfaceProperty>(Property)) {
+	else if (Property->IsA<UMulticastDelegateProperty>()) {
+	} else if (Property->IsA<UDelegateProperty>()) {
+	} else if (const UInterfaceProperty* InterfaceProperty = CastField<const UInterfaceProperty>(Property)) {
 		// UObject is enough to re-create value, since we known property on deserialization
 		FScriptInterface* Interface = static_cast<FScriptInterface*>(Value);
 		UObject* Object = ObjectSerializer ? ObjectSerializer->DeserializeObject((int32)NewJsonValue->AsNumber()) : NULL;
@@ -194,25 +203,29 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 			Interface->SetInterface(InterfacePtr);
 		}
 	}
-	else if (Property->IsA<FSoftObjectProperty>()) {
+	else if (Property->IsA<USoftObjectProperty>()) {
 		// For soft object reference, path is enough too for deserialization.
 		const FString PathString = NewJsonValue->AsString();
 		FSoftObjectPtr* ObjectPtr = static_cast<FSoftObjectPtr*>(Value);
 		*ObjectPtr = FSoftObjectPath(PathString);
 	}
-	else if (const FObjectPropertyBase* ObjectProperty = CastField<const FObjectPropertyBase>(Property)) {
+	else if (const UObjectPropertyBase* ObjectProperty = CastField<const UObjectPropertyBase>(Property)) {
 		// Need to serialize full UObject for object property
-		TObjectPtr<UObject> Object = NULL;
+		UObject* Object = NULL;
 
 		// Use IImporter to import the object
 		IImporter* Importer = new IImporter();
 		Importer->LoadObject(&NewJsonValue->AsObject(), Object);
 		ObjectProperty->SetObjectPropertyValue(Value, Object);
 	}
-	else if (const FStructProperty* StructProperty = CastField<const FStructProperty>(Property)) {
+	else if (const UStructProperty* StructProperty = CastField<const UStructProperty>(Property)) {
 		// JSON for FGuids are FStrings
-		if (FString OutString; JsonValue->TryGetString(OutString)) {
-			FGuid GUID = FGuid(OutString); // Create GUID from String
+		FString OutString;
+
+		if (JsonValue->TryGetString(OutString)) {
+			FGuid GUID; {
+				FGuid::Parse(OutString, GUID); // Parse
+			}
 
 			TSharedRef<FJsonObject> SharedObject = MakeShareable(new FJsonObject());
 			SharedObject->SetNumberField("A", GUID.A); SharedObject->SetNumberField("B", GUID.B);
@@ -225,7 +238,7 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 		// To serialize struct, we need it's type and value pointer, because struct value doesn't contain type information
 		DeserializeStruct(StructProperty->Struct, NewJsonValue->AsObject().ToSharedRef(), Value);
 	}
-	else if (const FByteProperty* ByteProperty = CastField<const FByteProperty>(Property)) {
+	else if (const UByteProperty* ByteProperty = CastField<const UByteProperty>(Property)) {
 		// If we have a string provided, make sure Enum is not null
 		if (JsonValue->Type == EJson::String) {
 			check(ByteProperty->Enum);
@@ -239,21 +252,21 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 		}
 		// Primitives below, they are serialized as plain json values
 	}
-	else if (const FNumericProperty* NumberProperty = CastField<const FNumericProperty>(Property)) {
+	else if (const UNumericProperty* NumberProperty = CastField<const UNumericProperty>(Property)) {
 		const double NumberValue = NewJsonValue->AsNumber();
 		if (NumberProperty->IsFloatingPoint())
 			NumberProperty->SetFloatingPointPropertyValue(Value, NumberValue);
 		else NumberProperty->SetIntPropertyValue(Value, static_cast<int64>(NumberValue));
 	}
-	else if (const FBoolProperty* BoolProperty = CastField<const FBoolProperty>(Property)) {
+	else if (const UBoolProperty* BoolProperty = CastField<const UBoolProperty>(Property)) {
 		const bool bBooleanValue = NewJsonValue->AsBool();
 		BoolProperty->SetPropertyValue(Value, bBooleanValue);
 	}
-	else if (Property->IsA<FStrProperty>()) {
+	else if (Property->IsA<UStrProperty>()) {
 		const FString StringValue = NewJsonValue->AsString();
 		*static_cast<FString*>(Value) = StringValue;
 	}
-	else if (const FEnumProperty* EnumProperty = CastField<const FEnumProperty>(Property)) {
+	else if (const UEnumProperty* EnumProperty = CastField<const UEnumProperty>(Property)) {
 		// Prefer readable enum names in result json to raw numbers
 		const FString EnumName = NewJsonValue->AsString();
 		const int64 UnderlyingValue = EnumProperty->GetEnum()->GetValueByNameString(EnumName);
@@ -261,12 +274,12 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 			EnumProperty->GetUnderlyingProperty()->SetIntPropertyValue(Value, UnderlyingValue);
 		}
 	}
-	else if (Property->IsA<FNameProperty>()) {
+	else if (Property->IsA<UNameProperty>()) {
 		// Name is perfectly representable as string
 		const FString NameString = NewJsonValue->AsString();
 		*static_cast<FName*>(Value) = *NameString;
 	}
-	else if (const FTextProperty* TextProperty = CastField<const FTextProperty>(Property)) {
+	else if (const UTextProperty* TextProperty = CastField<const UTextProperty>(Property)) {
 		// For FText, standard ExportTextItem is okay to use, because it's serialization is quite complex
 		const FString SerializedValue = NewJsonValue->AsString();
 		if (!SerializedValue.IsEmpty()) {
@@ -278,18 +291,18 @@ void UPropertySerializer::DeserializePropertyValueInner(FProperty* Property, con
 			TextProperty->SetPropertyValue(Value, FText::FromString(Object->GetStringField("SourceString")));
 		}
 	}
-	else if (const FFieldPathProperty* FieldPathProperty = CastField<const FFieldPathProperty>(Property)) {
-		FFieldPath FieldPath;
+	/*else if (const UFieldPathProperty* FieldPathProperty = CastField<const UFieldPathProperty>(Property)) {
+		UFieldPath FieldPath;
 		FieldPath.Generate(*NewJsonValue->AsString());
-		*static_cast<FFieldPath*>(Value) = FieldPath;
-	}
+		*static_cast<UFieldPath*>(Value) = FieldPath;
+	}*/
 	else {
 		UE_LOG(LogPropertySerializer, Fatal, TEXT("Found unsupported property type when deserializing value: %s"), *Property->GetClass()->GetName());
 	}
 }
 
 void UPropertySerializer::DisablePropertySerialization(UStruct* Struct, FName PropertyName) {
-	FProperty* Property = Struct->FindPropertyByName(PropertyName);
+	UProperty* Property = Struct->FindPropertyByName(PropertyName);
 	checkf(Property, TEXT("Cannot find Property %s in Struct %s"), *PropertyName.ToString(), *Struct->GetPathName());
 	this->PinnedStructs.Add(Struct);
 	this->BlacklistedProperties.Add(Property);
@@ -300,7 +313,7 @@ void UPropertySerializer::AddStructSerializer(UScriptStruct* Struct, const TShar
 	this->StructSerializers.Add(Struct, Serializer);
 }
 
-bool UPropertySerializer::ShouldSerializeProperty(FProperty* Property) const {
+bool UPropertySerializer::ShouldSerializeProperty(UProperty* Property) const {
 	// Skip transient properties
 	if (Property->HasAnyPropertyFlags(CPF_Transient)) {
 		return false;
@@ -319,7 +332,7 @@ bool UPropertySerializer::ShouldSerializeProperty(FProperty* Property) const {
 	return true;
 }
 
-TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValue(FProperty* Property, const void* Value, TArray<int32>* OutReferencedSubobjects) {
+TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValue(UProperty* Property, const void* Value, TArray<int32>* OutReferencedSubobjects) {
 	// Serialize statically sized array properties
 	if (Property->ArrayDim != 1) {
 		TArray<TSharedPtr<FJsonValue>> OutJsonValueArray;
@@ -334,14 +347,14 @@ TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValue(FProperty* Pr
 	}
 }
 
-TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValueInner(FProperty* Property, const void* Value, TArray<int32>* OutReferencedSubobjects) {
-	const FMapProperty* MapProperty = CastField<const FMapProperty>(Property);
-	const FSetProperty* SetProperty = CastField<const FSetProperty>(Property);
-	const FArrayProperty* ArrayProperty = CastField<const FArrayProperty>(Property);
+TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValueInner(UProperty* Property, const void* Value, TArray<int32>* OutReferencedSubobjects) {
+	const UMapProperty* MapProperty = CastField<const UMapProperty>(Property);
+	const USetProperty* SetProperty = CastField<const USetProperty>(Property);
+	const UArrayProperty* ArrayProperty = CastField<const UArrayProperty>(Property);
 
 	if (MapProperty) {
-		FProperty* KeyProperty = MapProperty->KeyProp;
-		FProperty* ValueProperty = MapProperty->ValueProp;
+		UProperty* KeyProperty = MapProperty->KeyProp;
+		UProperty* ValueProperty = MapProperty->ValueProp;
 		FScriptMapHelper MapHelper(MapProperty, Value);
 		TArray<TSharedPtr<FJsonValue>> ResultArray;
 		for (int32 i = 0; i < MapHelper.Num(); i++) {
@@ -357,7 +370,7 @@ TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValueInner(FPropert
 	}
 
 	if (SetProperty) {
-		FProperty* ElementProperty = SetProperty->ElementProp;
+		UProperty* ElementProperty = SetProperty->ElementProp;
 		FScriptSetHelper SetHelper(SetProperty, Value);
 		TArray<TSharedPtr<FJsonValue>> ResultArray;
 		for (int32 i = 0; i < SetHelper.Num(); i++) {
@@ -368,7 +381,7 @@ TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValueInner(FPropert
 	}
 
 	if (ArrayProperty) {
-		FProperty* ElementProperty = ArrayProperty->Inner;
+		UProperty* ElementProperty = ArrayProperty->Inner;
 		FScriptArrayHelper ArrayHelper(ArrayProperty, Value);
 		TArray<TSharedPtr<FJsonValue>> ResultArray;
 		for (int32 i = 0; i < ArrayHelper.Num(); i++) {
@@ -379,17 +392,17 @@ TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValueInner(FPropert
 		return MakeShareable(new FJsonValueArray(ResultArray));
 	}
 
-	if (Property->IsA<FMulticastDelegateProperty>()) {
+	if (Property->IsA<UMulticastDelegateProperty>()) {
 		FMulticastScriptDelegate* MulticastScriptDelegate = (FMulticastScriptDelegate*)Value;
 
 		return MakeShareable(new FJsonValueString(TEXT("##NOT SERIALIZED##")));
 	}
 
-	if (Property->IsA<FDelegateProperty>()) {
+	if (Property->IsA<UDelegateProperty>()) {
 		return MakeShareable(new FJsonValueString(TEXT("##NOT SERIALIZED##")));
 	}
 
-	if (Property->IsA<FInterfaceProperty>()) {
+	if (Property->IsA<UInterfaceProperty>()) {
 		//UObject is enough to re-create value, since we known property on deserialization
 		const FScriptInterface* Interface = reinterpret_cast<const FScriptInterface*>(Value);
 		int32 ObjectIndex = ObjectSerializer ? ObjectSerializer->SerializeObject(Interface->GetObject()) : 0;
@@ -401,7 +414,7 @@ TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValueInner(FPropert
 		return MakeShareable(new FJsonValueNumber(ObjectIndex));
 	}
 
-	if (const FObjectPropertyBase* ObjectProperty = CastField<const FObjectPropertyBase>(Property)) {
+	if (const UObjectPropertyBase* ObjectProperty = CastField<const UObjectPropertyBase>(Property)) {
 		//Need to serialize full UObject for object property
 		UObject* ObjectPointer = ObjectProperty->GetObjectPropertyValue(Value);
 		int32 ObjectIndex = ObjectSerializer ? ObjectSerializer->SerializeObject(ObjectPointer) : 0;
@@ -413,18 +426,18 @@ TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValueInner(FPropert
 		return MakeShareable(new FJsonValueNumber(ObjectIndex));
 	}
 
-	if (const FStructProperty* StructProperty = CastField<const FStructProperty>(Property)) {
+	if (const UStructProperty* StructProperty = CastField<const UStructProperty>(Property)) {
 		//To serialize struct, we need it's type and value pointer, because struct value doesn't contain type information
 		return MakeShareable(new FJsonValueObject(SerializeStruct(StructProperty->Struct, Value, OutReferencedSubobjects)));
 	}
 
-	if (Property->IsA<FSoftObjectProperty>()) {
+	if (Property->IsA<USoftObjectProperty>()) {
 		//For soft object reference, path is enough too for deserialization.
 		const FSoftObjectPtr* ObjectPtr = reinterpret_cast<const FSoftObjectPtr*>(Value);
 		return MakeShareable(new FJsonValueString(ObjectPtr->ToSoftObjectPath().ToString()));
 	}
 
-	if (const FByteProperty* ByteProperty = CastField<const FByteProperty>(Property)) {
+	if (const UByteProperty* ByteProperty = CastField<const UByteProperty>(Property)) {
 		//If Enum is NULL, property will be handled as standard UNumericProperty
 		if (ByteProperty->Enum) {
 			const int64 UnderlyingValue = ByteProperty->GetSignedIntPropertyValue(Value);
@@ -433,7 +446,7 @@ TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValueInner(FPropert
 		}
 	}
 
-	if (const FNumericProperty* NumberProperty = CastField<const FNumericProperty>(Property)) {
+	if (const UNumericProperty* NumberProperty = CastField<const UNumericProperty>(Property)) {
 		double ResultValue;
 		if (NumberProperty->IsFloatingPoint())
 			ResultValue = NumberProperty->GetFloatingPointPropertyValue(Value);
@@ -441,39 +454,39 @@ TSharedRef<FJsonValue> UPropertySerializer::SerializePropertyValueInner(FPropert
 		return MakeShareable(new FJsonValueNumber(ResultValue));
 	}
 
-	if (const FBoolProperty* BoolProperty = CastField<const FBoolProperty>(Property)) {
+	if (const UBoolProperty* BoolProperty = CastField<const UBoolProperty>(Property)) {
 		const bool bBooleanValue = BoolProperty->GetPropertyValue(Value);
 		return MakeShareable(new FJsonValueBoolean(bBooleanValue));
 	}
 
-	if (Property->IsA<FStrProperty>()) {
+	if (Property->IsA<UStrProperty>()) {
 		const FString& StringValue = *reinterpret_cast<const FString*>(Value);
 		return MakeShareable(new FJsonValueString(StringValue));
 	}
 
-	if (const FEnumProperty* EnumProperty = CastField<const FEnumProperty>(Property)) {
+	if (const UEnumProperty* EnumProperty = CastField<const UEnumProperty>(Property)) {
 		const int64 UnderlyingValue = EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(Value);
 		const FString EnumName = EnumProperty->GetEnum()->GetNameByValue(UnderlyingValue).ToString();
 		return MakeShareable(new FJsonValueString(EnumName));
 	}
 
-	if (Property->IsA<FNameProperty>()) {
+	if (Property->IsA<UNameProperty>()) {
 		//Name is perfectly representable as string
 		FName* Temp = ((FName*)Value);
 		return MakeShareable(new FJsonValueString(Temp->ToString()));
 	}
 
-	if (const FTextProperty* TextProperty = CastField<const FTextProperty>(Property)) {
+	if (const UTextProperty* TextProperty = CastField<const UTextProperty>(Property)) {
 		FString ResultValue;
 		const FText& TextValue = TextProperty->GetPropertyValue(Value);
 		FTextStringHelper::WriteToBuffer(ResultValue, TextValue);
 		return MakeShareable(new FJsonValueString(ResultValue));
 	}
 
-	if (Property->IsA<FFieldPathProperty>()) {
-		FFieldPath* Temp = ((FFieldPath*)Value);
-		return MakeShareable(new FJsonValueString(Temp->ToString()));
-	}
+	//if (Property->IsA<UFieldPathProperty>()) { // ----- NOTE: I have no idea what this is
+	//	UFieldPath* Temp = ((UFieldPath*)Value);
+	//	return MakeShareable(new FJsonValueString(Temp->ToString()));
+	//}
 
 	UE_LOG(LogPropertySerializer, Fatal, TEXT("Found unsupported property type when serializing value: %s"), *Property->GetClass()->GetName());
 	return MakeShareable(new FJsonValueString(TEXT("#ERROR#")));
@@ -492,7 +505,7 @@ void UPropertySerializer::DeserializeStruct(UScriptStruct* Struct, const TShared
 	StructSerializer->Deserialize(Struct, OutValue, Properties);
 }
 
-bool UPropertySerializer::ComparePropertyValues(FProperty* Property, const TSharedRef<FJsonValue>& JsonValue, const void* CurrentValue, const TSharedPtr<FObjectCompareContext> Context) {
+bool UPropertySerializer::ComparePropertyValues(UProperty* Property, const TSharedRef<FJsonValue>& JsonValue, const void* CurrentValue, const TSharedPtr<FObjectCompareContext> Context) {
 
 	if (Property->ArrayDim != 1) {
 		const TArray<TSharedPtr<FJsonValue>>& ArrayElements = JsonValue->AsArray();
@@ -511,14 +524,14 @@ bool UPropertySerializer::ComparePropertyValues(FProperty* Property, const TShar
 	return ComparePropertyValuesInner(Property, JsonValue, CurrentValue, Context);
 }
 
-bool UPropertySerializer::ComparePropertyValuesInner(FProperty* Property, const TSharedRef<FJsonValue>& JsonValue, const void* CurrentValue, const TSharedPtr<FObjectCompareContext> Context) {
-	const FMapProperty* MapProperty = CastField<const FMapProperty>(Property);
-	const FSetProperty* SetProperty = CastField<const FSetProperty>(Property);
-	const FArrayProperty* ArrayProperty = CastField<const FArrayProperty>(Property);
+bool UPropertySerializer::ComparePropertyValuesInner(UProperty* Property, const TSharedRef<FJsonValue>& JsonValue, const void* CurrentValue, const TSharedPtr<FObjectCompareContext> Context) {
+	const UMapProperty* MapProperty = CastField<const UMapProperty>(Property);
+	const USetProperty* SetProperty = CastField<const USetProperty>(Property);
+	const UArrayProperty* ArrayProperty = CastField<const UArrayProperty>(Property);
 
 	if (MapProperty) {
-		FProperty* KeyProperty = MapProperty->KeyProp;
-		FProperty* ValueProperty = MapProperty->ValueProp;
+		UProperty* KeyProperty = MapProperty->KeyProp;
+		UProperty* ValueProperty = MapProperty->ValueProp;
 		FScriptMapHelper MapHelper(MapProperty, CurrentValue);
 
 		// Try to fail early to not attempt expensive map comparison operations
@@ -558,7 +571,7 @@ bool UPropertySerializer::ComparePropertyValuesInner(FProperty* Property, const 
 	}
 
 	if (SetProperty) {
-		FProperty* ElementProperty = SetProperty->ElementProp;
+		UProperty* ElementProperty = SetProperty->ElementProp;
 		FScriptSetHelper SetHelper(SetProperty, CurrentValue);
 		const TArray<TSharedPtr<FJsonValue>>& SetArray = JsonValue->AsArray();
 
@@ -589,7 +602,7 @@ bool UPropertySerializer::ComparePropertyValuesInner(FProperty* Property, const 
 	}
 
 	if (ArrayProperty) {
-		FProperty* ElementProperty = ArrayProperty->Inner;
+		UProperty* ElementProperty = ArrayProperty->Inner;
 		FScriptArrayHelper ArrayHelper(ArrayProperty, CurrentValue);
 		const TArray<TSharedPtr<FJsonValue>>& JsonArray = JsonValue->AsArray();
 
@@ -610,7 +623,7 @@ bool UPropertySerializer::ComparePropertyValuesInner(FProperty* Property, const 
 		return true;
 	}
 
-	if (Property->IsA<FInterfaceProperty>()) {
+	if (Property->IsA<UInterfaceProperty>()) {
 		//Interface properties are equal if objects they refer to are equal
 		const FScriptInterface* Interface = static_cast<const FScriptInterface*>(CurrentValue);
 		UObject* InterfaceObject = Interface->GetObject();
@@ -619,7 +632,7 @@ bool UPropertySerializer::ComparePropertyValuesInner(FProperty* Property, const 
 		return ObjectSerializer->CompareObjectsWithContext(InterfaceObjectIndex, InterfaceObject, Context);
 	}
 
-	if (const FObjectPropertyBase* ObjectProperty = CastField<const FObjectPropertyBase>(Property)) {
+	if (const UObjectPropertyBase* ObjectProperty = CastField<const UObjectPropertyBase>(Property)) {
 		//Need to serialize full UObject for object property
 		UObject* PropertyObject = ObjectProperty->GetObjectPropertyValue(CurrentValue);
 		const int32 ObjectIndex = JsonValue->AsNumber();
@@ -628,22 +641,22 @@ bool UPropertySerializer::ComparePropertyValuesInner(FProperty* Property, const 
 	}
 
 	//To serialize struct, we need it's type and value pointer, because struct value doesn't contain type information
-	if (const FStructProperty* StructProperty = CastField<const FStructProperty>(Property)) {
+	if (const UStructProperty* StructProperty = CastField<const UStructProperty>(Property)) {
 		return CompareStructs(StructProperty->Struct, JsonValue->AsObject().ToSharedRef(), CurrentValue, Context);
 	}
 
-	//If property hasn't been handled above, we can just deserialize it normally and then do FProperty.Identical
+	//If property hasn't been handled above, we can just deserialize it normally and then do UProperty.Identical
 	FDefaultConstructedPropertyElement DeserializedElement(Property);
 	//We use DeserializePropertyValueInner here because we handle statically sized array properties externally, so we need to bypass their handling
 	DeserializePropertyValueInner(Property, JsonValue, DeserializedElement.GetObjAddress());
 
-	if (const FTextProperty* TextProperty = CastField<const FTextProperty>(Property)) {
-		// FTextProperty::Identical compares the CultureInvariant flag, and sometimes empty deserialized texts don't have it while the exiting texts do
+	if (const UTextProperty* TextProperty = CastField<const UTextProperty>(Property)) {
+		// UTextProperty::Identical compares the CultureInvariant flag, and sometimes empty deserialized texts don't have it while the exiting texts do
 		if (TextProperty->GetPropertyValue(CurrentValue).IsEmpty() && TextProperty->GetPropertyValue(DeserializedElement.GetObjAddress()).IsEmpty())
 			return true;
 	}
 
-	return Property->Identical(CurrentValue, DeserializedElement.GetObjAddress(), PPF_None);
+	return Property->Identical(CurrentValue, DeserializedElement.GetObjAddress(), CPPF_None);
 }
 
 bool UPropertySerializer::CompareStructs(UScriptStruct* Struct, const TSharedRef<FJsonObject>& JsonValue, const void* CurrentValue, const TSharedPtr<FObjectCompareContext> Context) {

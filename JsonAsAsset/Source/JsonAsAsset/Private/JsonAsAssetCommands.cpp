@@ -1,11 +1,12 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
 
 #include "JsonAsAssetCommands.h"
 
 #define LOCTEXT_NAMESPACE "FJsonAsAssetModule"
 
-void FJsonAsAssetCommands::RegisterCommands() {
-	UI_COMMAND(PluginAction, "JsonAsAsset", "Choose a JSON file to Convert", EUserInterfaceActionType::Button, FInputGesture());
+void FJsonAsAssetCommands::RegisterCommands()
+{
+	UI_COMMAND(PluginAction, "JsonAsAsset", "Execute JsonAsAsset action", EUserInterfaceActionType::Button, FInputGesture());
 }
 
 #undef LOCTEXT_NAMESPACE

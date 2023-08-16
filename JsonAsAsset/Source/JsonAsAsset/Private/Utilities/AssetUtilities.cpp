@@ -10,10 +10,9 @@
 #include "Settings/JsonAsAssetSettings.h"
 #include "Dom/JsonObject.h"
 
-#include "UObject/SavePackage.h"
-
 #include "HttpModule.h"
-#include "AssetRegistry/AssetRegistryModule.h"
+#include "AssetRegistryModule.h"
+#include "Misc/MessageDialog.h"
 #include "Importers/TextureImporter.h"
 #include "Importers/MaterialParameterCollectionImporter.h"
 #include "Interfaces/IHttpResponse.h"
@@ -21,10 +20,9 @@
 #include "Serialization/JsonSerializer.h"
 #include "Utilities/AssetUtilities.h"
 #include "Utilities/RemoteUtilities.h"
-#include "PluginUtils.h"
 
 UPackage* FAssetUtilities::CreateAssetPackage(const FString& FullPath) {
-	UPackage* Package = CreatePackage(*FullPath);
+	UPackage* Package = CreatePackage(nullptr, *FullPath);
 	UPackage* _ = Package->GetOutermost(); // ??
 	Package->FullyLoad();
 
@@ -63,17 +61,18 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 			ModifiablePath.Split("/", nullptr, &PluginName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 			PluginName.Split("/", &PluginName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 
-			if (IPluginManager::Get().FindPlugin(PluginName) == nullptr)
+			if (IPluginManager::Get().FindPlugin(PluginName).Get() == nullptr)
 				CreatePlugin(PluginName);
 		}
-	} else {
+	}
+	else {
 		FString RootName; {
 			OutputPath.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 			RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		}
 
 		// Missing Plugin: Create it
-		if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName) == nullptr)
+		if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName).Get() == nullptr)
 			CreatePlugin(RootName);
 
 		ModifiablePath = OutputPath;
@@ -83,7 +82,7 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 	}
 
 	const FString PathWithGame = ModifiablePath + Name;
-	UPackage* Package = CreatePackage(*PathWithGame);
+	UPackage* Package = CreatePackage(nullptr, *PathWithGame);
 	OutOutermostPkg = Package->GetOutermost();
 	Package->FullyLoad();
 
@@ -109,7 +108,7 @@ UObject* FAssetUtilities::GetSelectedAsset() {
 
 // Constructing assets ect..
 template <typename T>
-bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, TObjectPtr<T>& OutObject, bool& bSuccess) {
+bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T*& OutObject, bool& bSuccess) {
 	// Supported Assets
 	if (Type == "Texture2D" ||
 		Type == "TextureCube" ||
@@ -131,7 +130,7 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 		Type == "DataTable" ||
 		Type == "SubsurfaceProfile" ||
 		Type == "MaterialFunction"
-	) {
+		) {
 		//		Manually supported asset types
 		// (ex: textures have to be handled separately)
 		if (Type ==
@@ -148,16 +147,17 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 			}
 
 			// Missing Plugin: Create it
-			if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName) == nullptr)
+			if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName).Get() == nullptr)
 				CreatePlugin(RootName);
 
 			bSuccess = Construct_TypeTexture(Path, Texture);
 			if (bSuccess) OutObject = Cast<T>(Texture);
 
 			return true;
-		} else {
+		}
+		else {
 			const TSharedPtr<FJsonObject> Response = API_RequestExports(Path);
-			if (Response == nullptr || Path.IsEmpty()) return true;
+			if (Response.Get() == nullptr || Path.IsEmpty()) return true;
 
 			TSharedPtr<FJsonObject> JsonObject = Response->GetArrayField("jsonOutput")[0]->AsObject();
 			FString PackagePath;
@@ -166,7 +166,7 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 
 			if (JsonObject) {
 				UPackage* OutermostPkg;
-				UPackage* Package = CreatePackage(*PackagePath);
+				UPackage* Package = CreatePackage(nullptr, *PackagePath);
 				OutermostPkg = Package->GetOutermost();
 				Package->FullyLoad();
 
@@ -186,15 +186,15 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 }
 
 bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutTexture) {
-	if (Path.IsEmpty()) 
+	if (Path.IsEmpty())
 		return false;
 
 	TSharedPtr<FJsonObject> JsonObject = API_RequestExports(Path);
-	if (JsonObject == nullptr)
+	if (JsonObject.Get() == nullptr)
 		return false;
 
 	TArray<TSharedPtr<FJsonValue>> Response = JsonObject->GetArrayField("jsonOutput");
-	if (Response.IsEmpty())
+	if (Response.Num() == 0)
 		return false;
 
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
@@ -204,13 +204,13 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 
 	// --------------- Download Texture Data ------------
 	FHttpModule* HttpModule = &FHttpModule::Get();
-	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
+	TSharedRef<IHttpRequest, ESPMode::NotThreadSafe> HttpRequest = HttpModule->CreateRequest();
 
 	HttpRequest->SetURL(Settings->Url + "/api/v1/export?path=" + Path);
 	HttpRequest->SetHeader("content-type", "application/octet-stream");
 	HttpRequest->SetVerb(TEXT("GET"));
 
-	const TSharedPtr<IHttpResponse> HttpResponse = FRemoteUtilities::ExecuteRequestSync(HttpRequest);
+	const TSharedPtr<IHttpResponse, ESPMode::ThreadSafe> HttpResponse = FRemoteUtilities::ExecuteRequestSync(HttpRequest);
 	if (!HttpResponse.IsValid() || HttpResponse->GetResponseCode() != 200)
 		return false;
 
@@ -223,7 +223,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 		Path.Split(".", &PackagePath, &AssetName);
 	}
 
-	UPackage* Package = CreatePackage(*PackagePath);
+	UPackage* Package = CreatePackage(nullptr, *PackagePath);
 	UPackage* OutermostPkg = Package->GetOutermost();
 	Package->FullyLoad();
 
@@ -253,14 +253,9 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 
 	// Save texture
 	if (Settings->bAllowPackageSaving) {
-		FSavePackageArgs SaveArgs; {
-			SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-			SaveArgs.SaveFlags = SAVE_NoError;
-		}
-
 		const FString PackageName = Package->GetName();
 		const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
-		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
+		UPackage::SavePackage(Package, nullptr, RF_Standalone, *PackageFileName, GWarn, nullptr, false, true, SAVE_NoError);
 	}
 
 	OutTexture = Texture;
@@ -269,40 +264,6 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 }
 
 void FAssetUtilities::CreatePlugin(FString PluginName) {
-	FPluginUtils::FNewPluginParamsWithDescriptor CreationParams;
-	CreationParams.Descriptor.bCanContainContent = true;
-
-	CreationParams.Descriptor.FriendlyName = PluginName;
-	CreationParams.Descriptor.Version = 1;
-	CreationParams.Descriptor.VersionName = TEXT("1.0");
-	CreationParams.Descriptor.Category = TEXT("Other");
-
-	FText FailReason;
-	FPluginUtils::FLoadPluginParams LoadParams;
-	LoadParams.bEnablePluginInProject = true;
-	LoadParams.bUpdateProjectPluginSearchPath = true;
-	LoadParams.bSelectInContentBrowser = false;
-
-	FPluginUtils::CreateAndLoadNewPlugin(PluginName, FPaths::ProjectPluginsDir(), CreationParams, LoadParams);
-
-#define LOCTEXT_NAMESPACE "UMG"
-#if WITH_EDITOR
-	// Setup notification's arguments
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("PluginName"), FText::FromString(PluginName));
-
-	// Create notification
-	FNotificationInfo Info(FText::Format(LOCTEXT("PluginCreated", "Plugin Created: {PluginName}"), Args));
-	Info.ExpireDuration = 10.0f;
-	Info.bUseLargeFont = true;
-	Info.bUseSuccessFailIcons = false;
-	Info.WidthOverride = FOptionalSize(350);
-	Info.SubText = FText::FromString(FString("Created successfully"));
-
-	TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-	NotificationPtr->SetCompletionState(SNotificationItem::CS_Success);
-#endif
-#undef LOCTEXT_NAMESPACE
 }
 
 const TSharedPtr<FJsonObject> FAssetUtilities::API_RequestExports(const FString& Path) {
@@ -319,7 +280,7 @@ const TSharedPtr<FJsonObject> FAssetUtilities::API_RequestExports(const FString&
 	NewRequest->SetURL(Settings->Url + "/api/v1/export?raw=true&path=" + Path);
 	NewRequest->SetVerb(TEXT("GET"));
 
-	const TSharedPtr<IHttpResponse> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
+	const TSharedPtr<IHttpResponse, ESPMode::ThreadSafe> NewResponse = FRemoteUtilities::ExecuteRequestSync(NewRequest);
 	if (!NewResponse.IsValid()) return TSharedPtr<FJsonObject>();
 
 	const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(NewResponse->GetContentAsString());

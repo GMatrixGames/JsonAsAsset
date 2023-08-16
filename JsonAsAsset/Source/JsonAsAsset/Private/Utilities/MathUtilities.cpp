@@ -2,17 +2,19 @@
 
 #include "Utilities/MathUtilities.h"
 #include "Dom/JsonObject.h"
+#include "Engine/EngineTypes.h"
+#include "Curves/RichCurve.h"
 
 FVector FMathUtilities::ObjectToVector(const FJsonObject* Object) {
 	return FVector(Object->GetNumberField("X"), Object->GetNumberField("Y"), Object->GetNumberField("Z"));
 }
 
-FVector3f FMathUtilities::ObjectToVector3f(const FJsonObject* Object) {
-	return FVector3f(Object->GetNumberField("X"), Object->GetNumberField("Y"), Object->GetNumberField("Z"));
+FVector FMathUtilities::ObjectToVector3f(const FJsonObject* Object) {
+	return FVector(Object->GetNumberField("X"), Object->GetNumberField("Y"), Object->GetNumberField("Z"));
 }
 
-FVector4f FMathUtilities::ObjectToVector4f(const FJsonObject* Object) {
-	return FVector4f(Object->GetNumberField("X"), Object->GetNumberField("Y"), Object->GetNumberField("Z"));
+FVector4 FMathUtilities::ObjectToVector4f(const FJsonObject* Object) {
+	return FVector4(Object->GetNumberField("X"), Object->GetNumberField("Y"), Object->GetNumberField("Z"), Object->GetNumberField("W"));
 }
 
 FRotator FMathUtilities::ObjectToRotator(const FJsonObject* Object) {

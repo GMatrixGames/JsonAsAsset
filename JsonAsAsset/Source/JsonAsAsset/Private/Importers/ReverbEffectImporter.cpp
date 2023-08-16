@@ -3,13 +3,12 @@
 #include "Importers/ReverbEffectImporter.h"
 #include "Sound/ReverbEffect.h"
 
-#include "AssetRegistry/AssetRegistryModule.h"
 #include "Dom/JsonObject.h"
 
 bool UReverbEffectImporter::ImportData() {
 	try {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
-		UReverbEffect* ReverbEffect = NewObject<UReverbEffect>(Package, UReverbEffect::StaticClass(), *FileName, RF_Public | RF_Standalone);
+		UReverbEffect* ReverbEffect = NewObject<UReverbEffect>(Cast<UObject>(Package), UReverbEffect::StaticClass(), *FileName, RF_Public | RF_Standalone);
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, ReverbEffect);
 
 		// Handle edit changes, and add it to the content browser

@@ -3,13 +3,14 @@
 #include "Importers/DataTableImporter.h"
 
 #include "Dom/JsonObject.h"
+#include "Engine/DataTable.h"
 #include "Utilities/AssetUtilities.h"
 
 // Shout-out to UEAssetToolkit
 bool UDataTableImporter::ImportData() {
 	try {
 		TSharedPtr<FJsonObject> AssetData = JsonObject->GetObjectField("Properties");
-		UDataTable* DataTable = NewObject<UDataTable>(Package, UDataTable::StaticClass(), *FileName, RF_Public | RF_Standalone);
+		UDataTable* DataTable = NewObject<UDataTable>(Cast<UObject>(Package), UDataTable::StaticClass(), *FileName, RF_Public | RF_Standalone);
 		
 		// ScriptClass for the Data Table
 		FString TableStruct; {

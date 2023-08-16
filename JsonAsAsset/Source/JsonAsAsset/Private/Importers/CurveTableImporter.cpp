@@ -3,7 +3,6 @@
 #include "Importers/CurveTableImporter.h"
 
 #include "Dom/JsonObject.h"
-#include "Factories/CurveTableFactory.h"
 #include "Utilities/AssetUtilities.h"
 
 bool UCurveTableImporter::ImportData() {
@@ -14,7 +13,9 @@ bool UCurveTableImporter::ImportData() {
 
 		// Used to determine curve type
 		ECurveTableMode CurveTableMode = ECurveTableMode::RichCurves; {
-			if (FString CurveMode; JsonObject->TryGetStringField("CurveTableMode", CurveMode))
+			FString CurveMode;
+
+			if (JsonObject->TryGetStringField("CurveTableMode", CurveMode))
 				CurveTableMode = static_cast<ECurveTableMode>(StaticEnum<ECurveTableMode>()->GetValueByNameString(CurveMode));
 
 			DerivedCurveTable->ChangeTableMode(CurveTableMode);
@@ -32,7 +33,9 @@ bool UCurveTableImporter::ImportData() {
 					RealCurve = NewRichCurve;
 				}
 
-				if (const TArray<TSharedPtr<FJsonValue>>* KeysPtr; CurveData->TryGetArrayField("Keys", KeysPtr))
+				const TArray<TSharedPtr<FJsonValue>>* KeysPtr;
+
+				if (CurveData->TryGetArrayField("Keys", KeysPtr))
 					for (const TSharedPtr<FJsonValue> KeyPtr : *KeysPtr) {
 						TSharedPtr<FJsonObject> Key = KeyPtr->AsObject(); {
 							NewRichCurve.AddKey(Key->GetNumberField("Time"), Key->GetNumberField("Value"));
@@ -68,7 +71,9 @@ bool UCurveTableImporter::ImportData() {
 						StaticEnum<ERichCurveInterpMode>()->GetValueByNameString(CurveData->GetStringField("InterpMode"))
 					);
 
-				if (const TArray<TSharedPtr<FJsonValue>>* KeysPtr; CurveData->TryGetArrayField("Keys", KeysPtr))
+				const TArray<TSharedPtr<FJsonValue>>* KeysPtr;
+
+				if (CurveData->TryGetArrayField("Keys", KeysPtr))
 					for (const TSharedPtr<FJsonValue> KeyPtr : *KeysPtr) {
 						TSharedPtr<FJsonObject> Key = KeyPtr->AsObject(); {
 							NewSimpleCurve.AddKey(Key->GetNumberField("Time"), Key->GetNumberField("Value"));

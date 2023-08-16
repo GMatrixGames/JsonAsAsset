@@ -23,18 +23,22 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, MaterialInstanceConstant);
 
 		for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
-			TSharedPtr<FJsonObject> Object = TSharedPtr(Value->AsObject());
+			TSharedPtr<FJsonObject> Object = TSharedPtr<FJsonObject>(Value->AsObject());
 
 			if (Object->GetStringField("Type") == "MaterialInstanceEditorOnlyData") {
 				EditorOnlyData.Add(Object);
 			}
 		}
 
-		if (const TSharedPtr<FJsonObject>* ParentPtr; Properties->TryGetObjectField("Parent", ParentPtr))
+		const TSharedPtr<FJsonObject>* ParentPtr;
+		const TSharedPtr<FJsonObject>* SubsurfaceProfilePtr;
+		bool bOverrideSubsurfaceProfile;
+
+		if (Properties->TryGetObjectField("Parent", ParentPtr))
 			LoadObject(ParentPtr, MaterialInstanceConstant->Parent);
-		if (const TSharedPtr<FJsonObject>* SubsurfaceProfilePtr; Properties->TryGetObjectField("SubsurfaceProfile", SubsurfaceProfilePtr))
+		if (Properties->TryGetObjectField("SubsurfaceProfile", SubsurfaceProfilePtr))
 			LoadObject(SubsurfaceProfilePtr, MaterialInstanceConstant->SubsurfaceProfile);
-		if (bool bOverrideSubsurfaceProfile; Properties->TryGetBoolField("bOverrideSubsurfaceProfile", bOverrideSubsurfaceProfile))
+		if (Properties->TryGetBoolField("bOverrideSubsurfaceProfile", bOverrideSubsurfaceProfile))
 			MaterialInstanceConstant->bOverrideSubsurfaceProfile = bOverrideSubsurfaceProfile;
 
 		TArray<FScalarParameterValue> ScalarParameterValues;
@@ -45,20 +49,22 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 			FScalarParameterValue Parameter;
 			Parameter.ParameterValue = Scalar->GetNumberField("ParameterValue");
-			Parameter.ExpressionGUID = FGuid(Scalar->GetStringField("ExpressionGUID"));
+			Parameter.ExpressionGUID = CreateGUID(Scalar->GetStringField("ExpressionGUID"));
+
+			const TSharedPtr<FJsonObject>* ParameterInfoPtr;
 			
-			if (const TSharedPtr<FJsonObject>* ParameterInfoPtr; Scalar->TryGetObjectField("ParameterInfo", ParameterInfoPtr)) {
+			if (Scalar->TryGetObjectField("ParameterInfo", ParameterInfoPtr)) {
 				TSharedPtr<FJsonObject> ParameterInfoJson = Scalar->GetObjectField("ParameterInfo");
 				FMaterialParameterInfo ParameterInfo;
 				ParameterInfo.Index = ParameterInfoJson->GetIntegerField("Index");
-				ParameterInfo.Name = FName(ParameterInfoJson->GetStringField("Name"));
+				ParameterInfo.Name = FName(*ParameterInfoJson->GetStringField("Name"));
 				ParameterInfo.Association = GlobalParameter;
 
 				Parameter.ParameterInfo = ParameterInfo;
 			} else {
 				FMaterialParameterInfo ParameterInfo;
 				ParameterInfo.Index = -1;
-				ParameterInfo.Name = FName(Scalar->GetStringField("ParameterName"));
+				ParameterInfo.Name = FName(*Scalar->GetStringField("ParameterName"));
 				ParameterInfo.Association = GlobalParameter;
 
 				Parameter.ParameterInfo = ParameterInfo;
@@ -75,22 +81,23 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			TSharedPtr<FJsonObject> Vector = Vectors[i]->AsObject();
 
 			FVectorParameterValue Parameter;
-			Parameter.ExpressionGUID = FGuid(Vector->GetStringField("ExpressionGUID"));
+			Parameter.ExpressionGUID = CreateGUID(Vector->GetStringField("ExpressionGUID"));
 
 			Parameter.ParameterValue = FMathUtilities::ObjectToLinearColor(Vector->GetObjectField("ParameterValue").Get());
+			const TSharedPtr<FJsonObject>* ParameterInfoPtr;
 
-			if (const TSharedPtr<FJsonObject>* ParameterInfoPtr; Vector->TryGetObjectField("ParameterInfo", ParameterInfoPtr)) {
+			if (Vector->TryGetObjectField("ParameterInfo", ParameterInfoPtr)) {
 				TSharedPtr<FJsonObject> ParameterInfoJson = Vector->GetObjectField("ParameterInfo");
 				FMaterialParameterInfo ParameterInfo;
 				ParameterInfo.Index = ParameterInfoJson->GetIntegerField("Index");
-				ParameterInfo.Name = FName(ParameterInfoJson->GetStringField("Name"));
+				ParameterInfo.Name = FName(*ParameterInfoJson->GetStringField("Name"));
 				ParameterInfo.Association = GlobalParameter;
 
 				Parameter.ParameterInfo = ParameterInfo;
 			} else {
 				FMaterialParameterInfo ParameterInfo;
 				ParameterInfo.Index = -1;
-				ParameterInfo.Name = FName(Vector->GetStringField("ParameterName"));
+				ParameterInfo.Name = FName(*Vector->GetStringField("ParameterName"));
 				ParameterInfo.Association = GlobalParameter;
 
 				Parameter.ParameterInfo = ParameterInfo;
@@ -107,25 +114,27 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			TSharedPtr<FJsonObject> Texture = Textures[i]->AsObject();
 
 			FTextureParameterValue Parameter;
-			Parameter.ExpressionGUID = FGuid(Texture->GetStringField("ExpressionGUID"));
+			Parameter.ExpressionGUID = CreateGUID(Texture->GetStringField("ExpressionGUID"));
 
 			const TSharedPtr<FJsonObject>* TexturePtr = nullptr;
 			if (Texture->TryGetObjectField("ParameterValue", TexturePtr) && TexturePtr != nullptr) {
 				LoadObject(TexturePtr, Parameter.ParameterValue);
 			}
 
-			if (const TSharedPtr<FJsonObject>* ParameterInfoPtr; Texture->TryGetObjectField("ParameterInfo", ParameterInfoPtr)) {
+			const TSharedPtr<FJsonObject>* ParameterInfoPtr;
+
+			if (Texture->TryGetObjectField("ParameterInfo", ParameterInfoPtr)) {
 				TSharedPtr<FJsonObject> ParameterInfoJson = Texture->GetObjectField("ParameterInfo");
 				FMaterialParameterInfo ParameterInfo;
 				ParameterInfo.Index = ParameterInfoJson->GetIntegerField("Index");
-				ParameterInfo.Name = FName(ParameterInfoJson->GetStringField("Name"));
+				ParameterInfo.Name = FName(*ParameterInfoJson->GetStringField("Name"));
 				ParameterInfo.Association = GlobalParameter;
 
 				Parameter.ParameterInfo = ParameterInfo;
 			} else {
 				FMaterialParameterInfo ParameterInfo;
 				ParameterInfo.Index = -1;
-				ParameterInfo.Name = FName(Texture->GetStringField("ParameterName"));
+				ParameterInfo.Name = FName(*Texture->GetStringField("ParameterName"));
 				ParameterInfo.Association = GlobalParameter;
 
 				Parameter.ParameterInfo = ParameterInfo;
@@ -148,11 +157,11 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 				if (Props->TryGetObjectField("StaticParameters", StaticParams)) {
 					for (TSharedPtr<FJsonValue> Parameter : StaticParams->Get()->GetArrayField("StaticSwitchParameters")) {
-						Local_StaticParameterObjects.Add(TSharedPtr(Parameter));
+						Local_StaticParameterObjects.Add(TSharedPtr<FJsonValue>(Parameter));
 					}
 
 					for (TSharedPtr<FJsonValue> Parameter : StaticParams->Get()->GetArrayField("StaticComponentMaskParameters")) {
-						Local_StaticComponentMaskParametersObjects.Add(TSharedPtr(Parameter));
+						Local_StaticComponentMaskParametersObjects.Add(TSharedPtr<FJsonValue>(Parameter));
 					}
 				}
 			}
@@ -160,10 +169,7 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 			Local_StaticParameterObjects = StaticParams->Get()->GetArrayField("StaticSwitchParameters");
 		}
 
-		// --------- STATIC PARAMETERS -----------
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
-		FStaticParameterSet NewStaticParameterSet; // Unreal Engine 5.2 and beyond have a different method
-#endif
+		FStaticParameterSet NewStaticParameterSet;
 
 		TArray<FStaticSwitchParameter> StaticSwitchParameters;
 		for (const TSharedPtr<FJsonValue> StaticParameter_Value : Local_StaticParameterObjects) {
@@ -172,7 +178,7 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 			// Create Material Parameter Info
 			FMaterialParameterInfo MaterialParameterParameterInfo = FMaterialParameterInfo(
-				FName(Local_MaterialParameterInfo->GetStringField("Name")),
+				FName(*Local_MaterialParameterInfo->GetStringField("Name")),
 				static_cast<EMaterialParameterAssociation>(StaticEnum<EMaterialParameterAssociation>()->GetValueByNameString(Local_MaterialParameterInfo->GetStringField("Association"))),
 				Local_MaterialParameterInfo->GetIntegerField("Index")
 			);
@@ -182,17 +188,11 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 				MaterialParameterParameterInfo,
 				ParameterObject->GetBoolField("Value"),
 				ParameterObject->GetBoolField("bOverride"),
-				FGuid(ParameterObject->GetStringField("ExpressionGUID"))
+				CreateGUID(ParameterObject->GetStringField("ExpressionGUID"))
 			);
 
 			StaticSwitchParameters.Add(Parameter);
-			#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 2
-				MaterialInstanceConstant->GetEditorOnlyData()->StaticParameters.StaticSwitchParameters.Add(Parameter);
-			#endif
-			#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
-				// Unreal Engine 5.2 and beyond have a different method
-				NewStaticParameterSet.StaticSwitchParameters.Add(Parameter); 
-			#endif
+			NewStaticParameterSet.StaticSwitchParameters.Add(Parameter); 
 		}
 
 		TArray<FStaticComponentMaskParameter> StaticSwitchMaskParameters;
@@ -202,7 +202,7 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 
 			// Create Material Parameter Info
 			FMaterialParameterInfo MaterialParameterParameterInfo = FMaterialParameterInfo(
-				FName(Local_MaterialParameterInfo->GetStringField("Name")),
+				FName(*Local_MaterialParameterInfo->GetStringField("Name")),
 				static_cast<EMaterialParameterAssociation>(StaticEnum<EMaterialParameterAssociation>()->GetValueByNameString(Local_MaterialParameterInfo->GetStringField("Association"))),
 				Local_MaterialParameterInfo->GetIntegerField("Index")
 			);
@@ -214,24 +214,18 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 				ParameterObject->GetBoolField("B"),
 				ParameterObject->GetBoolField("A"),
 				ParameterObject->GetBoolField("bOverride"),
-				FGuid(ParameterObject->GetStringField("ExpressionGUID"))
+				CreateGUID(ParameterObject->GetStringField("ExpressionGUID"))
 			);
 
 			StaticSwitchMaskParameters.Add(Parameter);
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 2
-			MaterialInstanceConstant->GetEditorOnlyData()->StaticParameters.StaticComponentMaskParameters.Add(Parameter);
-#endif
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
-			NewStaticParameterSet.EditorOnly.StaticComponentMaskParameters.Add(Parameter);
-#endif
+			NewStaticParameterSet.StaticComponentMaskParameters.Add(Parameter);
 		}
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	FMaterialUpdateContext MaterialUpdateContext(FMaterialUpdateContext::EOptions::Default & ~FMaterialUpdateContext::EOptions::RecreateRenderStates);
 	
 	MaterialInstanceConstant->UpdateStaticPermutation(NewStaticParameterSet, &MaterialUpdateContext);
 	MaterialInstanceConstant->InitStaticPermutation();
-#endif
+
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;

@@ -6,7 +6,7 @@
 bool USoundConcurrencyImporter::ImportData() {
 	try {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
-		USoundConcurrency* SoundConcurrency = NewObject<USoundConcurrency>(Package, USoundConcurrency::StaticClass(), *FileName, RF_Public | RF_Standalone);
+		USoundConcurrency* SoundConcurrency = NewObject<USoundConcurrency>(Cast<UObject>(Package), USoundConcurrency::StaticClass(), *FileName, RF_Public | RF_Standalone);
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, SoundConcurrency);
 
 		// Handle edit changes, and add it to the content browser

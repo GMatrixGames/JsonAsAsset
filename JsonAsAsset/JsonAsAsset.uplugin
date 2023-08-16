@@ -1,8 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.2.1",
-	"EngineVersion": "5.1.0",
+	"VersionName": "1.2.2",
 	"FriendlyName": "JsonAsAsset",
 	"Description": "A editor plugin to allow JSON files from FModel to a asset in the Content Browser.",
 	"Category": "Asset Import",
@@ -13,7 +12,6 @@
 	"SupportURL": "",
 	"CanContainContent": false,
 	"IsBetaVersion": false,
-	"IsExperimentalVersion": true,
 	"Installed": false,
 	"Modules": [
 		{
@@ -39,16 +37,6 @@
 			"BlacklistPlatforms": [
 				"Android"
 			]
-		}
-	],
-	"Plugins": [
-		{
-			"Name": "Niagara",
-			"Enabled": true
-		},
-		{
-			"Name": "PluginUtils",
-			"Enabled": true
 		}
 	]
 }

@@ -7,7 +7,7 @@
 
 bool ULandscapeGrassTypeImporter::ImportData() {
 	try {
-		ULandscapeGrassType* LandscapeGrassType = NewObject<ULandscapeGrassType>(Package, ULandscapeGrassType::StaticClass(), *FileName, RF_Public | RF_Standalone);
+		ULandscapeGrassType* LandscapeGrassType = NewObject<ULandscapeGrassType>(Cast<UObject>(Package), ULandscapeGrassType::StaticClass(), *FileName, RF_Public | RF_Standalone);
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, LandscapeGrassType);
 

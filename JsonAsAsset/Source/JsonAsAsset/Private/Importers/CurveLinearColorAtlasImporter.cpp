@@ -5,14 +5,10 @@
 #include "Curves/CurveLinearColor.h"
 
 #include "JsonGlobals.h"
-#include "AssetRegistry/AssetRegistryModule.h"
 #include "Curves/CurveLinearColorAtlas.h"
 #include "Dom/JsonObject.h"
 #include "Factories/CurveLinearColorAtlasFactory.h"
 #include "Utilities/AssetUtilities.h"
-#include <Runtime/CoreUObject/Public/UObject/UnrealTypePrivate.h>
-
-#include "UObject/SavePackage.h"
 
 bool UCurveLinearColorAtlasImporter::ImportData() {
 	try {
@@ -40,26 +36,28 @@ bool UCurveLinearColorAtlasImporter::ImportData() {
 
 		Object->UpdateResource();
 
-		if (bool bHasAnyDirtyTextures; Properties->TryGetBoolField("bHasAnyDirtyTextures", bHasAnyDirtyTextures)) Object->bHasAnyDirtyTextures = bHasAnyDirtyTextures;
-		if (bool bIsDirty; Properties->TryGetBoolField("bIsDirty", bIsDirty)) Object->bIsDirty = bIsDirty;
-		if (bool bShowDebugColorsForNullGradients; Properties->TryGetBoolField("bShowDebugColorsForNullGradients", bShowDebugColorsForNullGradients)) Object->bShowDebugColorsForNullGradients = bShowDebugColorsForNullGradients;
-		if (bool bSquareResolution; Properties->TryGetBoolField("bSquareResolution", bSquareResolution)) Object->bSquareResolution = bSquareResolution;
+		bool bHasAnyDirtyTextures;
+		bool bIsDirty;
+		bool bShowDebugColorsForNullGradients;
+		uint32 TextureSize;
 
-		if (float TextureSize; Properties->TryGetNumberField("TextureSize", TextureSize))
+		if (Properties->TryGetBoolField("bHasAnyDirtyTextures", bHasAnyDirtyTextures)) Object->bHasAnyDirtyTextures = bHasAnyDirtyTextures;
+		if (Properties->TryGetBoolField("bIsDirty", bIsDirty)) Object->bIsDirty = bIsDirty;
+		if (Properties->TryGetBoolField("bShowDebugColorsForNullGradients", bShowDebugColorsForNullGradients)) Object->bShowDebugColorsForNullGradients = bShowDebugColorsForNullGradients;
+
+		if (Properties->TryGetNumberField(TEXT("TextureSize"), TextureSize))
 			Object->TextureSize = Properties->GetNumberField("TextureSize");
-		if (float TextureHeight; Properties->TryGetNumberField("TextureHeight", TextureHeight))
-			Object->TextureHeight = Properties->GetNumberField("TextureHeight");
 
-		FProperty* TextureSizeProperty = FindFProperty<FProperty>(Object->GetClass(), "TextureSize");
+		UProperty* TextureSizeProperty = FindField<UProperty>(Object->GetClass(), "TextureSize");
 		FPropertyChangedEvent TextureSizePropertyPropertyChangedEvent(TextureSizeProperty, EPropertyChangeType::ValueSet);
 		Object->PostEditChangeProperty(TextureSizePropertyPropertyChangedEvent);
 
 		// Add gradient curves
-		FProperty* GradientCurvesProperty = FindFProperty<FProperty>(Object->GetClass(), "GradientCurves");
+		UProperty* GradientCurvesProperty = FindField<UProperty>(Object->GetClass(), "GradientCurves");
 		FPropertyChangedEvent PropertyChangedEvent(GradientCurvesProperty, EPropertyChangeType::ArrayAdd);
 
 		const TArray<TSharedPtr<FJsonValue>> GradientCurves = Properties->GetArrayField("GradientCurves");
-		TArray<TObjectPtr<UCurveLinearColor>> CurvesLocal;
+		TArray<UCurveLinearColor*> CurvesLocal;
 
 		CurvesLocal = LoadObject(GradientCurves, CurvesLocal);
 		Object->GradientCurves = CurvesLocal;

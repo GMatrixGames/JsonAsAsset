@@ -15,7 +15,7 @@ public:
 		IImporter(FileName, FilePath, JsonObject, Package, OutermostPkg, AllJsonObjects) {
 	}
 protected:
-	inline static TArray<FString> IgnoredExpressions = {
+	TArray<FString> IgnoredExpressions = {
 		"MaterialExpressionComposite",
 		"MaterialExpressionPinBase",
 		"MaterialExpressionComment",
@@ -31,14 +31,14 @@ protected:
 		}
 
 		FImportData(const FString& Type, const FString& Outer, const TSharedPtr<FJsonObject>& Json) {
-			this->Type = FName(Type);
-			this->Outer = FName(Outer);
+			this->Type = FName(*Type);
+			this->Outer = FName(*Outer);
 			this->Json = Json.Get();
 		}
 
 		FImportData(const FString& Type, const FString& Outer, FJsonObject* Json) {
-			this->Type = FName(Type);
-			this->Outer = FName(Outer);
+			this->Type = FName(*Type);
+			this->Outer = FName(*Outer);
 			this->Json = Json;
 		}
 
@@ -56,7 +56,7 @@ protected:
 
 	// Makes each expression with their class
 	TMap<FName, UMaterialExpression*> ConstructExpressions(UObject* Parent, const FString& Outer, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports);
-	UMaterialExpression* CreateEmptyExpression(UObject* Parent, FName Name, FName Type) const;
+	UMaterialExpression* CreateEmptyExpression(UObject* Parent, FName Name, FName Type, FJsonObject* Obj) const;
 
 	// Modifies Graph Nodes (copies over properties from FJsonObject)
 	void PropagateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter = false, bool bSubgraph = false);

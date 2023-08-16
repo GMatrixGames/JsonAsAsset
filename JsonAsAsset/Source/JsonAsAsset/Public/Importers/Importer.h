@@ -10,10 +10,7 @@
 // Global handler for converting JSON to assets
 class IImporter {
 public:
-	IImporter() : GObjectSerializer(nullptr),
-	              PropertySerializer(nullptr),
-	              Package(nullptr),
-	              OutermostPkg(nullptr) {
+	IImporter() {
 	}
 
 	IImporter(const FString& FileName, const FString& FilePath, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg, const TArray<TSharedPtr<FJsonValue>>& AllJsonObjects = {}) {
@@ -41,66 +38,47 @@ private:
 	UPROPERTY()
 	UObjectSerializer* GObjectSerializer;
 
-	inline static TArray<FString> AcceptedTypes = {
+	TArray<FString> AcceptedTypes = {
 		"CurveTable",
 		"CurveFloat",
 		"CurveVector",
 		"CurveLinearColor",
 		"CurveLinearColorAtlas",
-
-		// separator
-
-		"SkeletalMeshLODSettings",
 		"Skeleton",
-
-		// separator
-
 		"AnimSequence",
 		"AnimMontage",
-
-		// separator
-
 		"Material",
 		"MaterialFunction",
 		"MaterialInstanceConstant",
 		"MaterialParameterCollection",
-		"NiagaraParameterCollection",
-
-		// separator
-
-		"DataAsset",
 		"DataTable",
 		"LandscapeGrassType",
-
-		// separator
-
-		// "SoundCue", // TBD
 		"ReverbEffect",
 		"SoundAttenuation",
 		"SoundConcurrency",
-
-		// separator
-
 		"SubsurfaceProfile",
-
-		// separator
-
-		"TextureRenderTarget2D",
 		"PhysicalMaterial"
 	};
 
 public:
 	template <class T = UObject>
 	// Loads a reference to a object	
-	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);
+	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, T*& Object);
 	template <class T = UObject>
 	// Loads a array of references
-	TArray<TObjectPtr<T>> LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array);
+	TArray<T*> LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<T*> Array);
 
 	// Refers to AcceptedTypes to see if type is valid ------------------
-	static bool CanImport(const FString& ImporterType) { return AcceptedTypes.Contains(ImporterType); }
+	bool CanImport(const FString& ImporterType) { return AcceptedTypes.Contains(ImporterType); }
 
-	static bool CanImportAny(TArray<FString>& Types) {
+	FGuid CreateGUID(FString String) {
+		FGuid GUID;
+		FGuid::Parse(String, GUID);
+
+		return GUID;
+	}
+
+	bool CanImportAny(TArray<FString>& Types) {
 		for (FString& Type : Types) {
 			if (!CanImport(Type)) continue;
 			return true;
@@ -109,7 +87,7 @@ public:
 		return false;
 	}
 
-	static TArray<FString> GetAcceptedTypes() { return AcceptedTypes; }
+	TArray<FString> GetAcceptedTypes() { return AcceptedTypes; }
 	// ------------------------------------------------------------------------
 
 	void ImportReference(const FString& File);
@@ -138,7 +116,7 @@ protected:
 
 	// Wrapper for remote downloading
 	template <class T = UObject>
-	TObjectPtr<T> DownloadWrapper(TObjectPtr<T> InObject, FString Type, FString Name, FString Path);
+	T* DownloadWrapper(T* InObject, FString Type, FString Name, FString Path);
 
 	FName GetExportNameOfSubobject(const FString& PackageIndex);
 	TArray<TSharedPtr<FJsonValue>> FilterExportsByOuter(const FString& Outer);

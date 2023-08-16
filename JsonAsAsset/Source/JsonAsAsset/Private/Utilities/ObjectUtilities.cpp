@@ -2,7 +2,7 @@
 
 #include "Utilities/ObjectUtilities.h"
 #include "Utilities/PropertyUtilities.h"
-#include "Importers/Importer.h"
+// #include "Importers/Importer.h"
 #include "UObject/Package.h"
 
 DECLARE_LOG_CATEGORY_CLASS(LogObjectSerializer, All, All);
@@ -203,7 +203,7 @@ void UObjectSerializer::SerializeObjectPropertiesIntoObject(UObject* Object, TSh
 	TArray<int32> ReferencedSubobjects;
 
 	// Serialize actual object property values
-	for (FProperty* Property = ObjectClass->PropertyLink; Property; Property = Property->PropertyLinkNext) {
+	for (UProperty* Property = ObjectClass->PropertyLink; Property; Property = Property->PropertyLinkNext) {
 		if (PropertySerializer->ShouldSerializeProperty(Property)) {
 			const void* PropertyValue = Property->ContainerPtrToValuePtr<void>(Object);
 			TSharedRef<FJsonValue> PropertyValueJson = PropertySerializer->SerializePropertyValue(Property, PropertyValue, &ReferencedSubobjects);
@@ -317,7 +317,7 @@ bool UObjectSerializer::AreObjectPropertiesUpToDate(const TSharedPtr<FJsonObject
 	// 
 	// This will also try to deserialize objects in "read only" mode, incrementing 
 	// ObjectsNotUpToDate when existing object fields mismatch
-	for (FProperty* Property = ObjectClass->PropertyLink; Property; Property = Property->PropertyLinkNext) {
+	for (UProperty* Property = ObjectClass->PropertyLink; Property; Property = Property->PropertyLinkNext) {
 		const FString PropertyName = Property->GetName();
 
 		if (PropertySerializer->ShouldSerializeProperty(Property) && Properties->HasField(PropertyName)) {
@@ -372,7 +372,7 @@ void UObjectSerializer::FlushPropertiesIntoObject(const int32 ObjectIndex, UObje
 void UObjectSerializer::DeserializeObjectProperties(const TSharedPtr<FJsonObject>& Properties, UObject* Object) {
 	UClass* ObjectClass = Object->GetClass();
 
-	for (FProperty* Property = ObjectClass->PropertyLink; Property; Property = Property->PropertyLinkNext) {
+	for (UProperty* Property = ObjectClass->PropertyLink; Property; Property = Property->PropertyLinkNext) {
 		const FString PropertyName = Property->GetName();
 
 		if (PropertySerializer->ShouldSerializeProperty(Property) && Properties->HasField(PropertyName)) {

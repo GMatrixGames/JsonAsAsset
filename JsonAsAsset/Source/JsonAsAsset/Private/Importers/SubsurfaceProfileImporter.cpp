@@ -2,13 +2,12 @@
 
 #include "Importers/SubsurfaceProfileImporter.h"
 
-#include "AssetRegistry/AssetRegistryModule.h"
 #include "Engine/SubsurfaceProfile.h"
 #include "Utilities/MathUtilities.h"
 
 bool USubsurfaceProfileImporter::ImportData() {
 	try {
-		USubsurfaceProfile* SubsurfaceProfile = NewObject<USubsurfaceProfile>(Package, USubsurfaceProfile::StaticClass(), *FileName, RF_Public | RF_Standalone);
+		USubsurfaceProfile* SubsurfaceProfile = NewObject<USubsurfaceProfile>(Cast<UObject>(Package), USubsurfaceProfile::StaticClass(), *FileName, RF_Public | RF_Standalone);
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, SubsurfaceProfile);
 
