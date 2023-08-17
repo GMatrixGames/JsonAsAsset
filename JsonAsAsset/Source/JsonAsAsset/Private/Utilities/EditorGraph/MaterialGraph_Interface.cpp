@@ -5,6 +5,10 @@
 #include "Dom/JsonObject.h"
 #include "Utilities/MathUtilities.h"
 
+// Material & Material Function
+#include "Materials/MaterialFunction.h"
+#include "Materials/Material.h"
+
 // Expressions
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionFeatureLevelSwitch.h"
@@ -16,16 +20,11 @@
 #include "Materials/MaterialExpressionGetMaterialAttributes.h"
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
+#include "Materials/MaterialExpressionTextureBase.h"
 
 #include <MaterialEditingLibrary.h>
 #include <Editor/UnrealEd/Public/FileHelpers.h>
 #include "UObject/ConstructorHelpers.h"
-
-
-#include "Materials/MaterialFunction.h"
-#include "Materials/Material.h"
-
-#include "Materials/MaterialExpressionTextureBase.h"
 
 TSharedPtr<FJsonObject> UMaterialGraph_Interface::FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames, bool bFilterByOuter) {
 	TSharedPtr<FJsonObject> EditorOnlyData;
@@ -302,8 +301,7 @@ UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Pa
 				UMaterialExpressionReroute::StaticClass(),
 				Name
 			);
-		}
-		else
+		} else
 			return nullptr;
 	}
 

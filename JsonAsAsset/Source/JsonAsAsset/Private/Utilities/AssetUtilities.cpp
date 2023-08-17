@@ -10,14 +10,17 @@
 #include "Settings/JsonAsAssetSettings.h"
 #include "Dom/JsonObject.h"
 
+#include "Importers/TextureImporter.h"
+#include "Importers/MaterialParameterCollectionImporter.h"
+
 #include "HttpModule.h"
 #include "AssetRegistryModule.h"
 #include "Misc/MessageDialog.h"
-#include "Importers/TextureImporter.h"
-#include "Importers/MaterialParameterCollectionImporter.h"
 #include "Interfaces/IHttpResponse.h"
+
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+
 #include "Utilities/AssetUtilities.h"
 #include "Utilities/RemoteUtilities.h"
 
@@ -47,12 +50,12 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 		// Ex: RestPath: Content/Athena
 		bool bIsPlugin = ModifiablePath.StartsWith("Plugins");
 
-		// Plugins/ContentLibraries/EpicBaseTextures -> ContentLibraries/EpicBaseTextures
-		if (bIsPlugin) ModifiablePath = ModifiablePath.Replace(TEXT("Plugins/"), TEXT("")).Replace(TEXT("GameFeatures/"), TEXT("")).Replace(TEXT("Content/"), TEXT(""));
+		// Plugins/ContentLibraries/EpicBaseTextures -> Game/Plugins/ContentLibraries/EpicBaseTextures
+		if (bIsPlugin) ModifiablePath = ModifiablePath.Replace(TEXT("Plugins/"), TEXT("Game/Plugins/")).Replace(TEXT("GameFeatures/"), TEXT("")).Replace(TEXT("Content/"), TEXT(""));
 		// Content/Athena -> Game/Athena
 		else ModifiablePath = ModifiablePath.Replace(TEXT("Content"), TEXT("Game"));
 
-		// ContentLibraries/EpicBaseTextures -> /ContentLibraries/EpicBaseTextures/
+		// Game/Plugins/ContentLibraries/EpicBaseTextures -> /Game/Plugins/ContentLibraries/EpicBaseTextures/
 		ModifiablePath = "/" + ModifiablePath + "/";
 
 		// Check if plugin exists
