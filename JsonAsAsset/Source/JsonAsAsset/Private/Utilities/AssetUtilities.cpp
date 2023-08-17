@@ -50,10 +50,19 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 		// Ex: RestPath: Content/Athena
 		bool bIsPlugin = ModifiablePath.StartsWith("Plugins");
 
-		// Plugins/ContentLibraries/EpicBaseTextures -> Game/Plugins/ContentLibraries/EpicBaseTextures
-		if (bIsPlugin) ModifiablePath = ModifiablePath.Replace(TEXT("Plugins/"), TEXT("Game/Plugins/")).Replace(TEXT("GameFeatures/"), TEXT("")).Replace(TEXT("Content/"), TEXT(""));
-		// Content/Athena -> Game/Athena
-		else ModifiablePath = ModifiablePath.Replace(TEXT("Content"), TEXT("Game"));
+		if (bIsPlugin) {
+			FString RootName; {
+				ModifiablePath.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+				RootName.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+				RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+			}
+
+			if (IPluginManager::Get().FindPlugin(RootName).Get() == nullptr) {
+				ModifiablePath = ModifiablePath.Replace(TEXT("Plugins/"), TEXT("Game/Plugins/")).Replace(TEXT("GameFeatures/"), TEXT("")).Replace(TEXT("Content/"), TEXT(""));
+			} else {
+				ModifiablePath = ModifiablePath.Replace(TEXT("Plugins/"), TEXT("")).Replace(TEXT("GameFeatures/"), TEXT("")).Replace(TEXT("Content/"), TEXT(""));
+			}
+		} else ModifiablePath = ModifiablePath.Replace(TEXT("Content"), TEXT("Game"));
 
 		// Game/Plugins/ContentLibraries/EpicBaseTextures -> /Game/Plugins/ContentLibraries/EpicBaseTextures/
 		ModifiablePath = "/" + ModifiablePath + "/";
@@ -144,16 +153,18 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 			) {
 			UTexture* Texture;
 
+			FString NewPath = Path;
+
 			FString RootName; {
-				Path.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+				NewPath.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 				RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 			}
 
-			// Missing Plugin: Create it
-			if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName).Get() == nullptr)
-				CreatePlugin(RootName);
+			// Missing Plugin: Change Reference To /Game/Plugins/...
+			if ((RootName != "Game" && RootName != "Engine") && IPluginManager::Get().FindPlugin(RootName).Get() == nullptr)
+				NewPath = "/Game/Plugins" + NewPath;
 
-			bSuccess = Construct_TypeTexture(Path, Texture);
+			bSuccess = Construct_TypeTexture(NewPath, Texture);
 			if (bSuccess) OutObject = Cast<T>(Texture);
 
 			return true;
@@ -192,7 +203,11 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	if (Path.IsEmpty())
 		return false;
 
-	TSharedPtr<FJsonObject> JsonObject = API_RequestExports(Path);
+	FString RequestURL = Path;
+	if (Path.StartsWith("/Game/Plugins/"))
+		RequestURL = RequestURL.Replace(TEXT("/Game/Plugins/"), TEXT("/"));
+
+	TSharedPtr<FJsonObject> JsonObject = API_RequestExports(RequestURL);
 	if (JsonObject.Get() == nullptr)
 		return false;
 
@@ -209,7 +224,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	FHttpModule* HttpModule = &FHttpModule::Get();
 	TSharedRef<IHttpRequest, ESPMode::NotThreadSafe> HttpRequest = HttpModule->CreateRequest();
 
-	HttpRequest->SetURL(Settings->Url + "/api/v1/export?path=" + Path);
+	HttpRequest->SetURL(Settings->Url + "/api/v1/export?path=" + RequestURL);
 	HttpRequest->SetHeader("content-type", "application/octet-stream");
 	HttpRequest->SetVerb(TEXT("GET"));
 

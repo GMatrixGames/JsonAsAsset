@@ -128,6 +128,9 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, T*& Obje
 	// Define found object
 	T* Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
 
+	if (Obj == nullptr) // Fix references to plugins
+		Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *("/Game/Plugins" + Path + "." + Name)));
+
 	// Material Expressions may be formatted differently
 	if (SecondaryName.StartsWith("MaterialExpression")) {
 		FString AssetName; 
@@ -135,6 +138,9 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, T*& Obje
 
 		// Load Object with :
 		Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + AssetName + ":" + SecondaryName)));
+
+		if (Obj == nullptr) // Fix references to material/function in plugins
+			Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *("/Game/Plugins" + Path + "." + AssetName + ":" + SecondaryName)));
 	}
 #pragma warning( pop )
 
