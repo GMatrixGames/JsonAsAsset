@@ -118,6 +118,10 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 		if (!CreatedExpressionMap.Contains(Name)) continue;
 		UMaterialExpression* Expression = *CreatedExpressionMap.Find(Name);
 
+		if (Cast<UMaterialExpressionComment>(Expression)) {
+			Expression;
+		}
+
 		//	Used for Subgraphs:
 		//  | Checks if the outer is the same as the parent
 		//  | to determine if it's in a subgraph or not.
@@ -240,6 +244,24 @@ void UMaterialGraph_Interface::MaterialGraphNode_ConstructComments(UObject* Pare
 			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->FunctionEditorComments.Add(Comment);
 			else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->EditorComments.Add(Comment);
 		}
+
+	for (TTuple<FString, FJsonObject*>& Key : MissingNodeClasses) {
+		TSharedPtr<FJsonObject>* SharedObject = new TSharedPtr<FJsonObject>(Key.Value);
+
+		const TSharedPtr<FJsonObject> Properties = SharedObject->Get()->GetObjectField("Properties");
+		UMaterialExpressionComment* Comment = NewObject<UMaterialExpressionComment>(Parent, UMaterialExpressionComment::StaticClass(), *("UMaterialExpressionComment_" + Key.Key), RF_Transactional);
+
+		Comment->Text = *("Missing Node Class " + Key.Key);
+		Comment->CommentColor = FLinearColor(1.0, 0.0, 0.0);
+		Comment->bCommentBubbleVisible = true;
+		Comment->SizeX = 150;
+		Comment->SizeY = 40;
+
+		GetObjectSerializer()->DeserializeObjectProperties(Properties, Comment);
+
+		if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->FunctionEditorComments.Add(Comment);
+		else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->EditorComments.Add(Comment);
+	}
 }
 
 void UMaterialGraph_Interface::MaterialGraphNode_ExpressionWrapper(UObject* Parent, UMaterialExpression* Expression, const TSharedPtr<FJsonObject>& Json) {
@@ -257,7 +279,7 @@ void UMaterialGraph_Interface::MaterialGraphNode_ExpressionWrapper(UObject* Pare
 	}
 }
 
-UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Parent, FName Name, FName Type, FJsonObject* Obj) const {
+UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Parent, FName Name, FName Type, FJsonObject* Obj) {
 	if (IgnoredExpressions.Contains(Type.ToString())) // Unhandled expressions
 		return nullptr;
 
@@ -265,7 +287,7 @@ UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Pa
 
 	if (!Class) {
 		// There is no reroute declaration in UE 4.22
-		if (Type == "MaterialExpressionNamedRerouteDeclaration" || "MaterialExpressionNamedRerouteUsage") {
+		if (Type == "MaterialExpressionNamedRerouteDeclaration" || Type == "MaterialExpressionNamedRerouteUsage") {
 			if (Type == "MaterialExpressionNamedRerouteUsage") {
 				UMaterialExpressionReroute* Reroute = NewObject<UMaterialExpressionReroute>(
 					Parent,
@@ -294,15 +316,23 @@ UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Pa
 					Reroute->Input.Expression = ConnectionReroute;
 					Reroute->Input.ExpressionName = FName(*ExpressionName);
 				}
-				
+
 				return Reroute;
 			} return NewObject<UMaterialExpression>(
 				Parent,
 				UMaterialExpressionReroute::StaticClass(),
 				Name
 			);
-		} else
-			return nullptr;
+		}
+
+		TSharedPtr<FJsonObject>* ShareObject = new TSharedPtr<FJsonObject>(Obj);
+		MissingNodeClasses.Add(Type.ToString(), ShareObject->Get());
+
+		return NewObject<UMaterialExpression>(
+			Parent,
+			UMaterialExpressionReroute::StaticClass(),
+			Name
+		);
 	}
 
 	return NewObject<UMaterialExpression>(

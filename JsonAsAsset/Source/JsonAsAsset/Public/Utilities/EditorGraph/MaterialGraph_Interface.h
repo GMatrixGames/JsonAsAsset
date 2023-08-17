@@ -5,6 +5,7 @@
 #include "Importers/Importer.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
+#include <Runtime/Engine/Public/MaterialExpressionIO.h>
 
 //		Material Graph Handler
 // Handles everything needed to create
@@ -14,6 +15,11 @@ public:
 	UMaterialGraph_Interface(const FString& FileName, const FString& FilePath, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg, const TArray<TSharedPtr<FJsonValue>>& AllJsonObjects):
 		IImporter(FileName, FilePath, JsonObject, Package, OutermostPkg, AllJsonObjects) {
 	}
+
+	// UMaterialExpression, Properties
+	UPROPERTY()
+	TMap<FString, FJsonObject*> MissingNodeClasses;
+
 protected:
 	TArray<FString> IgnoredExpressions = {
 		"MaterialExpressionComposite",
@@ -56,7 +62,7 @@ protected:
 
 	// Makes each expression with their class
 	TMap<FName, UMaterialExpression*> ConstructExpressions(UObject* Parent, const FString& Outer, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports);
-	UMaterialExpression* CreateEmptyExpression(UObject* Parent, FName Name, FName Type, FJsonObject* Obj) const;
+	UMaterialExpression* CreateEmptyExpression(UObject* Parent, FName Name, FName Type, FJsonObject* Obj);
 
 	// Modifies Graph Nodes (copies over properties from FJsonObject)
 	void PropagateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter = false, bool bSubgraph = false);
