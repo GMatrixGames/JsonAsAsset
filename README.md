@@ -107,6 +107,8 @@ First, open up to the JsonAsAsset plugin settings (basically do what's on the pi
 
 Now open up FModel, and go to your settings. `(Settings -> General)` There will be a setting called "Output Directory", copy that and go back to Unreal Engine. Now you need to click on the three dots and jump to the folder you copied and go to the folder named "Exports", then press "Select Folder".
 
+> We also recommend you enable *"Allow Package Saving"* for less issues during importing. 
+
 -------------------
 
 That is the basic setup done! However, if you want to import materials or linear curve atlas at bulk (ex: importing all material functions and their textures), then you're gonna need to setup `Local Fetch`.
