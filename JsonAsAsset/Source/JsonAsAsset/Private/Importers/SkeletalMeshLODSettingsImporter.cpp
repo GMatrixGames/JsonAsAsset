@@ -162,6 +162,7 @@ bool USkeletalMeshLODSettingsImporter::ImportData() {
 		}
 
 		// Handle edit changes, and add it to the content browser
+		SavePackage();
 		if (!HandleAssetCreation(LODDataAsset)) return false;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

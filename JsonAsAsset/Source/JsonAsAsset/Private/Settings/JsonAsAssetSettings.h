@@ -173,8 +173,8 @@ public:
 		FDirectoryPath ArchiveDirectory;
 
 	// UE Version for the Unreal Engine Game (same as FModel's UE Verisons property)
-	UPROPERTY(EditAnywhere, Config, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch", GetOptions="GetParseVersions"))
-		FString UnrealVersion;
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch"))
+		TEnumAsByte<EParseVersion> UnrealVersion;
 
 	UFUNCTION(CallInEditor)
 		TArray<FString> GetParseVersions();

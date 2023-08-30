@@ -159,7 +159,10 @@ bool UAnimationBaseImporter::ImportData() {
 #endif
 		AnimSequenceBase->Modify();
 		AnimSequenceBase->PostEditChange();
-	} catch (const char* Exception) {
+
+		SavePackage();
+	}
+	catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
 	}

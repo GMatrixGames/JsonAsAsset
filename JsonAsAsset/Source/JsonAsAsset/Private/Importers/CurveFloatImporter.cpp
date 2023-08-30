@@ -20,6 +20,7 @@ bool UCurveFloatImporter::ImportData() {
 			CurveAsset->FloatCurve.Keys.Add(FMathUtilities::ObjectToRichCurveKey(Key->AsObject()));
 
 		// Handle edit changes, and add it to the content browser
+		SavePackage();
 		if (!HandleAssetCreation(CurveAsset)) return false;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

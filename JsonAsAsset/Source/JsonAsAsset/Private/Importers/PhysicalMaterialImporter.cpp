@@ -13,6 +13,7 @@ bool UPhysicalMaterialImporter::ImportData() {
         GetObjectSerializer()->DeserializeObjectProperties(Properties, PhysicalMaterial);
 
         // Handle edit changes, and add it to the content browser
+        SavePackage();
         if (!HandleAssetCreation(PhysicalMaterial)) return false;
     } catch (const char* Exception) {
         UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

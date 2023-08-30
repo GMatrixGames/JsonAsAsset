@@ -11,6 +11,7 @@ bool USoundAttenuationImporter::ImportData() {
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, SoundAttenuation);
 
 		// Handle edit changes, and add it to the content browser
+		SavePackage();
 		HandleAssetCreation(SoundAttenuation);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

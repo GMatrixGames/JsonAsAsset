@@ -65,6 +65,7 @@ private:
 		"MaterialInstanceConstant",
 		"MaterialParameterCollection",
 		"NiagaraParameterCollection",
+		"PhysicsAsset",
 
 		// separator
 

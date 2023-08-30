@@ -115,6 +115,7 @@ bool USoundCueImporter::ImportData() {
 		SoundCue->PostEditChange();
 		SoundCue->MarkPackageDirty();
 
+		SavePackage();
 		HandleAssetCreation(SoundCue);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

@@ -12,6 +12,7 @@ bool ULandscapeGrassTypeImporter::ImportData() {
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, LandscapeGrassType);
 
 		// Handle edit changes, and add it to the content browser
+		SavePackage();
 		if (!HandleAssetCreation(LandscapeGrassType)) return false;
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

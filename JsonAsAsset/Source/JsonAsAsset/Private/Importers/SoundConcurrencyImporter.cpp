@@ -10,6 +10,7 @@ bool USoundConcurrencyImporter::ImportData() {
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, SoundConcurrency);
 
 		// Handle edit changes, and add it to the content browser
+		SavePackage();
 		HandleAssetCreation(SoundConcurrency);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));

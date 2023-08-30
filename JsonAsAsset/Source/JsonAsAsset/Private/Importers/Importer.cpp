@@ -18,6 +18,7 @@
 #include "Importers/SkeletalMeshLODSettingsImporter.h"
 #include "Importers/SkeletonImporter.h"
 #include "Importers/SoundAttenuationImporter.h"
+#include "Importers/PhysicsImporter.h"
 #include "Importers/SoundConcurrencyImporter.h"
 #include "Importers/ReverbEffectImporter.h"
 #include "Importers/SubsurfaceProfileImporter.h"
@@ -278,7 +279,7 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 
 				else if (Type == "LandscapeGrassType") Importer = new ULandscapeGrassTypeImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "NiagaraParameterCollection") Importer = new UNiagaraParameterCollectionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-
+				else if (Type == "PhysicsAsset") Importer = new UPhysicsImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (bDataAsset) Importer = new UDataAssetImporter(Class, Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
