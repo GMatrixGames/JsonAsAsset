@@ -15,6 +15,7 @@
 #include "Materials/MaterialExpressionGetMaterialAttributes.h"
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
+#include "Materials/MaterialExpressionReroute.h"
 
 #include <MaterialEditingLibrary.h>
 #include <Editor/UnrealEd/Public/FileHelpers.h>
@@ -53,19 +54,25 @@ TMap<FName, UMaterialExpression*> UMaterialGraph_Interface::ConstructExpressions
 
 	for (FName Name : ExpressionNames) {
 		FName Type;
+		FJsonObject* SharedRef = NULL;
 		bool bFound = false;
 
 		for (TTuple<FName, FImportData>& Key : Exports) {
-			if (Key.Key == Name && Key.Value.Outer == FName(Outer)) {
+			TSharedPtr<FJsonObject>* SharedO = new TSharedPtr<FJsonObject>(Key.Value.Json);
+
+			if (Key.Key == Name && Key.Value.Outer == FName(*Outer)) {
 				Type = Key.Value.Type;
+				SharedRef = SharedO->Get();
+
 				bFound = true;
 				break;
 			}
 		}
 
 		if (!bFound) continue;
-		UMaterialExpression* Ex = CreateEmptyExpression(Parent, Name, Type);
-		if (Ex == nullptr) continue;
+		UMaterialExpression* Ex = CreateEmptyExpression(Parent, Name, Type, SharedRef);
+		if (Ex == nullptr)
+			continue;
 
 		CreatedExpressionMap.Add(Name, Ex);
 	}
@@ -218,6 +225,26 @@ void UMaterialGraph_Interface::MaterialGraphNode_ConstructComments(UObject* Pare
 			if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddComment(Comment);
 			else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddComment(Comment);
 		}
+
+	for (TTuple<FString, FJsonObject*>& Key : MissingNodeClasses) {
+		TSharedPtr<FJsonObject>* SharedObject = new TSharedPtr<FJsonObject>(Key.Value);
+
+		const TSharedPtr<FJsonObject> Properties = SharedObject->Get()->GetObjectField("Properties");
+		UMaterialExpressionComment* Comment = NewObject<UMaterialExpressionComment>(Parent, UMaterialExpressionComment::StaticClass(), *("UMaterialExpressionComment_" + Key.Key), RF_Transactional);
+
+		Comment->Text = *("Missing Node Class " + Key.Key);
+		Comment->CommentColor = FLinearColor(1.0, 0.0, 0.0);
+		Comment->bCommentBubbleVisible = true;
+		Comment->SizeX = 415;
+		Comment->SizeY = 40;
+
+		Comment->Desc = "A node is missing in your Unreal Engine build, this may be for many reasons, primarily due to your version of Unreal being younger than the one your porting from.";
+
+		GetObjectSerializer()->DeserializeObjectProperties(Properties, Comment);
+
+		if (UMaterialFunction* FuncCasted = Cast<UMaterialFunction>(Parent)) FuncCasted->GetExpressionCollection().AddComment(Comment);
+		else if (UMaterial* MatCasted = Cast<UMaterial>(Parent)) MatCasted->GetExpressionCollection().AddComment(Comment);
+	}
 }
 
 void UMaterialGraph_Interface::MaterialGraphNode_ExpressionWrapper(UObject* Parent, UMaterialExpression* Expression, const TSharedPtr<FJsonObject>& Json) {
@@ -232,7 +259,7 @@ void UMaterialGraph_Interface::MaterialGraphNode_ExpressionWrapper(UObject* Pare
 		}
 }
 
-UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Parent, FName Name, FName Type) const {
+UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Parent, FName Name, FName Type, FJsonObject* LocalizedObject) {
 	if (IgnoredExpressions.Contains(Type.ToString())) // Unhandled expressions
 		return nullptr;
 
@@ -251,6 +278,18 @@ UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Pa
 
 		if (!Class) 
 			Class = FindObject<UClass>(ANY_PACKAGE, *Type.ToString().Replace(TEXT("MaterialExpressionPhysicalMaterialOutput"), TEXT("MaterialExpressionLandscapePhysicalMaterialOutput")));
+	}
+
+	// Show missing nodes in graph
+	if (!Class) {
+		TSharedPtr<FJsonObject>* ShareObject = new TSharedPtr<FJsonObject>(LocalizedObject);
+		MissingNodeClasses.Add(Type.ToString(), ShareObject->Get());
+
+		return NewObject<UMaterialExpression>(
+			Parent,
+			UMaterialExpressionReroute::StaticClass(),
+			Name
+		);
 	}
 
 	return NewObject<UMaterialExpression>

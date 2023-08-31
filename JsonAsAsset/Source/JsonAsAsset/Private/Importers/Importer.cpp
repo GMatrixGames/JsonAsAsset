@@ -243,6 +243,8 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 		FString Name = DataObject->GetStringField("Name");
 
 		UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Type);
+
+		if (Class == nullptr) continue;
 		bool bDataAsset = Class->IsChildOf(UDataAsset::StaticClass());
 
 		if (CanImport(Type) || bDataAsset) {

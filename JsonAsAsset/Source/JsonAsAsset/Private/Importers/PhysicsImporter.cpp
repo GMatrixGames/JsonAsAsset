@@ -39,12 +39,12 @@ bool UPhysicsImporter::ImportData() {
 
 		// Add Skeletal Mesh Bodies
 		for (TSharedPtr<FJsonValue> JsonValue : AllJsonObjects) {
-			TSharedPtr<FJsonObject> JsonObject = JsonValue->AsObject();
-			FString Name = JsonObject->GetStringField("Name");
-			TSharedPtr<FJsonObject> SubObjectProperties = JsonObject->GetObjectField("Properties");
+			TSharedPtr<FJsonObject> JsonObjectP = JsonValue->AsObject();
+			FString Name = JsonObjectP->GetStringField("Name");
+			TSharedPtr<FJsonObject> SubObjectProperties = JsonObjectP->GetObjectField("Properties");
 
 			// Find Skeletal Bodies
-			if (JsonObject->GetStringField("Type") == "SkeletalBodySetup") {
+			if (JsonObjectP->GetStringField("Type") == "SkeletalBodySetup") {
 				FPhysAssetCreateParams CreateParams; {
 					CreateParams.bCreateConstraints = false;
 					CreateParams.bDisableCollisionsByDefault = false;
@@ -53,7 +53,7 @@ bool UPhysicsImporter::ImportData() {
 				USkeletalBodySetup* SkeletalBody = NewObject<USkeletalBodySetup>(PhysicsAsset, NAME_None, RF_Transactional);
 
 				GetObjectSerializer()->DeserializeObjectProperties(SubObjectProperties, SkeletalBody);
-				SkeletalBody->BodySetupGuid = FGuid(JsonObject->GetStringField("BodySetupGuid"));
+				SkeletalBody->BodySetupGuid = FGuid(JsonObjectP->GetStringField("BodySetupGuid"));
 
 				int32 BodySetupIndex = PhysicsAsset->SkeletalBodySetups.Add(SkeletalBody);
 
@@ -64,19 +64,17 @@ bool UPhysicsImporter::ImportData() {
 
 		// Add Physics Constraints
 		for (TSharedPtr<FJsonValue> JsonValue : AllJsonObjects) {
-			TSharedPtr<FJsonObject> JsonObject = JsonValue->AsObject();
-			FString Name = JsonObject->GetStringField("Name");
-			TSharedPtr<FJsonObject> SubObjectProperties = JsonObject->GetObjectField("Properties");
+			TSharedPtr<FJsonObject> _JsonObject = JsonValue->AsObject();
+			FString Name = _JsonObject->GetStringField("Name");
+			TSharedPtr<FJsonObject> SubObjectProperties = _JsonObject->GetObjectField("Properties");
 
 			// Find Skeletal Bodies
-			if (JsonObject->GetStringField("Type") == "PhysicsConstraintTemplate") {
-
+			if (_JsonObject->GetStringField("Type") == "PhysicsConstraintTemplate") {
 				UPhysicsConstraintTemplate* Constraint = NewObject<UPhysicsConstraintTemplate>(PhysicsAsset, NAME_None, RF_Transactional);
 				GetObjectSerializer()->DeserializeObjectProperties(SubObjectProperties, Constraint);
-				Constraint->SetDefaultProfile(Constraint->DefaultInstance);
-
-				int32 ConstraintSetupIndex = PhysicsAsset->ConstraintSetup.Add(Constraint);
-
+				Constraint->SetDefaultProfile(Constraint->DefaultInstance); {
+					PhysicsAsset->ConstraintSetup.Add(Constraint); // Add constraint
+				}
 			}
 		}
 

@@ -250,7 +250,9 @@ bool UMaterialImporter::ImportData() {
 
 						FName GraphNodeNameName = FName(GraphNode_Name);
 
-						UMaterialExpression* Ex = CreateEmptyExpression(MaterialGraph->Material, GraphNodeNameName, FName(GraphNode_Type));
+						TSharedPtr<FJsonObject>* SharedGraphObject = new TSharedPtr<FJsonObject>(MaterialGraphObject);
+
+						UMaterialExpression* Ex = CreateEmptyExpression(MaterialGraph->Material, GraphNodeNameName, FName(GraphNode_Type), SharedGraphObject->Get());
 						if (Ex == nullptr)
 							continue;
 

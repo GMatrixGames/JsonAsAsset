@@ -18,14 +18,14 @@ public class JsonAsAsset : ModuleRules
 			"RenderCore",
 			"HTTP",
 			"DeveloperSettings",
-			"Niagara"
+			"Niagara",
+			"UnrealEd"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new[]
 		{
 			"Projects",
 			"InputCore",
-			"UnrealEd",
 			"ToolMenus",
 			"CoreUObject",
 			"Engine",
