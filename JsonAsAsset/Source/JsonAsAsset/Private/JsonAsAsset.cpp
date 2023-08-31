@@ -433,6 +433,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 
 						AcceptedTypes.Add("MaterialParameterCollection");
 						AcceptedTypes.Add("MaterialFunction");
+						AcceptedTypes.Add("Material");
 						AcceptedTypes.Add("PhysicalMaterial");
 					}
 

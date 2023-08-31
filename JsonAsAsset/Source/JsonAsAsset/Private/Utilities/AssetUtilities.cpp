@@ -130,7 +130,8 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 		Type == "SoundConcurrency" ||
 		Type == "DataTable" ||
 		Type == "SubsurfaceProfile" ||
-		Type == "MaterialFunction"
+		Type == "MaterialFunction" ||
+		Type == "Material" // might cause issues
 	) {
 		//		Manually supported asset types
 		// (ex: textures have to be handled separately)

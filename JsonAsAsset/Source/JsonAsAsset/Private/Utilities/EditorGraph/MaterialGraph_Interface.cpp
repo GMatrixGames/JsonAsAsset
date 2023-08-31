@@ -21,7 +21,6 @@
 #include <Editor/UnrealEd/Public/FileHelpers.h>
 
 #include "Materials/MaterialExpressionTextureBase.h"
-#include <JsonAsAssetStyle.h>
 #include <Runtime/SlateCore/Public/Styling/SlateIconFinder.h>
 
 static TWeakPtr<SNotificationItem> MaterialGraphNotification;
