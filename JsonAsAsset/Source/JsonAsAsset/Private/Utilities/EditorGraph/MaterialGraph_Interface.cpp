@@ -21,6 +21,10 @@
 #include <Editor/UnrealEd/Public/FileHelpers.h>
 
 #include "Materials/MaterialExpressionTextureBase.h"
+#include <JsonAsAssetStyle.h>
+#include <Runtime/SlateCore/Public/Styling/SlateIconFinder.h>
+
+static TWeakPtr<SNotificationItem> MaterialGraphNotification;
 
 TSharedPtr<FJsonObject> UMaterialGraph_Interface::FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames, bool bFilterByOuter) {
 	TSharedPtr<FJsonObject> EditorOnlyData;
@@ -284,6 +288,23 @@ UMaterialExpression* UMaterialGraph_Interface::CreateEmptyExpression(UObject* Pa
 	if (!Class) {
 		TSharedPtr<FJsonObject>* ShareObject = new TSharedPtr<FJsonObject>(LocalizedObject);
 		MissingNodeClasses.Add(Type.ToString(), ShareObject->Get());
+
+		GLog->Log(*("JsonAsAsset: Missing Node " + Type.ToString() + " in Parent " + Parent->GetName()));
+		FNotificationInfo Info = FNotificationInfo(FText::FromString("Missing Node (" + Parent->GetName() + ")"));
+
+		Info.bUseLargeFont = false;
+		Info.bFireAndForget = false;
+		Info.FadeOutDuration = .5f;
+		Info.ExpireDuration = 8.0f;
+		Info.WidthOverride = FOptionalSize(456);
+		Info.bUseThrobber = false;
+		Info.SubText = FText::FromString(Type.ToString());
+
+#pragma warning(disable: 4800)
+		Info.Image = FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, "/Script/Engine.Material"), TEXT("ClassThumbnail"));
+
+		MaterialGraphNotification = FSlateNotificationManager::Get().AddNotification(Info);
+		MaterialGraphNotification.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
 
 		return NewObject<UMaterialExpression>(
 			Parent,

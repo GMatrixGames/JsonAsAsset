@@ -76,18 +76,6 @@ bool UMaterialImporter::ImportData() {
 
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
-		TSharedPtr<FJsonObject> SerializerProperties = TSharedPtr(Properties);
-		if (SerializerProperties->HasField("ShadingModel")) // ShadingModel set manually
-			SerializerProperties->RemoveField("ShadingModel");
-
-		GetObjectSerializer()->DeserializeObjectProperties(SerializerProperties, Material);
-		
-		if (FString ShadingModel; Properties->TryGetStringField("ShadingModel", ShadingModel) && ShadingModel != "EMaterialShadingModel::MSM_FromMaterialExpression")
-			Material->SetShadingModel(static_cast<EMaterialShadingModel>(StaticEnum<EMaterialShadingModel>()->GetValueByNameString(ShadingModel)));
-		if (const TSharedPtr<FJsonObject>* ShadingModelsPtr; Properties->TryGetObjectField("ShadingModels", ShadingModelsPtr))
-			if (int ShadingModelField; ShadingModelsPtr->Get()->TryGetNumberField("ShadingModelField", ShadingModelField))
-				Material->GetShadingModels().SetShadingModelField(ShadingModelField);
-
 		// Clear any default expressions the engine adds (ex: Result)
 		Material->GetExpressionCollection().Empty();
 
@@ -316,6 +304,19 @@ bool UMaterialImporter::ImportData() {
 				AssetEditorInstance->UpdateMaterialAfterGraphChange();
 			}
 		}
+
+		if (FString ShadingModel; Properties->TryGetStringField("ShadingModel", ShadingModel) && ShadingModel != "EMaterialShadingModel::MSM_FromMaterialExpression")
+			Material->SetShadingModel(static_cast<EMaterialShadingModel>(StaticEnum<EMaterialShadingModel>()->GetValueByNameString(ShadingModel)));
+
+		if (const TSharedPtr<FJsonObject>* ShadingModelsPtr; Properties->TryGetObjectField("ShadingModels", ShadingModelsPtr))
+			if (int ShadingModelField; ShadingModelsPtr->Get()->TryGetNumberField("ShadingModelField", ShadingModelField))
+				Material->GetShadingModels().SetShadingModelField(ShadingModelField);
+
+		TSharedPtr<FJsonObject> SerializerProperties = TSharedPtr(Properties);
+		if (SerializerProperties->HasField("ShadingModel")) // ShadingModel set manually
+			SerializerProperties->RemoveField("ShadingModel");
+
+		GetObjectSerializer()->DeserializeObjectProperties(SerializerProperties, Material);
 
 		SavePackage();
 		Material->PostEditChange();
