@@ -25,7 +25,7 @@ public:
 public:
 	template <class T = UObject>
 	static bool ConstructAsset(const FString& Path, const FString& Type, TObjectPtr<T>& OutObject, bool& bSuccess);
-	static bool Construct_TypeTexture(const FString& Path, UTexture*& OutTexture);
+	static bool Construct_TypeTexture(const FString& Path, const FString& RealPath, UTexture*& OutTexture);
 
 	static void CreatePlugin(FString PluginName);
 

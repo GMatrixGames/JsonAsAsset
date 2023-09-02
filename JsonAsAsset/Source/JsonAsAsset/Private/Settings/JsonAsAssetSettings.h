@@ -134,7 +134,7 @@ public:
 	* NOTE: Please use the file selector, do not manually paste it
 	*		or replace "\" with "/"
 	*/
-	UPROPERTY(EditAnywhere, Config, Category="Behavior")
+	UPROPERTY(EditAnywhere, Config, Category="Configuration")
 		FDirectoryPath ExportDirectory;
 
 	/**
@@ -144,7 +144,7 @@ public:
 	* NOTE: This is recommended to be turned off, as this may override
 	*		your own assets, causing irreversible changes. 
 	*/
-	UPROPERTY(EditAnywhere, Config, Category = "Behavior")
+	UPROPERTY(EditAnywhere, Config, Category = "Configuration", AdvancedDisplay)
 		bool bAllowPackageSaving;
 
 	/**
@@ -156,7 +156,7 @@ public:
 	* restart, and re-import the material without any problems with this turned off/on.
 	*			  (or you could just connect them yourself)
 	*/
-	UPROPERTY(EditAnywhere, Config, Category = "Behavior|Material")
+	UPROPERTY(EditAnywhere, Config, Category = "Configuration", AdvancedDisplay)
 		bool bSkipResultNodeConnection;
 
 	/**
@@ -176,11 +176,11 @@ public:
 	* NOTE: Please use the file selector, do not manually paste it
 	*		or replace "\" with "/"
 	*/
-	UPROPERTY(EditAnywhere, Config, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch"))
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Configuration", meta=(EditCondition="bEnableLocalFetch"))
 		FDirectoryPath ArchiveDirectory;
 
 	// UE Version for the Unreal Engine Game (same as FModel's UE Verisons property)
-	UPROPERTY(EditAnywhere, Config, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch"))
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Configuration", meta=(EditCondition="bEnableLocalFetch"))
 		TEnumAsByte<EParseVersion> UnrealVersion;
 
 	UFUNCTION(CallInEditor)
@@ -188,32 +188,49 @@ public:
 
 	// Mappings file
 	// NOTE: Please use the file selector, do not manually paste it 
-	UPROPERTY(EditAnywhere, Config, Category="Local Fetch|Configuration", meta=(EditCondition="bEnableLocalFetch", FilePathFilter="usmap", RelativeToGameDir))
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Configuration", meta=(EditCondition="bEnableLocalFetch", FilePathFilter="usmap", RelativeToGameDir))
 		FFilePath MappingFilePath;
 
 	// High res textures
-	UPROPERTY(EditAnywhere, Config, Category="Local Fetch Encryption|Behavior", meta=(EditCondition="bEnableLocalFetch"))
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Encryption", meta=(EditCondition="bEnableLocalFetch"), AdvancedDisplay)
 		bool bUseContentBuilds;
 
-	UPROPERTY(EditAnywhere, Config, Category="Local Fetch Encryption|Behavior", meta=(EditCondition="bEnableLocalFetch"))
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Encryption", meta=(EditCondition="bEnableLocalFetch"), AdvancedDisplay)
 		bool bDownloadExistingTextures;
 
 	// Main key for archives
-	UPROPERTY(EditAnywhere, Config, Category="Local Fetch Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Archive Key"))
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Archive Key"))
 		FString ArchiveKey;
 
 	// AES Keys
-	UPROPERTY(EditAnywhere, Config, Category="Local Fetch Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Dynamic Keys"))
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Dynamic Keys"))
 		TArray<FParseKey> DynamicKeys;
 
-	UPROPERTY(EditAnywhere, Config, Category = "Local Fetch Director", meta = (EditConditionHides, EditCondition = "bEnableLocalFetch"))
+	UPROPERTY(EditAnywhere, Config, Category = "Local Fetch", meta = (EditCondition = "bEnableLocalFetch"), AdvancedDisplay)
 		bool bHideConsole;
 
 	// Enables the option to change the api's URL
-	UPROPERTY(EditAnywhere, Config, Category = "Local Fetch Director", meta = (EditConditionHides, EditCondition = "bEnableLocalFetch"))
+	UPROPERTY(EditAnywhere, Config, Category = "Local Fetch", meta = (EditCondition = "bEnableLocalFetch"), AdvancedDisplay)
 		bool bChangeURL;
 
-	// "localhost" is default
-	UPROPERTY(EditAnywhere, Config, Category="Local Fetch Director|REST API", meta=(EditConditionHides, EditCondition="bChangeURL && bEnableLocalFetch", DisplayName = "Local URL"))
+	// "http://localhost:1500" is default
+	UPROPERTY(EditAnywhere, Config, Category="Local Fetch", meta=(EditCondition="bChangeURL && bEnableLocalFetch", DisplayName = "Local URL"), AdvancedDisplay)
 		FString Url = "http://localhost:1500";
+
+	/*
+	Modifies JsonAsAsset to allow easier conversion to Valkyrie, including:
+	 
+	- Notify end-user about disallowed nodes
+	- Redirect any folder to a certain folder (easier migration)
+	*/
+	UPROPERTY(EditAnywhere, Config, Category = "Valkyrie")
+		bool bEnableModifications;
+
+	// Example: /Game/Valkyrie/
+	UPROPERTY(EditAnywhere, Config, Category = "Valkyrie|Configuration", meta = (EditCondition = "bEnableModifications", DisplayName = "Folder Location"))
+		FDirectoryPath RedirectFolderDirectory;
+
+	// Example: /Game/Valkyrie/
+	UPROPERTY(EditAnywhere, Config, Category = "Valkyrie|Configuration", meta = (EditCondition = "bEnableModifications"))
+		bool bDisplayDisallowedNotifications;
 };

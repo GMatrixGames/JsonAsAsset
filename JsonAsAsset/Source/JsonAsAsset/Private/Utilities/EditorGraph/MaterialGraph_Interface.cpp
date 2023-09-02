@@ -137,7 +137,7 @@ void UMaterialGraph_Interface::PropagateExpressions(UObject* Parent, TArray<FNam
 				if (MaterialFunctionCall->MaterialFunction == nullptr) {
 					FString ObjectPath;
 					MaterialFunctionPtr->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
-					if (!HandleReference(ObjectPath)) AppendNotification(FText::FromString("Material Function Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
+					if (!HandleReference(ObjectPath)) {} // AppendNotification(FText::FromString("Material Function Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
 					else LoadObject(MaterialFunctionPtr, MaterialFunctionCall->MaterialFunction);
 				}
 			}

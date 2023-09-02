@@ -89,6 +89,21 @@ bool UMaterialImporter::ImportData() {
 		TMap<FName, UMaterialExpression*> CreatedExpressionMap = ConstructExpressions(Material, Material->GetName(), ExpressionNames, Exports);
 		const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
+		// Missing Material Data
+		if (Exports.IsEmpty()) {
+			FNotificationInfo Info = FNotificationInfo(FText::FromString("Material Data Missing (" + FileName + ")"));
+			Info.ExpireDuration = 7.0f;
+			Info.bUseLargeFont = true;
+			Info.bUseSuccessFailIcons = true;
+			Info.WidthOverride = FOptionalSize(350);
+			Info.SubText = FText::FromString(FString("Please use the correct FModel provided in the JsonAsAsset server."));
+
+			TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+			NotificationPtr->SetCompletionState(SNotificationItem::CS_Fail);
+
+			return false;
+		}
+
 		// Iterate through all the expression names
 		PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
 		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);

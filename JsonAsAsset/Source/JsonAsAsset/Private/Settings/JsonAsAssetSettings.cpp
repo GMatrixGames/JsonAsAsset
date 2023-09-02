@@ -22,6 +22,8 @@
 UJsonAsAssetSettings::UJsonAsAssetSettings() {
 	CategoryName = TEXT("Plugins");
 	SectionName = TEXT("JsonAsAsset");
+
+	RedirectFolderDirectory.Path = "/Game/Valkyrie/";
 }
 
 #if WITH_EDITOR
@@ -52,7 +54,7 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 	// Reference to settings
 	TWeakObjectPtr<UJsonAsAssetSettings> Settings = Cast<UJsonAsAssetSettings>(ObjectsBeingCustomized[0].Get());
 
-	IDetailCategoryBuilder& AssetCategory = DetailBuilder.EditCategory("Behavior", FText::GetEmpty(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& AssetCategory = DetailBuilder.EditCategory("Configuration", FText::GetEmpty(), ECategoryPriority::Important);
 	AssetCategory.AddCustomRow(LOCTEXT("NOTICE", "Notice"), false)
 	.WholeRowWidget
 	[
@@ -73,10 +75,32 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 		]
 	];
 
+	IDetailCategoryBuilder& ValkyrieAssetCategory = DetailBuilder.EditCategory("Valkyrie", FText::GetEmpty(), ECategoryPriority::Important);
+	ValkyrieAssetCategory.AddCustomRow(LOCTEXT("Disclaimer of Liability", "Disclaimer of Liability"), false)
+	.WholeRowWidget
+	[
+		SNew(SBorder)
+		.Padding(1)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(FMargin(10, 10, 10, 10))
+			.FillWidth(1.0f)
+			[
+				SNew(SRichTextBlock)
+				.Text(LOCTEXT("NOTICEMessageV2", "<RichTextBlock.TextHighlight>Disclaimer of Liability:</> In no event shall the authors or copyright holders be liable for any claim, damages, or other liability, whether in the action of contract, tort, or otherwise, arising from, out of, or in connection with the software or the use or other dealings in the software."))
+				.TextStyle(FAppStyle::Get(), "MessageLog")
+				.DecoratorStyleSet(&FAppStyle::Get())
+				.AutoWrapText(true)
+			]
+		]
+	];
+
 	DetailBuilder.EditCategory("Local Fetch", FText::GetEmpty(), ECategoryPriority::Important);
-	DetailBuilder.EditCategory("Local Fetch Encryption", FText::GetEmpty(), ECategoryPriority::Important);
-	IDetailCategoryBuilder& EncryptionCategory = DetailBuilder.EditCategory("Local Fetch Encryption", FText::GetEmpty(), ECategoryPriority::Important);
-	DetailBuilder.EditCategory("Local Fetch Director", FText::GetEmpty(), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("Local Fetch - Configuration", FText::GetEmpty(), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("Local Fetch - Encryption", FText::GetEmpty(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& EncryptionCategory = DetailBuilder.EditCategory("Local Fetch - Encryption", FText::GetEmpty(), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("Local Fetch - Director", FText::GetEmpty(), ECategoryPriority::Important);
 
 	EncryptionCategory.AddCustomRow(LOCTEXT("EncryptionKeyGenerator", "EncryptionKeyGenerator"))
 		.ValueContent() [

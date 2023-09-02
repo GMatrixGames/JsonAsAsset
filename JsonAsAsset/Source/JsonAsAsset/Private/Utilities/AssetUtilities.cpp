@@ -49,10 +49,46 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 		// Ex: RestPath: Content/Athena
 		bool bIsPlugin = ModifiablePath.StartsWith("Plugins");
 
-		// Plugins/ContentLibraries/EpicBaseTextures -> ContentLibraries/EpicBaseTextures
-		if (bIsPlugin) ModifiablePath = ModifiablePath.Replace(TEXT("Plugins/"), TEXT("")).Replace(TEXT("GameFeatures/"), TEXT("")).Replace(TEXT("Content/"), TEXT(""));
-		// Content/Athena -> Game/Athena
-		else ModifiablePath = ModifiablePath.Replace(TEXT("Content"), TEXT("Game"));
+		if (Settings->bEnableModifications) {
+			if (bIsPlugin) {
+				FString PluginName = ModifiablePath;
+				FString RemaningPath;
+				// Plugins/GameFeatures/Creative/CRP/CRP_Sunburst/Content/SetupAssets/Materials
+				// Plugins/GameFeatures/Creative/CRP/CRP_Sunburst
+				// PluginName = CRP_Sunburst
+				// RemaningPath = SetupAssets/Materials
+				PluginName.Split("/Content/", &PluginName, &RemaningPath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+				PluginName.Split("/", nullptr, &PluginName, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+				// /CRP_Sunburst/SetupAssets/Materials
+				ModifiablePath = PluginName + "/" + RemaningPath;
+				ModifiablePath = Settings->RedirectFolderDirectory.Path + ModifiablePath;
+			} else {
+				FString DirectString;
+				Settings->RedirectFolderDirectory.Path.Split("/", &DirectString, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+				ModifiablePath = ModifiablePath.Replace(TEXT("Content"), *(DirectString.Replace(TEXT("/Game/"), TEXT("Game/"))));
+			}
+		} else {
+			// Plugins/ContentLibraries/EpicBaseTextures -> ContentLibraries/EpicBaseTextures
+			if (bIsPlugin) {
+				FString PluginName = ModifiablePath;
+				FString RemaningPath;
+				// Plugins/GameFeatures/Creative/CRP/CRP_Sunburst/Content/SetupAssets/Materials
+				// Plugins/GameFeatures/Creative/CRP/CRP_Sunburst
+				// PluginName = CRP_Sunburst
+				// RemaningPath = SetupAssets/Materials
+				PluginName.Split("/Content/", &PluginName, &RemaningPath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+				PluginName.Split("/", nullptr, &PluginName, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+				// /CRP_Sunburst/SetupAssets/Materials
+				ModifiablePath = PluginName + "/" + RemaningPath;
+
+				if (Settings->bEnableModifications)
+					ModifiablePath = Settings->RedirectFolderDirectory.Path.Replace(TEXT("/Game/"), TEXT("Game/")) + "Plugins" + ModifiablePath;
+			}
+			// Content/Athena -> Game/Athena
+			else ModifiablePath = ModifiablePath.Replace(TEXT("Content"), TEXT("Game"));
+		}
 
 		// ContentLibraries/EpicBaseTextures -> /ContentLibraries/EpicBaseTextures/
 		ModifiablePath = "/" + ModifiablePath + "/";
@@ -72,14 +108,23 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 			RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		}
 
-		// Missing Plugin: Create it
-		if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName) == nullptr)
-			CreatePlugin(RootName);
+		if (!Settings->bEnableModifications)
+			if ((RootName != "Game" && RootName != "Engine") && IPluginManager::Get().FindPlugin(RootName) == nullptr)
+				CreatePlugin(RootName);
 
 		ModifiablePath = OutputPath;
 		ModifiablePath.Split("/", &ModifiablePath, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 
 		ModifiablePath = ModifiablePath + "/";
+
+		FString DirectString;
+		Settings->RedirectFolderDirectory.Path.Split("/", &DirectString, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+		if ((RootName != "Game" && RootName != "Engine") && Settings->bEnableModifications)
+			ModifiablePath = DirectString + "/Plugins" + ModifiablePath;
+
+		if (Settings->bEnableModifications) 
+			ModifiablePath = ModifiablePath.Replace(TEXT("Game"), *(DirectString.Replace(TEXT("/Game/"), TEXT("Game/"))));
 	}
 
 	const FString PathWithGame = ModifiablePath + Name;
@@ -142,17 +187,30 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 			Type == "VolumeTexture"
 			) {
 			UTexture* Texture;
+			FString NewPath = Path;
 
 			FString RootName; {
-				Path.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+				NewPath.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 				RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 			}
 
+			const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+			FString DirectString;
+			Settings->RedirectFolderDirectory.Path.Split("/", &DirectString, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
 			// Missing Plugin: Create it
-			if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName) == nullptr)
+			if (Settings->bEnableModifications)
+				// Missing Plugin: Change Reference To /Game/Plugins/...
+				if (RootName != "Game" && RootName != "Engine") {
+					DirectString = Settings->RedirectFolderDirectory.Path;
+
+					NewPath = DirectString + "Plugins" + NewPath;
+				} else NewPath = Settings->RedirectFolderDirectory.Path + NewPath.Replace(TEXT("/Game/"), TEXT(""));
+			else if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName) == nullptr)
 				CreatePlugin(RootName);
 
-			bSuccess = Construct_TypeTexture(Path, Texture);
+			bSuccess = Construct_TypeTexture(NewPath, Path, Texture);
 			if (bSuccess) OutObject = Cast<T>(Texture);
 
 			return true;
@@ -186,11 +244,11 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 	return false;
 }
 
-bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutTexture) {
+bool FAssetUtilities::Construct_TypeTexture(const FString& Path, const FString& RealPath, UTexture*& OutTexture) {
 	if (Path.IsEmpty()) 
 		return false;
 
-	TSharedPtr<FJsonObject> JsonObject = API_RequestExports(Path);
+	TSharedPtr<FJsonObject> JsonObject = API_RequestExports(RealPath);
 	if (JsonObject == nullptr)
 		return false;
 
@@ -202,23 +260,29 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, UTexture*& OutT
 	TSharedPtr<FJsonObject> JsonExport = Response[0]->AsObject();
 	FString Type = JsonExport->GetStringField("Type");
 	UTexture* Texture = nullptr;
+	TArray<uint8> Data = TArray<uint8>();
 
 	// --------------- Download Texture Data ------------
-	FHttpModule* HttpModule = &FHttpModule::Get();
-	const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
+	if (Type != "TextureRenderTarget2D") {
+		FHttpModule* HttpModule = &FHttpModule::Get();
+		const TSharedRef<IHttpRequest> HttpRequest = HttpModule->CreateRequest();
 
-	HttpRequest->SetURL(Settings->Url + "/api/v1/export?path=" + Path);
-	HttpRequest->SetHeader("content-type", "application/octet-stream");
-	HttpRequest->SetVerb(TEXT("GET"));
+		HttpRequest->SetURL(Settings->Url + "/api/v1/export?path=" + RealPath);
+		HttpRequest->SetHeader("content-type", "application/octet-stream");
+		HttpRequest->SetVerb(TEXT("GET"));
 
-	const TSharedPtr<IHttpResponse> HttpResponse = FRemoteUtilities::ExecuteRequestSync(HttpRequest);
-	if (!HttpResponse.IsValid() || HttpResponse->GetResponseCode() != 200)
-		return false;
+		const TSharedPtr<IHttpResponse> HttpResponse = FRemoteUtilities::ExecuteRequestSync(HttpRequest);
+		if (!HttpResponse.IsValid() || HttpResponse->GetResponseCode() != 200)
+			return false;
 
-	TArray<uint8> Data = HttpResponse->GetContent();
-	if (Data.Num() == 0)
-		return false;
-	// --------------- Download Texture Data ------------
+		if (HttpResponse->GetContentType().StartsWith("application/json; charset=utf-8")) {
+			return false;
+		}
+
+		Data = HttpResponse->GetContent();
+		if (Data.Num() == 0)
+			return false;
+	}
 
 	FString PackagePath; FString AssetName; {
 		Path.Split(".", &PackagePath, &AssetName);
