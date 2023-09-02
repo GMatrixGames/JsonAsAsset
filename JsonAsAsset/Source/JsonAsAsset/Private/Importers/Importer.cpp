@@ -137,12 +137,13 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 			DirectString = Settings->RedirectFolderDirectory.Path;
 
 		Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(DirectString + Path.Replace(TEXT("/Game/"), TEXT("")) + "." + Name)));
-		if (!Obj && !Path.StartsWith("/Game/"))
+
+		if (Obj == nullptr && !Path.StartsWith("/Game/"))
 			Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(DirectString + "/Plugins" + Path.Replace(TEXT("/Game/"), TEXT("")) + "." + Name)));
 	}
 
 	// Material Expressions may be formatted differently
-	if (!Obj && Name.Contains("MaterialExpression")) {
+	if (Obj == nullptr && Name.Contains("MaterialExpression")) {
 		FString AssetName; 
 			Path.Split("/", nullptr, &AssetName, ESearchCase::Type::IgnoreCase, ESearchDir::FromEnd);
 
@@ -151,11 +152,11 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 
 		if (Obj == nullptr && Settings->bEnableModifications) // Fix references to plugins
 			Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(DirectString + Path.Replace(TEXT("/Game/"), TEXT("")) + "." + AssetName + ":" + Name)));
-		if (!Obj && !Path.StartsWith("/Game/") && Settings->bEnableModifications)
+		if (Obj == nullptr && !Path.StartsWith("/Game/") && Settings->bEnableModifications)
 			Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(DirectString + "/Plugins" + Path.Replace(TEXT("/Game/"), TEXT("")) + "." + Name)));
 	}
 #pragma warning( pop )
-
+	
 	Object = DownloadWrapper(Obj, Type, Name, Path);
 }
 
@@ -185,7 +186,6 @@ bool IImporter::HandleReference(const FString& GamePath) {
 	FilePath.Split(Settings->ExportDirectory.Path + "/", nullptr, &UnSanitizedCodeName);
 	UnSanitizedCodeName.Split("/", &UnSanitizedCodeName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 
-	// TODO: As of writing this, I don't know how to add Plugin support
 	FString UnSanitizedPath = GamePath.Replace(TEXT("/Game/"), *(UnSanitizedCodeName + "/Content/"));
 	UnSanitizedPath = Settings->ExportDirectory.Path + "/" + UnSanitizedPath + ".json";
 

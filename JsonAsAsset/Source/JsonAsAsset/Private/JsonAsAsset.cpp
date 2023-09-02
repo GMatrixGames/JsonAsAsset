@@ -159,6 +159,33 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 	if (Settings->ExportDirectory.Path.IsEmpty())
 		return;
 
+	// Invalid Export Directory
+	if (Settings->ExportDirectory.Path.Contains("\\")) {
+		FNotificationInfo Info(LOCTEXT("JsonAsAssetNotificationTitle", "Export Directory Invalid"));
+		Info.SubText = LOCTEXT("JsonAsAssetNotificationText",
+			"Please fix your export directory in the plugin settings, as it is invalid and contains the character \"\\\"."
+		);
+
+		Info.HyperlinkText = LOCTEXT("UnrealSoftwareRequirements", "JsonAsAsset Plugin Settings");
+		Info.Hyperlink = FSimpleDelegate::CreateStatic([]() {
+			// Send user to plugin settings
+			FModuleManager::LoadModuleChecked<ISettingsModule>("Settings")
+				.ShowViewer("Editor", "Plugins", "JsonAsAsset");
+		});
+
+		Info.bFireAndForget = true;
+		Info.FadeOutDuration = 2.0f;
+		Info.ExpireDuration = 3.0f;
+		Info.bUseLargeFont = false;
+		Info.bUseThrobber = false;
+		Info.Image = FJsonAsAssetStyle::Get().GetBrush("JsonAsAsset.PluginAction");
+
+		LocalFetchNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+		LocalFetchNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Fail);
+
+		return;
+	}
+
 	if (Settings->bEnableLocalFetch) {
 		TSharedPtr<SNotificationItem> NotificationItem = LocalFetchNotificationPtr.Pin();
 
@@ -552,7 +579,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 		FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Settings"),
 		FUIAction(
 			FExecuteAction::CreateLambda([this]() {
-				// Send user to plugin
+				// Send user to plugin settings
 				FModuleManager::LoadModuleChecked<ISettingsModule>("Settings")
 					.ShowViewer("Editor", "Plugins", "JsonAsAsset");
 			})
@@ -620,7 +647,7 @@ void SAboutJsonAsAsset::Construct(const FArguments& InArgs) {
 	#pragma warning(pop)
 	#endif
 
-	FText Version = FText::FromString("Version: " + Plugin->GetDescriptor().VersionName + " (" + Plugin->GetDescriptor().EngineVersion + ")");
+	FText Version = FText::FromString("Version: " + Plugin->GetDescriptor().VersionName);
 	FText Title = FText::FromString("JsonAsAsset");
 
 	ChildSlot
@@ -752,7 +779,7 @@ FReply SAboutJsonAsAsset::OnFModelButtonClicked() {
 }
 
 FReply SAboutJsonAsAsset::OnGithubButtonClicked() {
-	FString TheURL = "https://github.com/Tectors/JsonAsAsset";
+	FString TheURL = "https://github.com/GMatrixGames/JsonAsAsset";
 	FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr);
 
 	return FReply::Handled();

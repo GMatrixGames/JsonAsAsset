@@ -62,7 +62,7 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 
 				// /CRP_Sunburst/SetupAssets/Materials
 				ModifiablePath = PluginName + "/" + RemaningPath;
-				ModifiablePath = Settings->RedirectFolderDirectory.Path + ModifiablePath;
+				ModifiablePath = Settings->RedirectFolderDirectory.Path.Replace(TEXT("/Game/"), TEXT("Game/")) + ModifiablePath;
 			} else {
 				FString DirectString;
 				Settings->RedirectFolderDirectory.Path.Split("/", &DirectString, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
@@ -94,7 +94,7 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 		ModifiablePath = "/" + ModifiablePath + "/";
 
 		// Check if plugin exists
-		if (bIsPlugin) {
+		if (bIsPlugin && !Settings->bEnableModifications) {
 			FString PluginName;
 			ModifiablePath.Split("/", nullptr, &PluginName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 			PluginName.Split("/", &PluginName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
@@ -122,8 +122,7 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 
 		if ((RootName != "Game" && RootName != "Engine") && Settings->bEnableModifications)
 			ModifiablePath = DirectString + "/Plugins" + ModifiablePath;
-
-		if (Settings->bEnableModifications) 
+		else if (Settings->bEnableModifications) 
 			ModifiablePath = ModifiablePath.Replace(TEXT("Game"), *(DirectString.Replace(TEXT("/Game/"), TEXT("Game/"))));
 	}
 
@@ -157,7 +156,7 @@ template <typename T>
 bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, TObjectPtr<T>& OutObject, bool& bSuccess) {
 	// Supported Assets
 	if (Type == "Texture2D" ||
-		Type == "TextureCube" ||
+		// Type == "TextureCube" ||
 		// Type == "VolumeTexture" ||
 		Type == "TextureRenderTarget2D" ||
 		Type == "MaterialParameterCollection" ||
@@ -224,8 +223,30 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 			Path.Split(".", &PackagePath, &AssetName);
 
 			if (JsonObject) {
+				FString NewPath = PackagePath;
+
+				const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+				FString RootName; {
+					NewPath.Split("/", nullptr, &RootName, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+					RootName.Split("/", &RootName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+				}
+
+				FString DirectString;
+				Settings->RedirectFolderDirectory.Path.Split("/", &DirectString, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+				if (Settings->bEnableModifications)
+					if (RootName != "Game" && RootName != "Engine") {
+						DirectString = Settings->RedirectFolderDirectory.Path;
+
+						NewPath = DirectString + "Plugins" + NewPath;
+					}
+					else NewPath = Settings->RedirectFolderDirectory.Path + NewPath.Replace(TEXT("/Game/"), TEXT(""));
+				else if (RootName != "Game" && RootName != "Engine" && IPluginManager::Get().FindPlugin(RootName) == nullptr)
+					CreatePlugin(RootName);
+
 				UPackage* OutermostPkg;
-				UPackage* Package = CreatePackage(*PackagePath);
+				UPackage* Package = CreatePackage(*NewPath);
 				OutermostPkg = Package->GetOutermost();
 				Package->FullyLoad();
 

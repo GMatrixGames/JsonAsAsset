@@ -191,7 +191,6 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Configuration", meta=(EditCondition="bEnableLocalFetch", FilePathFilter="usmap", RelativeToGameDir))
 		FFilePath MappingFilePath;
 
-	// High res textures
 	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Encryption", meta=(EditCondition="bEnableLocalFetch"), AdvancedDisplay)
 		bool bUseContentBuilds;
 
@@ -206,9 +205,6 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Encryption", meta=(EditCondition="bEnableLocalFetch", DisplayName="Dynamic Keys"))
 		TArray<FParseKey> DynamicKeys;
 
-	UPROPERTY(EditAnywhere, Config, Category = "Local Fetch", meta = (EditCondition = "bEnableLocalFetch"), AdvancedDisplay)
-		bool bHideConsole;
-
 	// Enables the option to change the api's URL
 	UPROPERTY(EditAnywhere, Config, Category = "Local Fetch", meta = (EditCondition = "bEnableLocalFetch"), AdvancedDisplay)
 		bool bChangeURL;
@@ -218,6 +214,7 @@ public:
 		FString Url = "http://localhost:1500";
 
 	/*
+	| (WORK IN PROGRESS)
 	Modifies JsonAsAsset to allow easier conversion to Valkyrie, including:
 	 
 	- Notify end-user about disallowed nodes
@@ -230,7 +227,7 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category = "Valkyrie|Configuration", meta = (EditCondition = "bEnableModifications", DisplayName = "Folder Location"))
 		FDirectoryPath RedirectFolderDirectory;
 
-	// Example: /Game/Valkyrie/
+	// UNFINISHED
 	UPROPERTY(EditAnywhere, Config, Category = "Valkyrie|Configuration", meta = (EditCondition = "bEnableModifications"))
 		bool bDisplayDisallowedNotifications;
 };

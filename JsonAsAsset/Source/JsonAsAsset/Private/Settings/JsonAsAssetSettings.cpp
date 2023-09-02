@@ -74,7 +74,9 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 			]
 		]
 	];
+	DetailBuilder.EditCategory("Valkyrie", FText::GetEmpty(), ECategoryPriority::Important);
 
+/*
 	IDetailCategoryBuilder& ValkyrieAssetCategory = DetailBuilder.EditCategory("Valkyrie", FText::GetEmpty(), ECategoryPriority::Important);
 	ValkyrieAssetCategory.AddCustomRow(LOCTEXT("Disclaimer of Liability", "Disclaimer of Liability"), false)
 	.WholeRowWidget
@@ -94,7 +96,7 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 				.AutoWrapText(true)
 			]
 		]
-	];
+	];*/
 
 	DetailBuilder.EditCategory("Local Fetch", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("Local Fetch - Configuration", FText::GetEmpty(), ECategoryPriority::Important);
