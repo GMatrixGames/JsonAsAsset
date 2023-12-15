@@ -1,5 +1,4 @@
 // JsonAsAsset API
-using JsonAsAssetAPI.Controllers;
 using Microsoft.EntityFrameworkCore;
 
 var globals = new Globals();
@@ -29,7 +28,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseCors(builder => builder
+app.UseCors(b => b
     .AllowAnyOrigin()
     .AllowAnyMethod()
     .AllowAnyHeader());

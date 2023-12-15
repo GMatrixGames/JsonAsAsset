@@ -13,13 +13,7 @@ using CUE4Parse.MappingsProvider;
 using UE4Config.Parsing;
 using Newtonsoft.Json;
 using SkiaSharp;
-
-using JsonAsAssetAPI.Endpoints.ContentManager;
 using CUE4Parse.FileProvider;
-using CUE4Parse.FileProvider.Objects;
-using CUE4Parse.FileProvider.Vfs;
-using EpicManifestParser.Objects;
-
 using System.Runtime.InteropServices;
 using System.IO;
 
@@ -33,9 +27,7 @@ public class Globals
     public static string? ExportDirectory;
     public static EGame UnrealVersion;
     public static string? ArchiveKey;
-    public static bool bUseContentBuilds;
     public static bool bHideConsole;
-    public ContentManager Manager = new ContentManager();
 
     public void WriteLog(string source, ConsoleColor Color, string description)
     {
@@ -100,7 +92,6 @@ public class Globals
         ArchiveDirectory = GetPathProperty(config, "ArchiveDirectory");
         UnrealVersion = (EGame)Enum.Parse(typeof(EGame), GetStringProperty(config, "UnrealVersion"), true);
         ArchiveKey = GetStringProperty(config, "ArchiveKey");
-        bUseContentBuilds = GetBoolProperty(config, "bUseContentBuilds");
         bHideConsole = GetBoolProperty(config, "bHideConsole");
 
         [DllImport("kernel32.dll")]
@@ -115,50 +106,6 @@ public class Globals
         WriteLog("UserSettings", ConsoleColor.Blue, $"Unreal Versioning: {UnrealVersion.ToString()}");
 
         return config;
-    }
-
-    private async Task<bool> InitializeContentBuilds()
-    {
-        // Find BuildInfo.ini by archive directory
-        string BuildInfo = Path.Combine(ArchiveDirectory, "../../../Cloud/BuildInfo.ini");
-        ConfigIni BuildConfig = new ConfigIni();
-        BuildConfig.Read(File.OpenText(BuildInfo));
-
-        string Label; {
-            var InitEntries = new List<string>();
-            BuildConfig.EvaluatePropertyValues("Content", "Label", InitEntries);
-            Label = InitEntries[0];
-        }
-
-        ContentBuildResponse ContentBuilds = await Manager.GetContentBuilds(label: Label);
-        if (ContentBuilds == null) 
-            return false;
-
-        WriteLog("ContentBuilds", ConsoleColor.Yellow, "Finding manifest..");
-
-        // Construct Manifest
-        ContentBuildResponse.ContentItem _Manifest = ContentBuilds.Items.Manifest;
-        Manifest LocalManifest = await Manager.LocalManifestManager.GetManifest(url: (_Manifest.Distribution + _Manifest.Path));
-
-        WriteLog("ContentBuilds", ConsoleColor.Yellow, "Downloaded manifest, reading..");
-
-        int FileManifestLength = LocalManifest.FileManifests.Count;
-
-        var ContentFiles = new Dictionary<string, GameFile>();
-        foreach (var FileManifest in LocalManifest.FileManifests)
-        {
-            if (Provider.Files.ContainsKey(FileManifest.Name)) continue;
-
-            StreamedGameFile StreamedFile = new StreamedGameFile(FileManifest.Name, FileManifest.GetStream(), Provider.Versions);
-            ContentFiles[StreamedFile.Path.ToLowerInvariant()] = StreamedFile;
-        }
-         
-        WriteLog("ContentBuilds", ConsoleColor.Yellow, $"Read {FileManifestLength} content files");
-
-        FileProviderDictionary FileDirectory = (FileProviderDictionary)Provider.Files;
-        FileDirectory.AddFiles(ContentFiles);
-
-        return true;
     }
 
     public async Task Initialize()
@@ -204,9 +151,6 @@ public class Globals
         if (MappingFilePath != "") Provider.MappingsContainer = new FileUsmapTypeMappingsProvider(MappingFilePath);
         Provider.LoadLocalization(ELanguage.English);
         Provider.LoadVirtualPaths();
-
-        if (bUseContentBuilds)
-            await InitializeContentBuilds();
     }
 }
 
