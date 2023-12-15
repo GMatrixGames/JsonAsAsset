@@ -192,9 +192,6 @@ public:
 		FFilePath MappingFilePath;
 
 	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Encryption", meta=(EditCondition="bEnableLocalFetch"), AdvancedDisplay)
-		bool bUseContentBuilds;
-
-	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Encryption", meta=(EditCondition="bEnableLocalFetch"), AdvancedDisplay)
 		bool bDownloadExistingTextures;
 
 	// Main key for archives

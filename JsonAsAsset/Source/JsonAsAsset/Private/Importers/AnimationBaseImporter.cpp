@@ -13,8 +13,10 @@
 #include "AnimDataController.h"
 #endif
 
-bool UAnimationBaseImporter::ImportData() {
-	try {
+bool UAnimationBaseImporter::ImportData()
+{
+	try
+	{
 		// Properties of the object
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
@@ -33,7 +35,8 @@ bool UAnimationBaseImporter::ImportData() {
 		if (const TSharedPtr<FJsonObject>* RawCurveData; Properties->TryGetObjectField("RawCurveData", RawCurveData)) FloatCurves = Properties->GetObjectField("RawCurveData")->GetArrayField("FloatCurves");
 		else if (JsonObject->TryGetObjectField("CompressedCurveData", RawCurveData)) FloatCurves = JsonObject->GetObjectField("CompressedCurveData")->GetArrayField("FloatCurves");
 
-		for (TSharedPtr<FJsonValue> FloatCurveObject : FloatCurves) {
+		for (TSharedPtr<FJsonValue> FloatCurveObject : FloatCurves)
+		{
 			// Display Name (for example: jaw_open_pose)
 			FString DisplayName = FloatCurveObject->AsObject()->GetObjectField("Name")->GetStringField("DisplayName");
 
@@ -53,8 +56,10 @@ bool UAnimationBaseImporter::ImportData() {
 			// Unreal Engine 5 uses the controller, while Unreal Engine 4 directly uses RawCurveData
 #if ENGINE_MAJOR_VERSION == 5
 			// For Unreal Engine 5.3 and above, the smart name's display name is required
-#if ENGINE_MINOR_VERSION > 3
+#if ENGINE_MINOR_VERSION == 3
 			Controller->AddCurve(FAnimationCurveIdentifier(NewTrackName.DisplayName, ERawCurveTrackTypes::RCT_Float), CurveTypeFlags);
+#elif ENGINE_MINOR_VERSION > 3
+			Controller.AddCurve(FAnimationCurveIdentifier(NewTrackName.DisplayName, ERawCurveTrackTypes::RCT_Float), CurveTypeFlags);
 #endif
 			// For Unreal Engine 5.2 and below, just the smart name is required
 #if ENGINE_MINOR_VERSION < 3
@@ -90,13 +95,15 @@ bool UAnimationBaseImporter::ImportData() {
 #endif
 		}
 
-		for (TSharedPtr<FJsonValue> FloatCurveObject : FloatCurves) {
+		for (TSharedPtr<FJsonValue> FloatCurveObject : FloatCurves)
+		{
 			FString DisplayName = FloatCurveObject->AsObject()->GetObjectField("Name")->GetStringField("DisplayName");
 
 			TArray<TSharedPtr<FJsonValue>> Keys = FloatCurveObject->AsObject()->GetObjectField("FloatCurve")->GetArrayField("Keys");
 			TArray<FRichCurveKey> _Keys;
 
-			for (int32 key_index = 0; key_index < Keys.Num(); key_index++) {
+			for (int32 key_index = 0; key_index < Keys.Num(); key_index++)
+			{
 				TSharedPtr<FJsonObject> Key = Keys[key_index]->AsObject();
 
 				FRichCurveKey RichKey = FMathUtilities::ObjectToRichCurveKey(Keys[key_index]->AsObject());
@@ -118,7 +125,9 @@ bool UAnimationBaseImporter::ImportData() {
 			}
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
-			FSmartName NewTrackName; { // Create SmartName
+			FSmartName NewTrackName;
+			{
+				// Create SmartName
 				USkeleton* Skeleton = AnimSequenceBase->GetSkeleton();
 				Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, FName(*DisplayName), NewTrackName);
 			}
@@ -136,10 +145,12 @@ bool UAnimationBaseImporter::ImportData() {
 
 		UAnimSequence* CastedAnimSequence = Cast<UAnimSequence>(AnimSequenceBase);
 
-		if (const TArray<TSharedPtr<FJsonValue>>* AuthoredSyncMarkers1; Properties->TryGetArrayField("AuthoredSyncMarkers", AuthoredSyncMarkers1) && CastedAnimSequence) {
+		if (const TArray<TSharedPtr<FJsonValue>>* AuthoredSyncMarkers1; Properties->TryGetArrayField("AuthoredSyncMarkers", AuthoredSyncMarkers1) && CastedAnimSequence)
+		{
 			TArray<TSharedPtr<FJsonValue>> AuthoredSyncMarkers = Properties->GetArrayField("AuthoredSyncMarkers");
 
-			for (TSharedPtr<FJsonValue> SyncMarker : AuthoredSyncMarkers) {
+			for (TSharedPtr<FJsonValue> SyncMarker : AuthoredSyncMarkers)
+			{
 				FAnimSyncMarker AuthoredSyncMarker = FAnimSyncMarker();
 				AuthoredSyncMarker.MarkerName = FName(*SyncMarker.Get()->AsObject().Get()->GetStringField("MarkerName"));
 				AuthoredSyncMarker.Time = SyncMarker.Get()->AsObject().Get()->GetNumberField("Time");
@@ -148,7 +159,8 @@ bool UAnimationBaseImporter::ImportData() {
 		}
 
 		// TODO: Incompatible with UE5
-		if (CastedAnimSequence) {
+		if (CastedAnimSequence)
+		{
 			CastedAnimSequence->RequestSyncAnimRecompression();
 		}
 
@@ -162,7 +174,8 @@ bool UAnimationBaseImporter::ImportData() {
 
 		SavePackage();
 	}
-	catch (const char* Exception) {
+	catch (const char* Exception)
+	{
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
 	}

@@ -30,8 +30,6 @@
 #include "Dialogs/Dialogs.h"
 #include "ISettingsModule.h"
 
-#include "MessageLog/Public/MessageLogInitializationOptions.h"
-#include "MessageLog/Public/MessageLogModule.h"
 #include "Utilities/RemoteUtilities.h"
 
 #include "Importers/MaterialFunctionImporter.h"
@@ -56,6 +54,8 @@
 #include "Styling/AppStyle.h"
 #include "SPrimaryButton.h"
 #include <TlHelp32.h>
+
+#include "MessageLogModule.h"
 
 #ifdef _MSC_VER
 #undef GetObject

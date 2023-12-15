@@ -41,6 +41,7 @@ public class JsonAsAsset : ModuleRules
 			"MessageLog",
 			"ToolWidgets",
 			"PluginUtils",
+			"MessageLog",
 			"RHI",
 			"Detex",
 			"NVTT"
