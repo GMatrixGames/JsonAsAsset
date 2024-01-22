@@ -1,4 +1,6 @@
-﻿#include "Importers/TextureImporter.h"
+﻿// Copyright JAA Contributors 2023-2024
+
+#include "Importers/TextureImporter.h"
 
 #include "detex.h"
 #include "Engine/TextureRenderTarget2D.h"

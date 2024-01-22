@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright JAA Contributors 2023-2024
 
 #include "JsonAsAssetStyle.h"
 #include "Framework/Application/SlateApplication.h"

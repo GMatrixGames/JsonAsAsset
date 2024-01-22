@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright JAA Contributors 2023-2024
 
 #include "Utilities/MathUtilities.h"
 #include "Dom/JsonObject.h"

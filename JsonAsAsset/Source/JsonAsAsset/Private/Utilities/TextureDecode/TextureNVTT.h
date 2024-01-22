@@ -1,3 +1,5 @@
+// Copyright JAA Contributors 2023-2024
+
 #pragma once
 
 #include "nvimage/Image.h"

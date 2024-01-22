@@ -1,4 +1,6 @@
-﻿#include "Importers/BlendSpaceImporter.h"
+﻿// Copyright JAA Contributors 2023-2024
+
+#include "Importers/BlendSpaceImporter.h"
 
 void UBlendSpaceDerived::SetAxisToScaleAnimationInput(const EBlendSpaceAxis AxisToScaleAnimationInput) {
 	this->AxisToScaleAnimation = AxisToScaleAnimationInput;
