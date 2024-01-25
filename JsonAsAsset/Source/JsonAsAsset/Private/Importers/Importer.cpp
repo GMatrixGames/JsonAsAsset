@@ -117,8 +117,6 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	FString Path;
 	PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
 
-	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
 	Path = Path.Replace(TEXT("FortniteGame/Content"), TEXT("/Game"));
 	Path = Path.Replace(TEXT("Engine/Content"), TEXT("/Engine"));
 
@@ -129,19 +127,6 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	// Define found object
 	TObjectPtr<T> Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
 
-	FString DirectString;
-	Settings->RedirectFolderDirectory.Path.Split("/", &DirectString, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-
-	if (Obj == nullptr && Settings->bEnableModifications) {
-		if (Path.StartsWith("/Game/"))
-			DirectString = Settings->RedirectFolderDirectory.Path;
-
-		Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(DirectString + Path.Replace(TEXT("/Game/"), TEXT("")) + "." + Name)));
-
-		if (Obj == nullptr && !Path.StartsWith("/Game/"))
-			Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(DirectString + "/Plugins" + Path.Replace(TEXT("/Game/"), TEXT("")) + "." + Name)));
-	}
-
 	// Material Expressions may be formatted differently
 	if (Obj == nullptr && Name.Contains("MaterialExpression")) {
 		FString AssetName; 
@@ -149,11 +134,6 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 
 		// Load Object with :
 		Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + AssetName + ":" + Name)));
-
-		if (Obj == nullptr && Settings->bEnableModifications) // Fix references to plugins
-			Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(DirectString + Path.Replace(TEXT("/Game/"), TEXT("")) + "." + AssetName + ":" + Name)));
-		if (Obj == nullptr && !Path.StartsWith("/Game/") && Settings->bEnableModifications)
-			Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(DirectString + "/Plugins" + Path.Replace(TEXT("/Game/"), TEXT("")) + "." + Name)));
 	}
 #pragma warning( pop )
 	

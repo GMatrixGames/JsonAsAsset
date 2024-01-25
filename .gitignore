@@ -80,3 +80,4 @@ _[Ss]cripts
 *.db
 *.v1
 *.sln
+.idea/
