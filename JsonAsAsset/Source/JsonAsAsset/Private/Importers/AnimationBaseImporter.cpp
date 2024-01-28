@@ -56,9 +56,9 @@ bool UAnimationBaseImporter::ImportData()
 			// Unreal Engine 5 uses the controller, while Unreal Engine 4 directly uses RawCurveData
 #if ENGINE_MAJOR_VERSION == 5
 			// For Unreal Engine 5.3 and above, the smart name's display name is required
-#if ENGINE_MINOR_VERSION == 3
+#if ENGINE_MINOR_VERSION == 3 && ENGINE_PATCH_VERSION < 2
 			Controller->AddCurve(FAnimationCurveIdentifier(NewTrackName.DisplayName, ERawCurveTrackTypes::RCT_Float), CurveTypeFlags);
-#elif ENGINE_MINOR_VERSION > 3
+#elif (ENGINE_MINOR_VERSION == 3 && ENGINE_PATCH_VERSION == 2) || ENGINE_MINOR_VERSION > 3
 			Controller.AddCurve(FAnimationCurveIdentifier(NewTrackName.DisplayName, ERawCurveTrackTypes::RCT_Float), CurveTypeFlags);
 #endif
 			// For Unreal Engine 5.2 and below, just the smart name is required

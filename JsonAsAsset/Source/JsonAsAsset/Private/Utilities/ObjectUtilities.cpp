@@ -542,7 +542,7 @@ UObject* UObjectSerializer::DeserializeExportedObject(int32 ObjectIndex, TShared
 		const EObjectFlags ObjectLoadFlags = (EObjectFlags)ObjectJson->GetIntegerField(TEXT("ObjectFlags"));
 		UObject* Template = GetArchetypeFromRequiredInfo(ObjectClass, OuterObject, *ObjectName, ObjectLoadFlags);
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4 // UE 5.4
+#if ENGINE_MAJOR_VERSION == 5 && (ENGINE_MINOR_VERSION >= 4 || (ENGINE_MINOR_VERSION == 3 && ENGINE_PATCH_VERSION == 2)) // UE 5.4
 		FStaticConstructObjectParameters ConstructObjectParameters(ObjectClass);
 		ConstructObjectParameters.Outer = OuterObject;
 		ConstructObjectParameters.Name = *ObjectName;
