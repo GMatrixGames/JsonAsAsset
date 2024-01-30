@@ -1,4 +1,4 @@
-// Copyright JAA Contributors 2023-2024
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Importers/SoundCueImporter.h"
 #include "Sound/SoundCue.h"
@@ -7,12 +7,11 @@
 bool USoundCueImporter::ImportData() {
 	try {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
-		GetObjectSerializer()->SetPackageForDeserialization(Package);
+		// GetObjectSerializer()->SetPackageForDeserialization(Package);
 
 		USoundCue* SoundCue = NewObject<USoundCue>(Package, *FileName, RF_Public | RF_Standalone);
+		SoundCue->PostEditChange();
 		TArray<TSharedRef<FJsonObject>> NodeTree;
-		SoundCue->CreateGraph();
-		SoundCue->Modify();
 
 		// Sort, and find each node
 		for (const TSharedPtr<FJsonValue> Export : AllJsonObjects) {
@@ -34,6 +33,7 @@ bool USoundCueImporter::ImportData() {
 			// Construct sound node
 			const UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Type);
 			USoundNode* SoundNode = NewObject<USoundNode>(SoundCue, Class, FName(*Name), RF_Transactional);
+			SoundNode->PostEditChange();
 
 			SoundCue->AllNodes.Add(SoundNode);
 			SoundCue->SetupSoundNode(SoundNode, false);
@@ -44,7 +44,17 @@ bool USoundCueImporter::ImportData() {
 
 			SoundNode->GraphNode->CreateNewGuid();
 			NodeMapping.Add(SoundNode, NodeReference);
+
+			FString ObjectName;
+			Properties->GetObjectField("FirstNode")->GetStringField("ObjectName").Split(":", nullptr, &ObjectName);
+			ObjectName.Split("'", &ObjectName, nullptr);
+
+			if (ObjectName == Name) {
+				SoundCue->FirstNode = SoundNode;
+				SoundCue->LinkGraphNodesFromSoundNodes();
+			}
 		}
+
 
 		// Set Properties, and connections
 		for (TTuple<USoundNode*, TSharedRef<FJsonObject>>& Key : NodeMapping) {
@@ -68,13 +78,18 @@ bool USoundCueImporter::ImportData() {
 				for (const TSharedPtr<FJsonValue> ChildValue : *ChildNodesPtr) {
 					const TSharedPtr<FJsonObject>* Obj = &ChildValue->AsObject();
 
-					SoundNode->InsertChildNode(i);
-					LoadObject(Obj, SoundNode->ChildNodes[i]);
+					int local = i;
+					i++;
+
+					if ((local - 1) > SoundNode->GetMinChildNodes()) {
+						SoundNode->InsertChildNode(local);
+					}
+					LoadObject(Obj, SoundNode->ChildNodes[local]);
 
 					UEdGraphNode* OutNodeGraph = SoundNode->GetGraphNode();
 					check(OutNodeGraph);
 					UEdGraphPin* OutputPin = nullptr;
-					for (UEdGraphPin* ActivePin : SoundNode->ChildNodes[i]->GetGraphNode()->Pins)
+					for (UEdGraphPin* ActivePin : SoundNode->ChildNodes[local]->GetGraphNode()->Pins)
 					{
 						if (ActivePin->Direction == EGPD_Output)
 						{
@@ -89,7 +104,7 @@ bool USoundCueImporter::ImportData() {
 					{
 						if (ActivePin && ActivePin->Direction == EGPD_Input)
 						{
-							if (Inputs == i)
+							if (Inputs == local)
 							{
 								InputPin = ActivePin;
 								break;
@@ -102,21 +117,17 @@ bool USoundCueImporter::ImportData() {
 					{
 						InputPin->MakeLinkTo(OutputPin);
 					}
-					i++;
 				}
 			}
 
 			GetObjectSerializer()->DeserializeObjectProperties(NodeProperties, SoundNode);
 		}
 
-		GetObjectSerializer()->DeserializeObjectProperties(Properties, SoundCue);
-		SoundCue->CompileSoundNodesFromGraphNodes();
-		SoundCue->LinkGraphNodesFromSoundNodes();
-		SoundCue->PostEditChange();
-		SoundCue->MarkPackageDirty();
 
 		SavePackage();
-		HandleAssetCreation(SoundCue);
+
+		GetObjectSerializer()->DeserializeObjectProperties(Properties, SoundCue);
+		// HandleAssetCreation(SoundCue);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
 		return false;
