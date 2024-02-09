@@ -13,7 +13,7 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 <br> In Unreal Engine 5.2 and above, editor only data has been introduced to Unreal Engine. Allowing us to import materials and material functions into our own project from the pak files of a game.
 
 **Contributors**:
-<br> [Tector](https://github.com/Tectors), [TajGames](https://github.com/), [GMatrix](https://github.com/GMatrixGames), and [Zylox](https://github.com/0xZylox), and massive thanks to the people who contributed to [UEAssetToolkit](https://github.com/Buckminsterfullerene02/UEAssetToolkit-Fixes)!
+<br> [Tector](https://github.com/Tectors), [Tajgames](https://github.com/), [GMatrix](https://github.com/GMatrixGames), and [Zylox](https://github.com/0xZylox), and massive thanks to the people who contributed to [UEAssetToolkit](https://github.com/Buckminsterfullerene02/UEAssetToolkit-Fixes)!
 
 **Artwork**:
 
@@ -36,7 +36,7 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 ## 1. Introduction to JsonAsAsset
 > Please be aware that the use of this plugin should be for personal and educational purposes only. Do not use it to create and distribute commercial products without proper licensing and permissions. It is important to respect the intellectual property of others and only use assets that you have the right to use.
 
-JsonAsAsset (or sometimes refered as *`JAA`*) is a plugin to create assets from json data obtained from [FModel](https://fmodel.app) *(Software for exploring Unreal Engine games)*. We are in no way responsible for what may be done with the created content, but you are free to use this tool as much as you like. Here are the supported asset types in JsonAsAsset:
+JsonAsAsset (or often referred as *`JAA`*) is a plugin to create assets from JSON data obtained from [FModel](https://fmodel.app) *`(Software for exploring Unreal Engine games)`* We are in no way responsible for what may be done with the created content, but you are free to use this tool as much as you like. Here are the supported asset types in JsonAsAsset:
 
 ###### Materials
  - Material
@@ -71,7 +71,8 @@ In this short documentation, we will learn how to use this powerful Unreal Engin
 
 <a name="install"></a>
 ## 2. Installing JsonAsAsset
-> JsonAsAsset may not work for every Unreal Engine 5 version, please check Releases to see compatibility. Unreal Engine 4 is not supported at the moment, and is not planned to be supported.
+> JsonAsAsset may not work for every Unreal Engine 5 version, please check Releases to see compatibility. Unreal Engine 4 is not maintained at the moment, and is not planned to be supported.
+> *`(See branches for the current available Unreal Engine 4 versions)`*
 
 1. Go to the [Releases page](https://github.com/Tectors/JsonAsAsset/releases) for the plugin.
 2. Download the release that matches your version of Unreal Engine. If there isn't a release that matches your version, you will need to compile the plugin yourself.
@@ -130,7 +131,7 @@ This is required as CUE4Parse needs this information to setup file providers and
 
 > You must launch Local Fetch through UE, and not by the executable file. The reason being is that the local host port is different when you launch it through UE, so it's important you do so.
 
-Once you've fully setup the settings for Local Fetch, you can now launch the api without any issues hopefully.
+Once you've fully setup the settings for Local Fetch, you can now launch the api without any issues.
 
 -------------------
 
