@@ -6,7 +6,7 @@
 
 bool USoundCueImporter::ImportData() {
 	try {
-		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
+		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField(TEXT("Properties"));
 		// GetObjectSerializer()->SetPackageForDeserialization(Package);
 
 		USoundCue* SoundCue = NewObject<USoundCue>(Package, *FileName, RF_Public | RF_Standalone);
@@ -16,9 +16,9 @@ bool USoundCueImporter::ImportData() {
 		// Sort, and find each node
 		for (const TSharedPtr<FJsonValue> Export : AllJsonObjects) {
 			TSharedPtr<FJsonObject> Object = Export->AsObject();
-			UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Object->GetStringField("Type"));
+			UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Object->GetStringField(TEXT("Type")));
 
-			if (Object->GetStringField("Type").StartsWith("SoundNode"))
+			if (Object->GetStringField(TEXT("Type")).StartsWith(TEXT("SoundNode")))
 				NodeTree.Add(MakeShareable(Object.Get()));
 		}
 
@@ -26,9 +26,9 @@ bool USoundCueImporter::ImportData() {
 
 		// Iterate through node
 		for (TSharedRef<FJsonObject> NodeReference : NodeTree) {
-			FString Type = NodeReference->GetStringField("Type");
-			FString Name = NodeReference->GetStringField("Name");
-			TSharedPtr<FJsonObject> NodeProperties = NodeReference->GetObjectField("Properties");
+			FString Type = NodeReference->GetStringField(TEXT("Type"));
+			FString Name = NodeReference->GetStringField(TEXT("Name"));
+			TSharedPtr<FJsonObject> NodeProperties = NodeReference->GetObjectField(TEXT("Properties"));
 
 			// Construct sound node
 			const UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Type);
@@ -46,7 +46,7 @@ bool USoundCueImporter::ImportData() {
 			NodeMapping.Add(SoundNode, NodeReference);
 
 			FString ObjectName;
-			Properties->GetObjectField("FirstNode")->GetStringField("ObjectName").Split(":", nullptr, &ObjectName);
+			Properties->GetObjectField(TEXT("FirstNode"))->GetStringField(TEXT("ObjectName")).Split(":", nullptr, &ObjectName);
 			ObjectName.Split("'", &ObjectName, nullptr);
 
 			if (ObjectName == Name) {
@@ -58,13 +58,13 @@ bool USoundCueImporter::ImportData() {
 
 		// Set Properties, and connections
 		for (TTuple<USoundNode*, TSharedRef<FJsonObject>>& Key : NodeMapping) {
-			TSharedPtr<FJsonObject> NodeProperties = Key.Value->GetObjectField("Properties");
+			TSharedPtr<FJsonObject> NodeProperties = Key.Value->GetObjectField(TEXT("Properties"));
 			USoundNode* SoundNode = Key.Key;
 
 			if (USoundNodeWavePlayer* SoundWavePlayer; Cast<USoundNodeWavePlayer>(SoundNode)) {
 				SoundWavePlayer = Cast<USoundNodeWavePlayer>(SoundNode);
 
-				if (const TSharedPtr<FJsonObject>* SoundWave; NodeProperties->TryGetObjectField("SoundWaveAssetPtr", SoundWave)) {
+				if (const TSharedPtr<FJsonObject>* SoundWave; NodeProperties->TryGetObjectField(TEXT("SoundWaveAssetPtr"), SoundWave)) {
 					TObjectPtr<USoundWave> Wave; {
 						LoadObject(SoundWave, Wave);
 					}
@@ -73,7 +73,7 @@ bool USoundCueImporter::ImportData() {
 				}
 			}
 
-			if (const TArray<TSharedPtr<FJsonValue>>* ChildNodesPtr; NodeProperties->TryGetArrayField("ChildNodes", ChildNodesPtr)) {
+			if (const TArray<TSharedPtr<FJsonValue>>* ChildNodesPtr; NodeProperties->TryGetArrayField(TEXT("ChildNodes"), ChildNodesPtr)) {
 				int i = 0;
 				for (const TSharedPtr<FJsonValue> ChildValue : *ChildNodesPtr) {
 					const TSharedPtr<FJsonObject>* Obj = &ChildValue->AsObject();

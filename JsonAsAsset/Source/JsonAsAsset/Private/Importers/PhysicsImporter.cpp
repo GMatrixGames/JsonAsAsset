@@ -17,7 +17,7 @@ bool UPhysicsImporter::ImportData() {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
 		PhysicsAsset->PreviewSkeletalMesh = SkeletalMesh;
-		SkeletalMesh->PhysicsAsset = PhysicsAsset;
+		SkeletalMesh->SetPhysicsAsset(PhysicsAsset);
 		SkeletalMesh->MarkPackageDirty();
 
 		// Remove some properties if we do them manually
@@ -40,20 +40,15 @@ bool UPhysicsImporter::ImportData() {
 		// Add Skeletal Mesh Bodies
 		for (TSharedPtr<FJsonValue> JsonValue : AllJsonObjects) {
 			TSharedPtr<FJsonObject> JsonObjectP = JsonValue->AsObject();
-			FString Name = JsonObjectP->GetStringField("Name");
-			TSharedPtr<FJsonObject> SubObjectProperties = JsonObjectP->GetObjectField("Properties");
+			FString Name = JsonObjectP->GetStringField(TEXT("Name"));
+			TSharedPtr<FJsonObject> SubObjectProperties = JsonObjectP->GetObjectField(TEXT("Properties"));
 
 			// Find Skeletal Bodies
-			if (JsonObjectP->GetStringField("Type") == "SkeletalBodySetup") {
-				FPhysAssetCreateParams CreateParams; {
-					CreateParams.bCreateConstraints = false;
-					CreateParams.bDisableCollisionsByDefault = false;
-				}
-
+			if (JsonObjectP->GetStringField(TEXT("Type")) == "SkeletalBodySetup") {
 				USkeletalBodySetup* SkeletalBody = NewObject<USkeletalBodySetup>(PhysicsAsset, NAME_None, RF_Transactional);
 
 				GetObjectSerializer()->DeserializeObjectProperties(SubObjectProperties, SkeletalBody);
-				SkeletalBody->BodySetupGuid = FGuid(JsonObjectP->GetStringField("BodySetupGuid"));
+				SkeletalBody->BodySetupGuid = FGuid(JsonObjectP->GetStringField(TEXT("BodySetupGuid")));
 
 				int32 BodySetupIndex = PhysicsAsset->SkeletalBodySetups.Add(SkeletalBody);
 
@@ -65,11 +60,11 @@ bool UPhysicsImporter::ImportData() {
 		// Add Physics Constraints
 		for (TSharedPtr<FJsonValue> JsonValue : AllJsonObjects) {
 			TSharedPtr<FJsonObject> _JsonObject = JsonValue->AsObject();
-			FString Name = _JsonObject->GetStringField("Name");
-			TSharedPtr<FJsonObject> SubObjectProperties = _JsonObject->GetObjectField("Properties");
+			FString Name = _JsonObject->GetStringField(TEXT("Name"));
+			TSharedPtr<FJsonObject> SubObjectProperties = _JsonObject->GetObjectField(TEXT("Properties"));
 
 			// Find Skeletal Bodies
-			if (_JsonObject->GetStringField("Type") == "PhysicsConstraintTemplate") {
+			if (_JsonObject->GetStringField(TEXT("Type")) == "PhysicsConstraintTemplate") {
 				UPhysicsConstraintTemplate* Constraint = NewObject<UPhysicsConstraintTemplate>(PhysicsAsset, NAME_None, RF_Transactional);
 				GetObjectSerializer()->DeserializeObjectProperties(SubObjectProperties, Constraint);
 				Constraint->SetDefaultProfile(Constraint->DefaultInstance); {

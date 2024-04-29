@@ -17,6 +17,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
 #pragma once
+#define DETEX_INLINE_ONLY /* __attribute__((always_inline)) inline */
 
 void detexConvertHalfFloatToFloat(uint16_t *source_buffer, int n, float *target_buffer);
 

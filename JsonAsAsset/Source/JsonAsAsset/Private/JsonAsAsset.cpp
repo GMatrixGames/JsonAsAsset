@@ -15,7 +15,7 @@
 #include "ToolMenus.h"
 #include "LevelEditor.h"
 
-#include "Windows/MinWindows.h"
+#include "Windows/WindowsHWrapper.h"
 
 #include "Interfaces/IPluginManager.h"
 #include "Settings/JsonAsAssetSettings.h"
@@ -96,7 +96,7 @@ void FJsonAsAssetModule::StartupModule() {
 
 		Info.HyperlinkText = LOCTEXT("UnrealSoftwareRequirements", "JsonAsAsset Docs");
 		Info.Hyperlink = FSimpleDelegate::CreateStatic([]() { 
-			FString TheURL = "https://github.com/Tectors/JsonAsAsset";
+			FString TheURL = "https://github.com/GMatrixGames/JsonAsAsset";
 			FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr); 
 		});
 
@@ -205,7 +205,7 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 
 			Info.HyperlinkText = LOCTEXT("UnrealSoftwareRequirements", "JsonAsAsset Docs");
 			Info.Hyperlink = FSimpleDelegate::CreateStatic([]() {
-				FString TheURL = "https://github.com/Tectors/JsonAsAsset";
+				FString TheURL = "https://github.com/GMatrixGames/JsonAsAsset";
 				FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr);
 			});
 
@@ -380,7 +380,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Documentation"),
 			FUIAction(
 				FExecuteAction::CreateLambda([this]() {
-					FString TheURL = "https://github.com/Tectors/JsonAsAsset";
+					FString TheURL = "https://github.com/GMatrixGames/JsonAsAsset";
 					FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr);
 				})
 			),
@@ -551,7 +551,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 								}
 
 								if (ProcessID != 0) {
-									HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, ProcessID);
+									HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, false, ProcessID);
 									if (hProcess != nullptr) {
 										TerminateProcess(hProcess, 0);
 										CloseHandle(hProcess);

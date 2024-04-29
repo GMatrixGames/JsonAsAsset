@@ -2,6 +2,10 @@
 
 #include "Utilities/AssetUtilities.h"
 
+#include "Curves/CurveLinearColor.h"
+#include "Sound/SoundNode.h"
+#include "Engine/SubsurfaceProfile.h"
+#include "Materials/MaterialParameterCollection.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
 #include "Interfaces/IPluginManager.h"
@@ -128,6 +132,17 @@ UObject* FAssetUtilities::GetSelectedAsset()
 
 	return SelectedAssets[0].GetAsset();
 }
+
+template bool FAssetUtilities::ConstructAsset<UMaterialInterface>(const FString& Path, const FString& Type, TObjectPtr<UMaterialInterface>& OutObject, bool& bSuccess);
+template bool FAssetUtilities::ConstructAsset<USubsurfaceProfile>(const FString& Path, const FString& Type, TObjectPtr<USubsurfaceProfile>& OutObject, bool& bSuccess);
+template bool FAssetUtilities::ConstructAsset<UTexture>(const FString& Path, const FString& Type, TObjectPtr<UTexture>& OutObject, bool& bSuccess);
+template bool FAssetUtilities::ConstructAsset<UAnimSequence>(const FString& Path, const FString& Type, TObjectPtr<UAnimSequence>& OutObject, bool& bSuccess);
+template bool FAssetUtilities::ConstructAsset<UMaterialParameterCollection>(const FString& Path, const FString& Type, TObjectPtr<UMaterialParameterCollection>& OutObject, bool& bSuccess);
+template bool FAssetUtilities::ConstructAsset<USoundWave>(const FString& Path, const FString& Type, TObjectPtr<USoundWave>& OutObject, bool& bSuccess);
+template bool FAssetUtilities::ConstructAsset<UObject>(const FString& Path, const FString& Type, TObjectPtr<UObject>& OutObject, bool& bSuccess);
+template bool FAssetUtilities::ConstructAsset<UMaterialFunctionInterface>(const FString& Path, const FString& Type, TObjectPtr<UMaterialFunctionInterface>& OutObject, bool& bSuccess);
+template bool FAssetUtilities::ConstructAsset<USoundNode>(const FString& Path, const FString& Type, TObjectPtr<USoundNode>& OutObject, bool& bSuccess);
+template bool FAssetUtilities::ConstructAsset<UCurveLinearColor>(const FString& Path, const FString& Type, TObjectPtr<UCurveLinearColor>& OutObject, bool& bSuccess);
 
 // Constructing assets ect..
 template <typename T>

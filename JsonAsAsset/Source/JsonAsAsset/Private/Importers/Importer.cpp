@@ -3,6 +3,10 @@
 #include "Importers/Importer.h"
 #include "CoreMinimal.h"
 
+#include "Curves/CurveLinearColor.h"
+#include "Sound/SoundNode.h"
+#include "Engine/SubsurfaceProfile.h"
+#include "Materials/MaterialParameterCollection.h"
 #include "Settings/JsonAsAssetSettings.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
@@ -109,13 +113,23 @@ TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, F
 	return InObject;
 }
 
+template void IImporter::LoadObject<UMaterialInterface>(const TSharedPtr<FJsonObject>*, TObjectPtr<UMaterialInterface>&);
+template void IImporter::LoadObject<USubsurfaceProfile>(const TSharedPtr<FJsonObject>*, TObjectPtr<USubsurfaceProfile>&);
+template void IImporter::LoadObject<UTexture>(const TSharedPtr<FJsonObject>*, TObjectPtr<UTexture>&);
+template void IImporter::LoadObject<UMaterialParameterCollection>(const TSharedPtr<FJsonObject>*, TObjectPtr<UMaterialParameterCollection>&);
+template void IImporter::LoadObject<UAnimSequence>(const TSharedPtr<FJsonObject>*, TObjectPtr<UAnimSequence>&);
+template void IImporter::LoadObject<USoundWave>(const TSharedPtr<FJsonObject>*, TObjectPtr<USoundWave>&);
+template void IImporter::LoadObject<UObject>(const TSharedPtr<FJsonObject>*, TObjectPtr<UObject>&);
+template void IImporter::LoadObject<UMaterialFunctionInterface>(const TSharedPtr<FJsonObject>*, TObjectPtr<UMaterialFunctionInterface>&);
+template void IImporter::LoadObject<USoundNode>(const TSharedPtr<FJsonObject>*, TObjectPtr<USoundNode>&);
+
 template <typename T>
 void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object) {
 	FString Type;
 	FString Name;
-	PackageIndex->Get()->GetStringField("ObjectName").Split("'", &Type, &Name);
+	PackageIndex->Get()->GetStringField(TEXT("ObjectName")).Split("'", &Type, &Name);
 	FString Path;
-	PackageIndex->Get()->GetStringField("ObjectPath").Split(".", &Path, nullptr);
+	PackageIndex->Get()->GetStringField(TEXT("ObjectPath")).Split(".", &Path, nullptr);
 
 	Path = Path.Replace(TEXT("FortniteGame/Content"), TEXT("/Game"));
 	Path = Path.Replace(TEXT("Engine/Content"), TEXT("/Engine"));
@@ -140,6 +154,8 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	Object = DownloadWrapper(Obj, Type, Name, Path);
 }
 
+template TArray<TObjectPtr<UCurveLinearColor>> IImporter::LoadObject<UCurveLinearColor>(const TArray<TSharedPtr<FJsonValue>>&, TArray<TObjectPtr<UCurveLinearColor>>);
+
 template <typename T>
 TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array) {
 	for (const TSharedPtr<FJsonValue> ArrayElement : PackageArray) {
@@ -147,9 +163,9 @@ TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>
 
 		FString Type;
 		FString Name;
-		Ptr->GetStringField("ObjectName").Split("'", &Type, &Name);
+		Ptr->GetStringField(TEXT("ObjectName")).Split("'", &Type, &Name);
 		FString Path;
-		Ptr->GetStringField("ObjectPath").Split(".", &Path, nullptr);
+		Ptr->GetStringField(TEXT("ObjectPath")).Split(".", &Path, nullptr);
 		Name = Name.Replace(TEXT("'"), TEXT(""));
 
 		TObjectPtr<T> Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
@@ -193,7 +209,7 @@ void IImporter::ImportReference(const FString& File) {
 	/* ---------------------------------------- */
 
 	if (FJsonSerializer::Deserialize(JsonReader, JsonParsed)) {
-		const TArray<TSharedPtr<FJsonValue>> DataObjects = JsonParsed->GetArrayField("data");
+		const TArray<TSharedPtr<FJsonValue>> DataObjects = JsonParsed->GetArrayField(TEXT("data"));
 
 		HandleExports(DataObjects, File);
 	}
@@ -233,13 +249,13 @@ void IImporter::SavePackage() {
 
 bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, const bool bHideNotifications) {
 	TArray<FString> Types;
-	for (const TSharedPtr<FJsonValue>& Obj : Exports) Types.Add(Obj->AsObject()->GetStringField("Type"));
+	for (const TSharedPtr<FJsonValue>& Obj : Exports) Types.Add(Obj->AsObject()->GetStringField(TEXT("Type")));
 
 	for (const TSharedPtr<FJsonValue>& ExportPtr : Exports) {
 		TSharedPtr<FJsonObject> DataObject = ExportPtr->AsObject();
 
-		FString Type = DataObject->GetStringField("Type");
-		FString Name = DataObject->GetStringField("Name");
+		FString Type = DataObject->GetStringField(TEXT("Type"));
+		FString Name = DataObject->GetStringField(TEXT("Name"));
 
 		UClass* Class = FindObject<UClass>(ANY_PACKAGE, *Type);
 
@@ -329,8 +345,8 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 }
 
 TSharedPtr<FJsonObject> IImporter::GetExport(FJsonObject* PackageIndex) {
-	FString ObjectName = PackageIndex->GetStringField("ObjectName"); // Class'Asset:ExportName'
-	FString ObjectPath = PackageIndex->GetStringField("ObjectPath"); // Path/Asset.Index
+	FString ObjectName = PackageIndex->GetStringField(TEXT("ObjectName")); // Class'Asset:ExportName'
+	FString ObjectPath = PackageIndex->GetStringField(TEXT("ObjectPath")); // Path/Asset.Index
 
 	// Class'Asset:ExportName' --> Asset:ExportName
 	ObjectName.Split("'", nullptr, &ObjectName);
@@ -348,7 +364,7 @@ TSharedPtr<FJsonObject> IImporter::GetExport(FJsonObject* PackageIndex) {
 	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
 		const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Value->AsObject());
 
-		if (FString Name; ValueObject->TryGetStringField("Name", Name) && Name == ObjectName)
+		if (FString Name; ValueObject->TryGetStringField(TEXT("Name"), Name) && Name == ObjectName)
 			return ValueObject;
 	}
 
@@ -369,7 +385,7 @@ TArray<TSharedPtr<FJsonValue>> IImporter::FilterExportsByOuter(const FString& Ou
 	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
 		const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Value->AsObject());
 
-		if (FString ExOuter; ValueObject->TryGetStringField("Outer", ExOuter) && ExOuter == Outer) 
+		if (FString ExOuter; ValueObject->TryGetStringField(TEXT("Outer"), ExOuter) && ExOuter == Outer) 
 			ReturnValue.Add(TSharedPtr(Value));
 	}
 
@@ -380,7 +396,7 @@ TSharedPtr<FJsonValue> IImporter::GetExportByObjectPath(const TSharedPtr<FJsonOb
 	const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Object);
 
 	FString StringIndex; {
-		ValueObject->GetStringField("ObjectPath").Split(".", nullptr, &StringIndex);
+		ValueObject->GetStringField(TEXT("ObjectPath")).Split(".", nullptr, &StringIndex);
 	}
 
 	return AllJsonObjects[FCString::Atod(*StringIndex)];

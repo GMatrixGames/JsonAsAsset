@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Dom/JsonObject.h"
 #include "Utilities/ObjectUtilities.h"
 #include "Utilities/PropertyUtilities.h"
@@ -10,8 +11,8 @@
 // Global handler for converting JSON to assets
 class IImporter {
 public:
-	IImporter() : GObjectSerializer(nullptr),
-	              PropertySerializer(nullptr),
+	IImporter() : PropertySerializer(nullptr),
+	              GObjectSerializer(nullptr),
 	              Package(nullptr),
 	              OutermostPkg(nullptr) {
 	}
@@ -92,7 +93,7 @@ private:
 
 public:
 	template <class T = UObject>
-	// Loads a reference to a object	
+	// Loads a reference to a object
 	void LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object);
 	template <class T = UObject>
 	// Loads a array of references

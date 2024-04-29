@@ -13,9 +13,9 @@
         <ApplicationIcon>Icon256.ico</ApplicationIcon>
         <Authors>Tector</Authors>
         <Description>JsonAsAsset API (Local Fetch)</Description>
-        <PackageProjectUrl>https://github.com/Tectors/JsonAsAsset</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/GMatrixGames/JsonAsAsset</PackageProjectUrl>
         <PackageIcon>Icon256.png</PackageIcon>
-        <RepositoryUrl>https://github.com/Tectors/JsonAsAsset</RepositoryUrl>
+        <RepositoryUrl>https://github.com/GMatrixGames/JsonAsAsset</RepositoryUrl>
         <SignAssembly>False</SignAssembly>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
