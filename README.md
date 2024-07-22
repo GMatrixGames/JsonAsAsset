@@ -116,6 +116,9 @@ That is the basic setup done! However, if you want to import materials or linear
 
 <a name="setup-local-fetch"></a>
 ## 3. Setting Up *Local Fetch*
+
+Running the API requires ASP.NET 8.0 to be installed, please install this [here](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-8.0.2-windows-x64-installer).
+
 > Local Fetch is a local API to assist JsonAsAsset by acting as a "FModel", and it supplies textures and asset data to import at runtime. Especially if you're wanting to import materials. It uses CUE4Parse just like FModel.
 <img align="right" width="461.5" height="164" src=https://github.com/GMatrixGames/JsonAsAsset/assets/73559984/cddf0ea7-2499-4b39-a7af-e6f27ec5148e>
 
