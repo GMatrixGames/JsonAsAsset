@@ -28,7 +28,12 @@ bool UAnimationBaseImporter::ImportData() {
 
 		for (TSharedPtr<FJsonValue> FloatCurveObject : FloatCurves) {
 			// Display Name (for example: jaw_open_pose)
-			FString DisplayName = FloatCurveObject->AsObject()->GetObjectField("Name")->GetStringField("DisplayName");
+			FString DisplayName = "";
+			if (FloatCurveObject->AsObject()->HasField("Name")) {
+				DisplayName = FloatCurveObject->AsObject()->GetObjectField("Name")->GetStringField("DisplayName");
+			} else {
+				DisplayName = FloatCurveObject->AsObject()->GetStringField("CurveName");
+			}
 			GLog->Log("JsonAsAsset: Added animation curve: " + DisplayName);
 
 			USkeleton* Skeleton = AnimSequenceBase->GetSkeleton();
