@@ -81,6 +81,10 @@ enum EParseVersion
 	GAME_UE5_2,
 	GAME_UE5_3,
 	GAME_UE5_4,
+	GAME_UE5_5,
+	GAME_UE5_6,
+
+	GAME_UE5_LATEST = GAME_UE5_6
 };
 
 USTRUCT()

@@ -8,7 +8,7 @@
     }
   },
   "profiles": {
-    "JsonAsAssetAPI": {
+    "LocalFetch": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,

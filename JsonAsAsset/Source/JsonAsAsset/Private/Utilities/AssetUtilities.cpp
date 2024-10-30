@@ -204,6 +204,11 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 			const TSharedPtr<FJsonObject> Response = API_RequestExports(Path);
 			if (Response == nullptr || Path.IsEmpty()) return true;
 
+			if (Response->HasField("errored")) {
+				UE_LOG(LogJson, Log, TEXT("Error from response \"%s\""), *Path);
+				return true;
+			}
+
 			TSharedPtr<FJsonObject> JsonObject = Response->GetArrayField("jsonOutput")[0]->AsObject();
 			FString PackagePath;
 			FString AssetName;

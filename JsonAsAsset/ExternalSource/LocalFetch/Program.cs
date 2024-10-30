@@ -1,8 +1,8 @@
-// JsonAsAsset API
+// Local Fetch API
 using Microsoft.EntityFrameworkCore;
 
 var globals = new Globals();
-Console.Title = "Local Fetch API";
+Console.Title = "Local Fetch";
 
 await globals.Initialize();
 globals.WriteLog("CORE", ConsoleColor.Green, "Initialized provider successfully");

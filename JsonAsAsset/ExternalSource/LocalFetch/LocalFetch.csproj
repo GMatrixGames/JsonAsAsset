@@ -1,18 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
         <Exec Command="dotnet restore" />
     </Target>
 
     <PropertyGroup>
-        <TargetFramework>net8.0-windows</TargetFramework>
-        <Nullable>enable</Nullable>
+		<TargetFramework>net8.0-windows7.0</TargetFramework>
+		<Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <AssemblyName>JsonAsAssetAPI</AssemblyName>
+        <AssemblyName>LocalFetch</AssemblyName>
         <OutputType>Exe</OutputType>
         <ApplicationIcon>Icon256.ico</ApplicationIcon>
         <Authors>Tector</Authors>
-        <Description>JsonAsAsset API (Local Fetch)</Description>
+        <Description>Local Fetch</Description>
         <PackageProjectUrl>https://github.com/GMatrixGames/JsonAsAsset</PackageProjectUrl>
         <PackageIcon>Icon256.png</PackageIcon>
         <RepositoryUrl>https://github.com/GMatrixGames/JsonAsAsset</RepositoryUrl>
@@ -55,7 +54,6 @@
         <PackageReference Include="Infrablack.UE4Config" Version="0.7.2.97" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.5" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="7.0.5" />
-        <PackageReference Include="RestSharp" Version="110.2.0" />
         <PackageReference Include="RestSharp.Newtonsoft.Json" Version="1.5.1" />
         <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="110.2.0" />
     </ItemGroup>

@@ -1,9 +1,6 @@
-JsonAsAsset/Binaries/*
 !JsonAsAsset/Binaries/*/JsonAsAsset_API/*
 JsonAsAsset/Intermediate/*
 .vscode/settings.json
-
-*.exe
 
 *.com
 *.class
@@ -71,7 +68,6 @@ Thumbs.db
 packages
 NuGet.exe
 _[Ss]cripts
-*.dll
 *.nupkg
 *.ncrunchsolution
 *.dot[Cc]over
@@ -81,3 +77,5 @@ _[Ss]cripts
 *.v1
 *.sln
 .idea/
+/JsonAsAsset/ExternalSource/LocalFetch/.vs
+/JsonAsAsset/ExternalSource/LocalFetch/.config

@@ -32,10 +32,7 @@ FName FJsonAsAssetStyle::GetStyleSetName() {
 #define TTF_FONT(RelativePath, ...) FSlateFontInfo(Style->RootToContentDir(RelativePath, TEXT(".ttf")), __VA_ARGS__)
 #define OTF_FONT(RelativePath, ...) FSlateFontInfo(Style->RootToContentDir(RelativePath, TEXT(".otf")), __VA_ARGS__)
 
-const FVector2D Icon16x16(16, 16);
-const FVector2D Icon20x20(20, 20);
 const FVector2D Icon40x40(40, 40);
-const FVector2D IconFullScreen(720, 300);
 
 TSharedRef<FSlateStyleSet> FJsonAsAssetStyle::Create() {
 	TSharedRef<FSlateStyleSet> Style = MakeShareable(new FSlateStyleSet("JsonAsAssetStyle"));
@@ -44,7 +41,6 @@ TSharedRef<FSlateStyleSet> FJsonAsAssetStyle::Create() {
 	Style->Set("JsonAsAsset.PluginAction", new IMAGE_BRUSH(TEXT("ButtonIcon_40x"), Icon40x40));
 	Style->Set("JsonAsAsset.FModelLogo", new IMAGE_BRUSH(TEXT("ButtonIcon_FModel"), Icon40x40));
 	Style->Set("JsonAsAsset.GithubLogo", new IMAGE_BRUSH(TEXT("ButtonIcon_Github"), Icon40x40));
-	Style->Set("JsonAsAsset.AboutScreen", new IMAGE_BRUSH(TEXT("Icon_FullScreen"), IconFullScreen));
 
 	return Style;
 }

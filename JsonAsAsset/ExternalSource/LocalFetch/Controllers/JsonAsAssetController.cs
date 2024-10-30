@@ -1,21 +1,28 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Runtime.InteropServices;
+using System.IO;
+
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using CUE4Parse.Utils;
+
 using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Assets.Exports.Texture;
 using CUE4Parse.UE4.Assets.Exports.Sound;
 using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Versions;
+
+using CUE4Parse.Compression;
+
 using CUE4Parse_Conversion.Textures;
 using CUE4Parse_Conversion.Sounds;
+
 using CUE4Parse.Encryption.Aes;
 using CUE4Parse.MappingsProvider;
+
 using UE4Config.Parsing;
 using Newtonsoft.Json;
 using SkiaSharp;
 using CUE4Parse.FileProvider;
-using System.Runtime.InteropServices;
-using System.IO;
 
 // Global Provider
 public class Globals
@@ -123,6 +130,10 @@ public class Globals
         Provider = new DefaultFileProvider(ArchiveDirectory, SearchOption.TopDirectoryOnly, true, new VersionContainer(UnrealVersion));
         Provider.Initialize();
 
+        var oodlePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, OodleHelper.OODLE_DLL_NAME);
+        if (!File.Exists(oodlePath)) await OodleHelper.DownloadOodleDllAsync(oodlePath);
+        OodleHelper.Initialize(oodlePath);
+
         if (ArchiveKey != "")
         {
             // Submit Main AES Key
@@ -155,7 +166,7 @@ public class Globals
 }
 
 // Handles API Requests
-namespace JsonAsAssetAPI.Controllers
+namespace LocalFetch.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

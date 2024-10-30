@@ -197,7 +197,7 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 
 		bool bIsLocalHost = Settings->Url.StartsWith("http://localhost");
 
-		if (!IsProcessRunning("JsonAsAssetAPI.exe") && bIsLocalHost) {
+		if (!IsProcessRunning("LocalFetch.exe") && bIsLocalHost) {
 			FNotificationInfo Info(LOCTEXT("JsonAsAssetNotificationTitle", "Local Fetch API"));
 			Info.SubText = LOCTEXT("JsonAsAssetNotificationText",
 				"Please start the Local Fetch API to use JsonAsAsset with no issues, if you need any assistance figuring out Local Fetch and the settings, please take a look at the documentation:"
@@ -217,7 +217,7 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 			Info.Image = FJsonAsAssetStyle::Get().GetBrush("JsonAsAsset.PluginAction");
 
 			Info.ButtonDetails.Add(
-				FNotificationButtonInfo(LOCTEXT("StartLocalFetch", "Execute JsonAsAsset API (.EXE)"), FText::GetEmpty(),
+				FNotificationButtonInfo(LOCTEXT("StartLocalFetch", "Execute LocalFetch API (.EXE)"), FText::GetEmpty(),
 					FSimpleDelegate::CreateStatic([]() {
 						TSharedPtr<SNotificationItem> NotificationItem = LocalFetchNotificationPtr.Pin();
 
@@ -239,7 +239,7 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 							}
 						}
 
-						FString FullPath = FPaths::ConvertRelativePathToFull(PluginBinariesFolder + "/Win64/JsonAsAsset_API/JsonAsAssetAPI.exe");
+						FString FullPath = FPaths::ConvertRelativePathToFull(PluginBinariesFolder + "/Win64/LocalFetch/LocalFetch.exe");
 						FPlatformProcess::LaunchFileInDefaultExternalApplication(*FullPath, TEXT("--urls=http://localhost:1500/"), ELaunchVerb::Open);
 					})
 				)
@@ -431,8 +431,8 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 		MenuBuilder.EndSection();
 	}
 
-	if (Settings->bEnableLocalFetch) {
-		MenuBuilder.BeginSection("JsonAsAssetSection", FText::FromString("Json-As-Asset API"));
+	if (Settings->bEnableLocalFetch && !bActionRequired) {
+		MenuBuilder.BeginSection("JsonAsAssetSection", FText::FromString("Local Fetch"));
 		MenuBuilder.AddSubMenu(
 			LOCTEXT("JsonAsAssetMenu", "Asset Types"),
 			LOCTEXT("JsonAsAssetMenuToolTip", "List of supported classes that can be locally fetched using the API"),
@@ -490,7 +490,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Console"));
 				{
 					InnerMenuBuilder.AddMenuEntry(
-						FText::FromString("Execute JsonAsAsset API (.EXE)"),
+						FText::FromString("Execute Local Fetch (.EXE)"),
 						FText::FromString(""),
 						FSlateIcon(),
 						FUIAction(
@@ -515,22 +515,22 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 									}
 								}
 
-								FString FullPath = FPaths::ConvertRelativePathToFull(PluginBinariesFolder + "/Win64/JsonAsAsset_API/JsonAsAssetAPI.exe");
+								FString FullPath = FPaths::ConvertRelativePathToFull(PluginBinariesFolder + "/Win64/LocalFetch/LocalFetch.exe");
 								FPlatformProcess::LaunchFileInDefaultExternalApplication(*FullPath, TEXT("--urls=http://localhost:1500/"), ELaunchVerb::Open);
 							}),
 							FCanExecuteAction::CreateLambda([this]() {
-								return !IsProcessRunning("JsonAsAssetAPI.exe");
+								return !IsProcessRunning("LocalFetch.exe");
 							})
 						)
 					);
 
 					InnerMenuBuilder.AddMenuEntry(
-						FText::FromString("Shutdown JsonAsAsset API (.EXE)"),
+						FText::FromString("Shutdown Local Fetch (.EXE)"),
 						FText::FromString(""),
 						FSlateIcon(),
 						FUIAction(
 							FExecuteAction::CreateLambda([this]() {
-								FString ProcessName = TEXT("JsonAsAssetAPI.exe");
+								FString ProcessName = TEXT("LocalFetch.exe");
 								TCHAR* ProcessNameChar = ProcessName.GetCharArray().GetData();
 
 								DWORD ProcessID = 0;
@@ -559,7 +559,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 								}
 							}),
 							FCanExecuteAction::CreateLambda([this]() {
-								return IsProcessRunning("JsonAsAssetAPI.exe");
+								return IsProcessRunning("LocalFetch.exe");
 							})
 						)
 					);
@@ -588,7 +588,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 	);
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("JsonAsAssetButton", "Open Message Log"),
-		LOCTEXT("JsonAsAssetButtonTooltip", "Message Log for JsonAsAsset\n> Allows you to see what went wrong, and what went great"),
+		LOCTEXT("JsonAsAssetButtonTooltip", "Message Log for JsonAsAsset"),
 		FSlateIcon(FAppStyle::GetAppStyleSetName(), "MessageLog.TabIcon"),
 		FUIAction(
 			FExecuteAction::CreateLambda([this]() {
@@ -610,7 +610,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 				TSharedPtr<SWindow> AboutWindow =
 					SNew(SWindow)
 					.Title(LOCTEXT("AboutJsonAsAsset", "About JsonAsAsset"))
-					.ClientSize(FVector2D(720.f, 470.f))
+					.ClientSize(FVector2D(720.f, 175.f))
 					.SupportsMaximize(false).SupportsMinimize(false)
 					.SizingRule(ESizingRule::FixedSize)
 					[
@@ -647,7 +647,7 @@ void SAboutJsonAsAsset::Construct(const FArguments& InArgs) {
 	#pragma warning(pop)
 	#endif
 
-	FText Version = FText::FromString("Version: " + Plugin->GetDescriptor().VersionName);
+	FText Version = FText::FromString("Version: " + Plugin->GetDescriptor().VersionName + " | Created by Tector, maintained by GMatrixGames");
 	FText Title = FText::FromString("JsonAsAsset");
 
 	ChildSlot
@@ -656,12 +656,6 @@ void SAboutJsonAsAsset::Construct(const FArguments& InArgs) {
 		.Padding(16.f).BorderImage(FAppStyle::Get().GetBrush("Brushes.Panel"))
 		[
 			SNew(SVerticalBox)
-
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew(SImage).Image(FJsonAsAssetStyle::Get().GetBrush(TEXT("JsonAsAsset.AboutScreen")))
-			]
 
 			+SVerticalBox::Slot()
 			.AutoHeight()
