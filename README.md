@@ -3,15 +3,12 @@
 [![Discord](https://img.shields.io/badge/Join%20Discord-Collector?color=7289DA&label=JsonAsAsset&logo=discord&logoColor=7289DA&style=for-the-badge)](https://discord.gg/h9s6qpBnUT)
 ![GitHub Repo stars](https://img.shields.io/github/stars/GMatrixGames/JsonAsAsset?style=for-the-badge&logo=&color=lightgrey)
 ![Repo size](https://img.shields.io/github/repo-size/GMatrixGames/JsonAsAsset?label=total%20size&style=for-the-badge&logo=&color=lightgrey&logoColor=lightgrey)
-![Maintenance](https://img.shields.io/maintenance/yes/2024?style=for-the-badge&logo=&color=lightgrey)
+![Maintenance](https://img.shields.io/maintenance/yes/2025?style=for-the-badge&logo=&color=lightgrey)
 
 Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/json-en.html) to [Unreal Engine](https://www.unrealengine.com/en-US).
 
-**Editor Only Data**:
-<br> In Unreal Engine 5.2 and above, editor only data has been introduced to Unreal Engine. Allowing us to import materials and material functions into our own project from the pak files of a game.
-
 **Contributors**:
-<br> [Tector](https://github.com/Tectors), [Tajgames](https://github.com/), [GMatrix](https://github.com/GMatrixGames), and [Zylox](https://github.com/0xZylox), and massive thanks to the people who contributed to [UEAssetToolkit](https://github.com/Buckminsterfullerene02/UEAssetToolkit-Fixes)!
+<br> [Tector](https://github.com/Tectors) *[Creator]*, [GMatrix](https://github.com/GMatrixGames), [Tajgames](https://github.com/), and [Zylox](https://github.com/0xZylox), and massive thanks to the people who contributed to [UEAssetToolkit](https://github.com/Buckminsterfullerene02/UEAssetToolkit-Fixes)!
 
 **Artwork**:
 
@@ -30,11 +27,15 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 > 3. [Local Fetch](#setup-local-fetch)
 > 4. [Cloning](#clone-repo) **[Advanced]**
 
+-----------------
+
 <a name="intro"></a>
 ## 1. Introduction to JsonAsAsset
-> Please be aware that the use of this plugin should be for personal and educational purposes only. Do not use it to create and distribute commercial products without proper licensing and permissions. It is important to respect the intellectual property of others and only use assets that you have the right to use.
+> Please be aware that the **use of this plugin should be for personal and educational purposes only**. **Do not use it to create and distribute commercial products without proper licensing and permissions.** It is important to respect the intellectual property of others and only use assets that you have the right to use.
 
-JsonAsAsset (or often referred as *`JAA`*) is a plugin to create assets from JSON data obtained from [FModel](https://fmodel.app) *`(Software for exploring Unreal Engine games)`* We are in no way responsible for what may be done with the created content, but you are free to use this tool as much as you like. Here are the supported asset types in JsonAsAsset:
+JsonAsAsset (or often referred as *`JAA`*) is a plugin to create assets from JSON data obtained from [FModel](https://fmodel.app). *`(Software for exploring Unreal Engine games)`*
+
+We are in no way responsible for what may be done with the created content, but you are free to use this tool as much as you like. Here are the supported asset types in JsonAsAsset:
 
 ###### Materials
  - Material
@@ -73,11 +74,11 @@ In this short documentation, we will learn how to use this powerful Unreal Engin
 > *`(See branches for the current available Unreal Engine 4 versions)`*
 
 1. Go to the [Releases page](https://github.com/GMatrixGames/JsonAsAsset/releases) for the plugin.
-2. Download the release that matches your version of Unreal Engine. If there isn't a release that matches your version, you will need to compile the plugin yourself.
+2. **Download the release** that matches your version of Unreal Engine. If there **isn't a release that matches your version**, you will need to **compile the plugin yourself**.
 3. Extract the downloaded files to your project's Plugins folder. If there isn't a Plugins folder, create one in the root directory of your project.
 4. Open your Unreal Engine project.
 5. Click on Edit -> Plugins.
-6. In the Plugins window, search for "JsonAsAsset" and enable it.
+6. In the Plugins window, search for **"JsonAsAsset"** and enable it.
 7. Restart the editor for the changes to take effect.
 
 <a name="setup-jaa"></a>
@@ -106,14 +107,17 @@ First, open up to the JsonAsAsset plugin settings (basically do what's on the pi
 
 Now open up FModel, and go to your settings. `(Settings -> General)` There will be a setting called "Output Directory", copy that and go back to Unreal Engine. Now you need to click on the three dots and jump to the folder you copied and go to the folder named "Exports", then press "Select Folder".
 
-> We also recommend you enable *"Allow Package Saving"* for less issues during importing. 
-
 -------------------
 
-That is the basic setup done! However, if you want to import materials or linear curve atlas at bulk (ex: importing all material functions and their textures), then you're gonna need to setup `Local Fetch`.
+That is the basic setup done! However, if you want to import materials or linear curve atlas at bulk (ex: importing all material functions and their textures), then you're gonna need to setup [`Local Fetch`](setup-local-fetch).
 
 <a name="setup-local-fetch"></a>
 ## 3. Setting Up *Local Fetch*
+
+**Editor Only Data**:
+<br> In Unreal Engine 5.2 and above, editor only data has been introduced to Unreal Engine. Allowing us to import materials and material functions into our own project from the pak files of a game.
+
+----------------
 
 Running the API requires ASP.NET 8.0 to be installed, please install this [here](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-8.0.2-windows-x64-installer).
 
