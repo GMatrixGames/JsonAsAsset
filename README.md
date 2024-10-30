@@ -27,10 +27,10 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 <br> 
 
 > 1. [Introduction to JsonAsAsset](#intro)
-> 1. [Installing JsonAsAsset](#install)
->    2.1 [Setting Up JAA Settings](#setup-jaa)
->    2.2 [Export Directory](#export-directory)
-> 3. [Local Fetch](#setup-local-fetch)
+> 1. [Installing JsonAsAsset](#install)  
+>    2.1 [Setting Up JAA Settings](#setup-jaa)  
+>    2.2 [Export Directory](#export-directory)  
+> 3. [Local Fetch](#setup-local-fetch) 
 > 4. [Cloning](#clone-repo) **[Advanced]**
 
 -----------------
