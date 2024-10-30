@@ -1,7 +1,5 @@
 # JsonAsAsset
 
-<img align="right" width="180" height="180" src="https://raw.githubusercontent.com/GMatrixGames/JsonAsAsset/main/JsonAsAsset/Resources/JAA_Logo.png?raw=true">
-
 [![Discord](https://img.shields.io/badge/Join%20Discord-Collector?color=7289DA&label=JsonAsAsset&logo=discord&logoColor=7289DA&style=for-the-badge)](https://discord.gg/h9s6qpBnUT)
 ![GitHub Repo stars](https://img.shields.io/github/stars/GMatrixGames/JsonAsAsset?style=for-the-badge&logo=&color=lightgrey)
 ![Repo size](https://img.shields.io/github/repo-size/GMatrixGames/JsonAsAsset?label=total%20size&style=for-the-badge&logo=&color=lightgrey&logoColor=lightgrey)
@@ -26,10 +24,11 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 <br> 
 
 > 1. [Introduction to JsonAsAsset](#intro)
-> 1. [Installing JsonAsAsset](#install)  
->    2.1 [Setting Up JAA Settings](#setup-jaa)  
->    2.2 [Export Directory](#export-directory)  
-> 3. [Local Fetch](#setup-local-fetch) 
+> 1. [Installing JsonAsAsset](#install)
+>    2.1 [Setting Up JAA Settings](#setup-jaa)
+>    2.2 [Export Directory](#export-directory)
+> 3. [Local Fetch](#setup-local-fetch)
+> 4. [Cloning](#clone-repo) **[Advanced]**
 
 <a name="intro"></a>
 ## 1. Introduction to JsonAsAsset
@@ -140,3 +139,6 @@ Once you've fully setup the settings for Local Fetch, you can now launch the api
 Go ahead and click on the JsonAsAsset logo (<img width="25" height="25" src=https://github.com/GMatrixGames/JsonAsAsset/assets/73559984/b90ab71f-d9ac-4349-96eb-620aadf7812f>) and hover over the list `"Command-line Application"` and press `"Execute JsonAsAsset API (.EXE)"`.
 
 A window should pop-up, and once the console says `[CORE] Running API`, Local Fetch has been successfully started!
+
+<a name="clone-repo"></a>
+## 3. Cloning JsonAsAsset
