@@ -32,11 +32,9 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 
 <a name="intro"></a>
 ## 1. Introduction to JsonAsAsset
-> Please be aware that this plugin is intended strictly for personal and educational purposes. Do not use it to create or distribute commercial products without proper licensing and permissions. It is essential to respect others' intellectual property and to use only assets you are authorized to use.
+> Please be aware that this plugin is intended strictly for personal and educational purposes. Do not use it to create or distribute commercial products without proper licensing and permissions. It is essential to respect others' intellectual property and to use only assets you are authorized to use. We assume no responsibility for how created content may be used.
 
-JsonAsAsset (or often referred as *`JAA`*) is a plugin to create assets from JSON data obtained from [FModel](https://fmodel.app). *`(Software for exploring Unreal Engine games)`*
-
-We assume no responsibility for how created content may be used. However, you are free to use this tool as much as you like. Below are the supported asset types in JsonAsAsset:
+JsonAsAsset is a plugin to create assets from JSON data obtained from [FModel](https://fmodel.app). Below are the supported asset types in JsonAsAsset:
 
 ###### Materials
  - Material
