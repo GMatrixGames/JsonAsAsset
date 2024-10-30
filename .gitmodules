@@ -3,5 +3,5 @@
     url = https://github.com/FabianFG/CUE4Parse
 
 [submodule "JsonAsAsset/Plugins/JsonAsAsset/ExternalSource/LocalFetch"]
-	path = LocalFetch/Plugins/JsonAsAsset/ExternalSource/LocalFetch
+	path = JsonAsAsset/Plugins/JsonAsAsset/ExternalSource/LocalFetch
 	url = https://github.com/JsonAsAsset/LocalFetch.git
