@@ -142,3 +142,5 @@ A window should pop-up, and once the console says `[CORE] Running API`, Local Fe
 
 <a name="clone-repo"></a>
 ## 4. Cloning JsonAsAsset
+
+JsonAsAsset is made up of the Unreal Engine Plugin code **C++** and the Local Fetch API **(C#)**, which has CUE4Parse included aswell. This is in the [ExternalSource](https://github.com/JsonAsAsset/JsonAsAsset/tree/main/JsonAsAsset/ExternalSource) folder.
