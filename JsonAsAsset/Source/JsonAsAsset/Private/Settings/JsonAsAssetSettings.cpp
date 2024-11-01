@@ -60,24 +60,96 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 	TWeakObjectPtr<UJsonAsAssetSettings> Settings = Cast<UJsonAsAssetSettings>(ObjectsBeingCustomized[0].Get());
 
 	IDetailCategoryBuilder& AssetCategory = DetailBuilder.EditCategory("Configuration", FText::GetEmpty(), ECategoryPriority::Important);
-	AssetCategory.AddCustomRow(LOCTEXT("NOTICE", "Notice"), false).WholeRowWidget
-	[
-		SNew(SBorder)
-		.Padding(1)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			  .Padding(FMargin(10, 10, 10, 10))
-			  .FillWidth(1.0f)
-			[
-				SNew(SRichTextBlock)
-				.Text(LOCTEXT("NOTICEMessage",
-				              "<RichTextBlock.TextHighlight>NOTE:</> Please make sure you are using Unreal Engine's file/directory selector, if not, please replace the character \"\\\" with \"/\" so issues do not happen.\n> The character casuses a issue on parsing the path correctly, so it may make shadow folders in your browser and assets not importing correctly."))
-				.TextStyle(FAppStyle::Get(), "MessageLog")
-				.DecoratorStyleSet(&FAppStyle::Get())
-				.AutoWrapText(true)
-			]
-		]
+	//AssetCategory.AddCustomRow(LOCTEXT("NOTICE", "Notice"), false).WholeRowWidget
+	//[
+	//	SNew(SBorder)
+	//	.Padding(1)
+	//	[
+	//		SNew(SHorizontalBox)
+	//		+ SHorizontalBox::Slot()
+	//		  .Padding(FMargin(10, 10, 10, 10))
+	//		  .FillWidth(1.0f)
+	//		[
+	//			SNew(SRichTextBlock)
+	//			.Text(LOCTEXT("NOTICEMessage",
+	//			              "<RichTextBlock.TextHighlight>NOTE:</> Please make sure you are using Unreal Engine's file/directory selector, if not, please replace the character \"\\\" with \"/\" so issues do not happen.\n> The character casuses a issue on parsing the path correctly, so it may make shadow folders in your browser and assets not importing correctly."))
+	//			.TextStyle(FAppStyle::Get(), "MessageLog")
+	//			.DecoratorStyleSet(&FAppStyle::Get())
+	//			.AutoWrapText(true)
+	//		]
+	//	]
+	//];
+
+	AssetCategory.AddCustomRow(LOCTEXT("UseFModelAppSettings", "UseFModelAppSettings")).ValueContent()[
+		SNew(SButton)
+		.Text(LOCTEXT("UseFModelAppSettings_Text", "Load FModel Settings"))
+		.ToolTipText(LOCTEXT("UseFModelAppSettings_Tooltip", "Takes AppData/Roaming/FModel/AppSettings.json settings and sets them here."))
+		.OnClicked_Lambda([this, Settings]
+		{
+			UJsonAsAssetSettings* PluginSettings = GetMutableDefault<UJsonAsAssetSettings>();
+
+			// Get the path to AppData\Roaming
+			FString AppDataPath = FPlatformMisc::GetEnvironmentVariable(TEXT("APPDATA"));
+			AppDataPath = FPaths::Combine(AppDataPath, TEXT("FModel/AppSettings.json"));
+
+			if (FString JsonContent; FFileHelper::LoadFileToString(JsonContent, *AppDataPath)) {
+				TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonContent);
+
+				if (TSharedPtr<FJsonObject> JsonObject; FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid()) {
+					FString OutputDir = JsonObject->GetStringField("OutputDirectory");
+					PluginSettings->ExportDirectory.Path = OutputDir.Replace(TEXT("\\"), TEXT("/"));
+
+					FString GameDir = JsonObject->GetStringField("GameDirectory");
+					PluginSettings->ArchiveDirectory.Path = GameDir.Replace(TEXT("\\"), TEXT("/"));
+
+					// Handling AES Keys
+					if (JsonObject->HasField("PerDirectory")) {
+						const TSharedPtr<FJsonObject> PerDirectoryObject = JsonObject->GetObjectField("PerDirectory");
+
+						if (PerDirectoryObject->HasField(GameDir)) {
+							const TSharedPtr<FJsonObject> PakSettings = PerDirectoryObject->GetObjectField(GameDir);
+
+							if (PakSettings->HasField("AesKeys")) {
+								const TSharedPtr<FJsonObject> AesKeysObject = PakSettings->GetObjectField("AesKeys");
+
+								if (AesKeysObject->HasField("mainKey")) {
+									FString MainKey = AesKeysObject->GetStringField("mainKey");
+									PluginSettings->ArchiveKey = MainKey;
+								}
+
+								if (AesKeysObject->HasField("dynamicKeys")) {
+									const TArray<TSharedPtr<FJsonValue>> DynamicKeysArray = AesKeysObject->GetArrayField("dynamicKeys");
+
+									PluginSettings->DynamicKeys.Empty();
+
+									for (auto& KeyValue : DynamicKeysArray) {
+										const TSharedPtr<FJsonObject> KeyObject = KeyValue->AsObject();
+
+										if (KeyObject.IsValid()) {
+											FParseKey NewKey;
+
+											NewKey.Guid = KeyObject->GetStringField("guid");
+											NewKey.Value = KeyObject->GetStringField("key");
+
+											PluginSettings->DynamicKeys.Add(NewKey);
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+			PluginSettings->SaveConfig();
+			PluginSettings->UpdateDefaultConfigFile();
+			PluginSettings->LoadConfig();
+
+			return FReply::Handled();
+		}).IsEnabled_Lambda([this, Settings]()
+		{
+			return Settings->bEnableLocalFetch;
+		})
 	];
 
 	DetailBuilder.EditCategory("Local Fetch", FText::GetEmpty(), ECategoryPriority::Important);
@@ -88,8 +160,8 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 
 	EncryptionCategory.AddCustomRow(LOCTEXT("EncryptionKeyGenerator", "EncryptionKeyGenerator")).ValueContent()[
 		SNew(SButton)
-			.Text(LOCTEXT("GenerateEncryptionKey", "[FORTNITE] Generate Encryption"))
-			.ToolTipText(LOCTEXT("GenerateEncryptionKey_Tooltip", "Generates encryption keys from a Fortnite API."))
+			.Text(LOCTEXT("GenerateEncryptionKey", "[Fortnite Central] Generate Encryption"))
+			.ToolTipText(LOCTEXT("GenerateEncryptionKey_Tooltip", "Generates encryption keys from the Fortnite Central API."))
 			.OnClicked_Lambda([this, Settings]
 		             {
 			             UJsonAsAssetSettings* PluginSettings = GetMutableDefault<UJsonAsAssetSettings>();

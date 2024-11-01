@@ -131,7 +131,12 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 	FString Path;
 	PackageIndex->Get()->GetStringField(TEXT("ObjectPath")).Split(".", &Path, nullptr);
 
-	Path = Path.Replace(TEXT("FortniteGame/Content"), TEXT("/Game"));
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+	if (Settings->OptionalGameName != "") {
+		Path = Path.Replace(*(Settings->OptionalGameName + "/Content"), TEXT("/Game"));
+	}
+
 	Path = Path.Replace(TEXT("Engine/Content"), TEXT("/Engine"));
 
 	Name = Name.Replace(TEXT("'"), TEXT(""));
