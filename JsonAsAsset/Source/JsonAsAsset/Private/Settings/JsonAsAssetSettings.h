@@ -218,11 +218,11 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category="Local Fetch", meta=(EditCondition="bChangeURL && bEnableLocalFetch", DisplayName = "Local URL"), AdvancedDisplay)
 	FString Url = "http://localhost:1500";
 
-	/*
-	* OPTIONAL!
-	* 
-	* 
-	*/
-	UPROPERTY(EditAnywhere, Config, Category = "Configuration", AdvancedDisplay)
-	bool OptionalGameName;
+	///*
+	//* OPTIONAL!
+	//* 
+	//* 
+	//*/
+	//UPROPERTY(EditAnywhere, Config, Category = "Configuration", AdvancedDisplay)
+	//bool OptionalGameName;
 };
