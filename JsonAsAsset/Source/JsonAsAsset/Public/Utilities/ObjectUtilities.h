@@ -1,4 +1,4 @@
-// Copyright JAA Contributors 2023-2024
+// Copyright JAA Contributors 2024-2025
 
 #pragma once
 #include "UObject/Object.h"

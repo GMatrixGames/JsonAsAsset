@@ -1,4 +1,4 @@
-// Copyright JAA Contributors 2023-2024
+// Copyright JAA Contributors 2024-2025
 
 #include "Utilities/AssetUtilities.h"
 
@@ -18,8 +18,8 @@
 
 #include "HttpModule.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "Importers/TextureImporter.h"
-#include "Importers/MaterialParameterCollectionImporter.h"
+#include "./Importers/Types/TextureImporter.h"
+#include "./Importers/Types/MaterialParameterCollectionImporter.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"

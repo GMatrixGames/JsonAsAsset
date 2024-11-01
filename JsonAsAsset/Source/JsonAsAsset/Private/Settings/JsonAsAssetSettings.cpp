@@ -1,3 +1,5 @@
+// Copyright JAA Contributors 2024-2025
+
 #include "JsonAsAssetSettings.h"
 
 #include "DetailLayoutBuilder.h"

@@ -1,3 +1,5 @@
+// Copyright JAA Contributors 2024-2025
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -209,11 +211,18 @@ public:
 	TArray<FParseKey> DynamicKeys;
 
 	// Enables the option to change the api's URL
-	UPROPERTY(EditAnywhere, Config, Category = "Local Fetch", meta = (EditCondition = "bEnableLocalFetch"),
-		AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Config, Category = "Local Fetch", meta = (EditCondition = "bEnableLocalFetch"), AdvancedDisplay)
 	bool bChangeURL;
 
 	// "http://localhost:1500" is default
 	UPROPERTY(EditAnywhere, Config, Category="Local Fetch", meta=(EditCondition="bChangeURL && bEnableLocalFetch", DisplayName = "Local URL"), AdvancedDisplay)
 	FString Url = "http://localhost:1500";
+
+	/*
+	* OPTIONAL!
+	* 
+	* 
+	*/
+	UPROPERTY(EditAnywhere, Config, Category = "Configuration", AdvancedDisplay)
+	bool OptionalGameName;
 };

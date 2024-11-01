@@ -1,9 +1,10 @@
-// Copyright JAA Contributors 2023-2024
+// Copyright JAA Contributors 2024-2025
 
 #include "Utilities/PropertyUtilities.h"
+
+#include "Importers/Constructor/Importer.h"
 #include "Utilities/ObjectUtilities.h"
 #include "UObject/TextProperty.h"
-#include "Importers/Importer.h"
 
 DECLARE_LOG_CATEGORY_CLASS(LogPropertySerializer, Error, Log);
 PRAGMA_DISABLE_OPTIMIZATION

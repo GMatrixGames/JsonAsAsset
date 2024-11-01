@@ -1,8 +1,7 @@
-// Copyright JAA Contributors 2023-2024
+// Copyright JAA Contributors 2024-2025
 
 #include "Utilities/ObjectUtilities.h"
 #include "Utilities/PropertyUtilities.h"
-#include "Importers/Importer.h"
 #include "UObject/Package.h"
 
 DECLARE_LOG_CATEGORY_CLASS(LogObjectSerializer, All, All);

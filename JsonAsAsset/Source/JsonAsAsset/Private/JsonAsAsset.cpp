@@ -1,8 +1,10 @@
-// Copyright JAA Contributors 2023-2024
+// Copyright JAA Contributors 2024-2025
 
 #include "JsonAsAsset.h"
 #include "JsonAsAssetStyle.h"
 #include "JsonAsAssetCommands.h"
+
+#include "./Importers/Constructor/Importer.h"
 
 // ------------------------------------------------------ |
 #include "Developer/DesktopPlatform/Public/IDesktopPlatform.h"
@@ -19,7 +21,6 @@
 
 #include "Interfaces/IPluginManager.h"
 #include "Settings/JsonAsAssetSettings.h"
-#include "Importers/Importer.h"
 
 #include "HttpModule.h"
 
@@ -31,8 +32,6 @@
 #include "ISettingsModule.h"
 
 #include "Utilities/RemoteUtilities.h"
-
-#include "Importers/MaterialFunctionImporter.h"
 
 #include "Fonts/SlateFontInfo.h"
 #include "Misc/Paths.h"
