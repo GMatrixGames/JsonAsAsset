@@ -11,7 +11,7 @@
 	"MarketplaceURL": "",
 	"SupportURL": "",
 	"CanContainContent": false,
-	"IsBetaVersion": false,
+	"IsBetaVersion": true,
 	"IsExperimentalVersion": true,
 	"Installed": false,
 	"Modules": [
@@ -19,7 +19,7 @@
 			"Name": "JsonAsAsset",
 			"Type": "Editor",
 			"LoadingPhase": "Default",
-			"BlacklistPlatforms": [
+			"PlatformDenyList": [
 				"Android"
 			]
 		},
@@ -27,7 +27,7 @@
 			"Name": "Detex",
 			"Type": "Editor",
 			"LoadingPhase": "Default",
-			"BlacklistPlatforms": [
+			"PlatformDenyList": [
 				"Android"
 			]
 		},
@@ -35,7 +35,7 @@
 			"Name": "NVTT",
 			"Type": "Editor",
 			"LoadingPhase": "Default",
-			"BlacklistPlatforms": [
+			"PlatformDenyList": [
 				"Android"
 			]
 		}
