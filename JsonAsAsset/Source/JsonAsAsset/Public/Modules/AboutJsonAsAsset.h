@@ -38,6 +38,8 @@ private:
 			Margin(InMargin) {}
 	};
 
+	TArray<TSharedRef<FLineDefinition>> AboutLines;
+
 	TSharedRef<ITableRow> MakeAboutTextItemWidget(TSharedRef<FLineDefinition> Item, const TSharedRef<STableViewBase>& OwnerTable);
 	FReply OnFModelButtonClicked();
 	FReply OnGithubButtonClicked();

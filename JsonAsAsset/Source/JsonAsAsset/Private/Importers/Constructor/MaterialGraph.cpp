@@ -17,7 +17,7 @@
 
 static TWeakPtr<SNotificationItem> MaterialGraphNotification;
 
-TSharedPtr<FJsonObject> IMaterialGraph::FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FImportData>& OutExports, TArray<FName>& ExpressionNames, bool bFilterByOuter) {
+TSharedPtr<FJsonObject> IMaterialGraph::FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FExportData>& OutExports, TArray<FName>& ExpressionNames, bool bFilterByOuter) {
 	TSharedPtr<FJsonObject> EditorOnlyData;
 
 	for (const TSharedPtr<FJsonValue> Value : bFilterByOuter ? FilterExportsByOuter(Outer) : AllJsonObjects) {
@@ -38,13 +38,13 @@ TSharedPtr<FJsonObject> IMaterialGraph::FindEditorOnlyData(const FString& Type, 
 		}
 
 		ExpressionNames.Add(FName(Name));
-		OutExports.Add(FName(Name), FImportData(ExType, Outer, Object));
+		OutExports.Add(FName(Name), FExportData(ExType, Outer, Object));
 	}
 
 	return EditorOnlyData;
 }
 
-TMap<FName, UMaterialExpression*> IMaterialGraph::ConstructExpressions(UObject* Parent, const FString& Outer, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports) {
+TMap<FName, UMaterialExpression*> IMaterialGraph::ConstructExpressions(UObject* Parent, const FString& Outer, TArray<FName>& ExpressionNames, TMap<FName, FExportData>& Exports) {
 	TMap<FName, UMaterialExpression*> CreatedExpressionMap;
 
 	for (FName Name : ExpressionNames) {
@@ -52,7 +52,7 @@ TMap<FName, UMaterialExpression*> IMaterialGraph::ConstructExpressions(UObject* 
 		FJsonObject* SharedRef = NULL;
 		bool bFound = false;
 
-		for (TTuple<FName, FImportData>& Key : Exports) {
+		for (TTuple<FName, FExportData>& Key : Exports) {
 			TSharedPtr<FJsonObject>* SharedO = new TSharedPtr<FJsonObject>(Key.Value.Json);
 
 			if (Key.Key == Name && Key.Value.Outer == FName(*Outer)) {
@@ -98,9 +98,9 @@ FMaterialAttributesInput IMaterialGraph::CreateMaterialAttributesInput(TSharedPt
 	return *reinterpret_cast<FMaterialAttributesInput*>(&Input);
 }
 
-void IMaterialGraph::PropagateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FImportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter, bool bSubgraph) {
+void IMaterialGraph::PropagateExpressions(UObject* Parent, TArray<FName>& ExpressionNames, TMap<FName, FExportData>& Exports, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, bool bCheckOuter, bool bSubgraph) {
 	for (FName Name : ExpressionNames) {
-		FImportData* Type = Exports.Find(Name);
+		FExportData* Type = Exports.Find(Name);
 		TSharedPtr<FJsonObject> Properties = Type->Json->GetObjectField("Properties");
 
 		// Find the expression from FName
@@ -201,7 +201,7 @@ void IMaterialGraph::PropagateExpressions(UObject* Parent, TArray<FName>& Expres
 	}
 }
 
-void IMaterialGraph::MaterialGraphNode_ConstructComments(UObject* Parent, const TSharedPtr<FJsonObject>& Json, TMap<FName, FImportData>& Exports) {
+void IMaterialGraph::MaterialGraphNode_ConstructComments(UObject* Parent, const TSharedPtr<FJsonObject>& Json, TMap<FName, FExportData>& Exports) {
 	if (const TArray<TSharedPtr<FJsonValue>>* StringExpressionComments; Json->TryGetArrayField("EditorComments", StringExpressionComments))
 		// Iterate through comments
 		for (const TSharedPtr<FJsonValue> ExpressionComment : *StringExpressionComments) {

@@ -144,7 +144,7 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 		Info.ExpireDuration = 3.0f;
 		Info.bUseLargeFont = false;
 		Info.bUseThrobber = false;
-		Info.Image = FJsonAsAssetStyle::Get().GetBrush("JsonAsAsset.PluginAction");
+		Info.Image = FJsonAsAssetStyle::Get().GetBrush("JsonAsAsset.Logo");
 
 		LocalFetchNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 		LocalFetchNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Fail);
@@ -180,7 +180,7 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 			Info.ExpireDuration = 3.0f;
 			Info.bUseLargeFont = false;
 			Info.bUseThrobber = false;
-			Info.Image = FJsonAsAssetStyle::Get().GetBrush("JsonAsAsset.PluginAction");
+			Info.Image = FJsonAsAssetStyle::Get().GetBrush("JsonAsAsset.Logo");
 
 			Info.ButtonDetails.Add(
 				FNotificationButtonInfo(LOCTEXT("StartLocalFetch", "Execute LocalFetch API (.EXE)"), FText::GetEmpty(),
@@ -254,7 +254,7 @@ void FJsonAsAssetModule::RegisterMenus() {
 		FOnGetContent::CreateRaw(this, &FJsonAsAssetModule::CreateToolbarDropdown),
 		FText::FromString(Plugin->GetDescriptor().VersionName),
 		LOCTEXT("JsonAsAsset", "List of actions for JsonAsAsset"),
-		FSlateIcon(FJsonAsAssetStyle::Get().GetStyleSetName(), FName("JsonAsAsset.PluginAction")),
+		FSlateIcon(FJsonAsAssetStyle::Get().GetStyleSetName(), FName("JsonAsAsset.Logo")),
 		false,
 		"JsonAsAsset"
 	));
@@ -361,7 +361,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("JsonAsAssetButton", "JsonAsAsset"),
 			LOCTEXT("JsonAsAssetButtonTooltip", "Execute JsonAsAsset"),
-			FSlateIcon(FJsonAsAssetStyle::Get().GetStyleSetName(), "JsonAsAsset.PluginAction"),
+			FSlateIcon(FJsonAsAssetStyle::Get().GetStyleSetName(), "JsonAsAsset.Logo"),
 			FUIAction(
 				FExecuteAction::CreateRaw(this, &FJsonAsAssetModule::PluginButtonClicked),
 				FCanExecuteAction::CreateLambda([this]() {

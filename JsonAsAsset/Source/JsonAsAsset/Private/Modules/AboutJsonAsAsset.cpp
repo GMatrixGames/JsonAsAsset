@@ -12,8 +12,6 @@ void SAboutJsonAsAsset::Construct(const FArguments& InArgs) {
 	// Plugin Details
 	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("JsonAsAsset");
 
-	TArray<TSharedRef<FLineDefinition>> AboutLines;
-
 	TSharedPtr<SButton> FModelButton;
 	TSharedPtr<SButton> GithubButton;
 

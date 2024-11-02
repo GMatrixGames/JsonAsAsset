@@ -21,7 +21,7 @@
 #include "Editor/MaterialEditor/Private/MaterialEditor.h"
 #include "Settings/JsonAsAssetSettings.h"
 
-void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, const TSharedPtr<FJsonObject>& _JsonObject, TMap<FName, FImportData>& Exports) {
+void UMaterialImporter::ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, const TSharedPtr<FJsonObject>& _JsonObject, TMap<FName, FExportData>& Exports) {
 	FJsonObject* Expression = (Exports.Find(GetExportNameOfSubobject(_JsonObject->GetStringField("ObjectName")))->Json)->GetObjectField("Properties").Get();
 
 	Pin->GraphNode->NodePosX = Expression->GetNumberField("MaterialExpressionEditorX");
@@ -84,7 +84,7 @@ bool UMaterialImporter::ImportData() {
 		Material->GetExpressionCollection().Empty();
 
 		// Define editor only data from the JSON
-		TMap<FName, FImportData> Exports;
+		TMap<FName, FExportData> Exports;
 		TArray<FName> ExpressionNames;
 		TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), Material->GetName(), Exports, ExpressionNames, false)->GetObjectField("Properties");
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
@@ -197,7 +197,7 @@ bool UMaterialImporter::ImportData() {
 					FName ExportName = GetExportNameOfSubobject(SubgraphExpressionObject->GetStringField("ObjectName"));
 
 					SubgraphExpressionName = ExportName.ToString();
-					FImportData Export = *Exports.Find(ExportName);
+					FExportData Export = *Exports.Find(ExportName);
 					SubgraphExpression = Export.Json->GetObjectField("Properties");
 				}
 
@@ -244,7 +244,7 @@ bool UMaterialImporter::ImportData() {
 				// Add Sub-Graph Nodes
 				{
 					TArray<TSharedPtr<FJsonValue>> MaterialGraphNodes = FilterGraphNodesBySubgraphExpression(SubgraphExpressionName);
-					TMap<FName, FImportData> SubGraphExports;
+					TMap<FName, FExportData> SubGraphExports;
 					TMap<FName, UMaterialExpression*> SubgraphExpressionMapping;
 					TArray<FName> SubGraphExpressionNames;
 
@@ -267,7 +267,7 @@ bool UMaterialImporter::ImportData() {
 						Ex->Material = MaterialGraph->Material;
 
 						SubGraphExpressionNames.Add(GraphNodeNameName);
-						SubGraphExports.Add(GraphNodeNameName, FImportData(GraphNode_Type, MaterialGraph->Material->GetName(), MaterialGraphObject));
+						SubGraphExports.Add(GraphNodeNameName, FExportData(GraphNode_Type, MaterialGraph->Material->GetName(), MaterialGraphObject));
 						SubgraphExpressionMapping.Add(GraphNodeNameName, Ex);
 					}
 

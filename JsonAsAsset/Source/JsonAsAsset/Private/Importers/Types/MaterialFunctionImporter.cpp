@@ -23,7 +23,7 @@ bool UMaterialFunctionImporter::ImportData() {
 		if (bool bPrefixParameterNames; JsonObject->GetObjectField("Properties")->TryGetBoolField("bPrefixParameterNames", bPrefixParameterNames)) MaterialFunction->bPrefixParameterNames = bPrefixParameterNames;
 
 		// Define editor only data from the JSON
-		TMap<FName, FImportData> Exports;
+		TMap<FName, FExportData> Exports;
 		TArray<FName> ExpressionNames;
 		const TSharedPtr<FJsonObject> EdProps = FindEditorOnlyData(JsonObject->GetStringField("Type"), MaterialFunction->GetName(), Exports, ExpressionNames, false)->GetObjectField("Properties");
 		const TSharedPtr<FJsonObject> StringExpressionCollection = EdProps->GetObjectField("ExpressionCollection");
