@@ -1,5 +1,11 @@
-!JsonAsAsset/Binaries/*/JsonAsAsset_API/*
-JsonAsAsset/Intermediate/*
+# Local Fetch
+/JsonAsAsset/ExternalSource/LocalFetch/.vs
+/JsonAsAsset/ExternalSource/LocalFetch/.config
+/JsonAsAsset/Binaries/Win64/LocalFetch/web.config
+
+/JsonAsAsset/Intermediate/*
+
+# VS Code Settings
 .vscode/settings.json
 
 *.com
@@ -77,6 +83,3 @@ _[Ss]cripts
 *.v1
 *.sln
 .idea/
-/JsonAsAsset/ExternalSource/LocalFetch/.vs
-/JsonAsAsset/ExternalSource/LocalFetch/.config
-JsonAsAsset/Binaries/Win64/LocalFetch/web.config
