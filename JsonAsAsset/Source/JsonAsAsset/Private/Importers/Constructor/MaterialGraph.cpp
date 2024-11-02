@@ -1,15 +1,7 @@
 // Copyright JAA Contributors 2024-2025
 
 #include "Importers/Constructor/MaterialGraph.h"
-
-#include "Dom/JsonObject.h"
 #include "Utilities/MathUtilities.h"
-
-#include <MaterialEditingLibrary.h>
-#include <Editor/UnrealEd/Public/FileHelpers.h>
-
-#include "Materials/MaterialExpressionTextureBase.h"
-#include <Runtime/SlateCore/Public/Styling/SlateIconFinder.h>
 
 // Expressions
 #include "Materials/MaterialExpressionComment.h"

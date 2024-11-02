@@ -112,7 +112,7 @@ bool UMaterialImporter::ImportData() {
 		PropagateExpressions(Material, ExpressionNames, Exports, CreatedExpressionMap, true);
 		MaterialGraphNode_ConstructComments(Material, StringExpressionCollection, Exports);
 
-		if (!Settings->bSkipResultNodeConnection) {
+		if (!Settings->AssetSettings.MaterialImportSettings.bSkipResultNodeConnection) {
 			TArray<FString> IgnoredProperties = TArray<FString> {
 				"ParameterGroupData",
 				"ExpressionCollection",

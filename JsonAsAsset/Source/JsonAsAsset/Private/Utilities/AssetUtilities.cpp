@@ -325,7 +325,7 @@ bool FAssetUtilities::Construct_TypeTexture(const FString& Path, const FString& 
 	Package->FullyLoad();
 
 	// Save texture
-	if (Settings->bAllowPackageSaving)
+	if (Settings->AssetSettings.bSavePackagesOnImport)
 	{
 		FSavePackageArgs SaveArgs;
 		{

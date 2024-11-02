@@ -4,7 +4,6 @@
 
 #include "HttpManager.h"
 #include "HttpModule.h"
-#include "Interfaces/IHttpResponse.h"
 #include "Serialization/JsonSerializer.h"
 
 TSharedPtr<IHttpResponse> FRemoteUtilities::ExecuteRequestSync(TSharedRef<IHttpRequest> HttpRequest, float LoopDelay)

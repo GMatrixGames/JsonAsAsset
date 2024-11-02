@@ -8,6 +8,8 @@
 #include "../../Utilities/PropertyUtilities.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
+#include "Styling/SlateIconFinder.h"
+
 // Global handler for converting JSON to assets
 class IImporter {
 public:

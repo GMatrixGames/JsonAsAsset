@@ -1,17 +1,11 @@
 // Copyright JAA Contributors 2024-2025
 
 #include "Importers/Constructor/Importer.h"
-#include "CoreMinimal.h"
 
-#include "Curves/CurveLinearColor.h"
-#include "Sound/SoundNode.h"
-#include "Engine/SubsurfaceProfile.h"
-#include "Materials/MaterialParameterCollection.h"
 #include "Settings/JsonAsAssetSettings.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "Json.h"
 
 // ----> Importers
 #include "Importers/Types/CurveFloatImporter.h"
@@ -37,16 +31,11 @@
 #include "Importers/Types/PhysicalMaterialImporter.h"
 #include "Importers/Types/TextureImporter.h"
 #include "Importers/Types/DataAssetImporter.h"
+#include "Importers/Types/CurveTableImporter.h"
 // <---- Importers
 
 #include "Utilities/AssetUtilities.h"
-#include "Widgets/Notifications/SNotificationList.h"
-#include "Framework/Notifications/NotificationManager.h"
-#include "Importers/Types/CurveTableImporter.h"
-#include "Styling/SlateIconFinder.h"
 #include "Misc/MessageDialog.h"
-#include "Misc/FileHelper.h"
-#include "Logging/MessageLog.h"
 #include "UObject/SavePackage.h"
 
 #define LOCTEXT_NAMESPACE "IImporter"
@@ -133,8 +122,8 @@ void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectP
 
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
-	if (Settings->OptionalGameName != "") {
-		Path = Path.Replace(*(Settings->OptionalGameName + "/Content"), TEXT("/Game"));
+	if (Settings->AssetSettings.GameName != "") {
+		Path = Path.Replace(*(Settings->AssetSettings.GameName + "/Content"), TEXT("/Game"));
 	}
 
 	Path = Path.Replace(TEXT("Engine/Content"), TEXT("/Engine"));
@@ -248,7 +237,7 @@ void IImporter::SavePackage() {
 	const FString PackageName = Package->GetName();
 	const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
 
-	if (Settings->bAllowPackageSaving)
+	if (Settings->AssetSettings.bSavePackagesOnImport)
 		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
 }
 

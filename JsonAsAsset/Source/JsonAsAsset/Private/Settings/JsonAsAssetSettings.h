@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "./Details/JsonAsAssetSettingsDetails.h"
+
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/DeveloperSettings.h"
-#include "IDetailCustomization.h"
+
 #include "JsonAsAssetSettings.generated.h"
 
 // Grabbed from (https://github.com/FabianFG/CUE4Parse/blob/master/CUE4Parse/UE4/Versions/EGame.cs)
@@ -86,6 +88,7 @@ enum EParseVersion
 	GAME_UE5_5,
 	GAME_UE5_6,
 
+	// Change this always to the last available enum above
 	GAME_UE5_LATEST = GAME_UE5_6
 };
 
@@ -114,12 +117,41 @@ struct FParseKey
 	FString Guid;
 };
 
-// Buttons in plugin settings
-class FJsonAsAssetSettingsDetails : public IDetailCustomization
+USTRUCT()
+struct FMaterialImportSettings
 {
-public:
-	static TSharedRef<IDetailCustomization> MakeInstance();
-	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
+	GENERATED_BODY()
+
+	/**
+	* When importing/downloading the asset type Material, a error may occur
+	* | Material expression called Compiler->TextureParameter() without implementing UMaterialExpression::GetReferencedTexture properly
+	*
+	* To counter that error, we skip connecting the inputs to the main result
+	* node in the material. If you do use this, import a material, save everything,
+	* restart, and re-import the material without any problems with this turned off/on.
+	*
+	* (or you could just connect them yourself)
+	*/
+	UPROPERTY(EditAnywhere, Config)
+	bool bSkipResultNodeConnection;
+};
+
+USTRUCT()
+struct FAssetSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Config)
+	FMaterialImportSettings MaterialImportSettings;
+
+	UPROPERTY(EditAnywhere, Config, meta = (DisplayName = "Save Assets On Import"))
+	bool bSavePackagesOnImport;
+
+	/**
+	* Not needed for normal operations, needed for older versions of game builds.
+	*/
+	UPROPERTY(EditAnywhere, Config)
+	FString GameName;
 };
 
 // A editor plugin to allow JSON files from FModel to a asset in the Content Browser
@@ -136,8 +168,7 @@ public:
 #endif
 
 	/**
-	* Export directory for FModel
-	*	  (Output/Exports)
+	* Export directory for FModel (Output/Exports)
 	* 
 	* NOTE: Please use the file selector, do not manually paste it
 	*		or replace "\" with "/"
@@ -145,27 +176,8 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category="Configuration")
 	FDirectoryPath ExportDirectory;
 
-	/**
-	* When importing/downloading any asset type using JsonAsAsset,
-	* save the package (asset) after finalization.
-	* 
-	* NOTE: This is recommended to be turned off, as this may override
-	*		your own assets, causing irreversible changes. 
-	*/
-	UPROPERTY(EditAnywhere, Config, Category = "Configuration", AdvancedDisplay)
-	bool bAllowPackageSaving;
-
-	/**
-	* When importing/downloading the asset type Material, a error may occur
-	* | Material expression called Compiler->TextureParameter() without implementing UMaterialExpression::GetReferencedTexture properly
-	*
-	* To counter that error, we skip connecting the inputs to the main result
-	* node in the material. If you do use this, import a material, save everything,
-	* restart, and re-import the material without any problems with this turned off/on.
-	*			  (or you could just connect them yourself)
-	*/
-	UPROPERTY(EditAnywhere, Config, Category = "Configuration", AdvancedDisplay)
-	bool bSkipResultNodeConnection;
+	UPROPERTY(EditAnywhere, Config, Category = "Configuration")
+	FAssetSettings AssetSettings;
 
 	/**
 	* Fetches assets from a local service and automatically imports
@@ -217,10 +229,4 @@ public:
 	// "http://localhost:1500" is default
 	UPROPERTY(EditAnywhere, Config, Category="Local Fetch", meta=(EditCondition="bChangeURL && bEnableLocalFetch", DisplayName = "Local URL"), AdvancedDisplay)
 	FString Url = "http://localhost:1500";
-
-	/*
-	* OPTIONAL!
-	*/
-	UPROPERTY(EditAnywhere, Config, Category = "Configuration", AdvancedDisplay)
-	FString OptionalGameName;
 };
