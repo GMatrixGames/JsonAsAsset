@@ -88,7 +88,7 @@ In this short documentation, we will learn how to use this powerful Unreal Engin
 > JsonAsAsset needs settings to be modified accordingly to properly handle assets. For example, the plugin has to seperate your export folder directory from the actual path to the game. 
 
 If you haven't already, install FModel and setup it up correctly.
-<img align="left" width="150" height="150" src="./JsonAsAsset/Resources/ButtonIcon_FModel.png?raw=true">
+<img align="left" width="150" height="150" src="./JsonAsAsset/Resources/FModelLogo?raw=true">
 The JSON format/file has to be from a program that fits the format of FModel's JSON export files:
 <br><br>
 
