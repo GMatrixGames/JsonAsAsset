@@ -137,7 +137,7 @@ After fully setting up the Local Fetch settings, you can launch the API without 
 
 -------------------
 
-Go ahead and click on the JsonAsAsset logo (<img width="25" height="25" src=https://github.com/JsonAsAsset/JsonAsAsset/assets/73559984/b90ab71f-d9ac-4349-96eb-620aadf7812f>) and hover over the list `"Command-line Application"` and press `"Execute JsonAsAsset API (.EXE)"`.
+Go ahead and click on the JsonAsAsset logo (<img width="25" height="25" src=https://github.com/JsonAsAsset/JsonAsAsset/assets/73559984/b90ab71f-d9ac-4349-96eb-620aadf7812f>) and hover over the list `"Command-line Application"` and press `"Execute Local Fetch API (.EXE)"`.
 
 A window should pop-up, and once the console says `[CORE] Running API`, Local Fetch has been successfully started!
 
