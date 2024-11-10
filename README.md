@@ -1,9 +1,9 @@
 # JsonAsAsset
 
 [![Discord](https://img.shields.io/badge/Join%20Discord-Collector?color=7289DA&label=JsonAsAsset&logo=discord&logoColor=7289DA&style=for-the-badge)](https://discord.gg/h9s6qpBnUT)
-![GitHub Repo stars](https://img.shields.io/github/stars/JsonAsAsset/JsonAsAsset?style=for-the-badge&logo=&color=lightgrey)
-![Repo size](https://img.shields.io/github/repo-size/JsonAsAsset/JsonAsAsset?label=total%20size&style=for-the-badge&logo=&color=lightgrey&logoColor=lightgrey)
-![Maintenance](https://img.shields.io/maintenance/yes/2025?style=for-the-badge&logo=&color=lightgrey)
+![GitHub Repo stars](https://img.shields.io/github/stars/JsonAsAsset/JsonAsAsset?style=for-the-badge&logo=&color=lightblue)
+![Repo size](https://img.shields.io/github/repo-size/JsonAsAsset/JsonAsAsset?label=total%20size&style=for-the-badge&logo=&color=lightblue&logoColor=lightblue)
+![Maintenance](https://img.shields.io/maintenance/yes/2025?style=for-the-badge&logo=&color=lightblue)
 
 Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/json-en.html) to [Unreal Engine](https://www.unrealengine.com/en-US).
 
@@ -100,13 +100,15 @@ Now that you've installed FModel and setup it up correctly, we can continue to s
 <a name="export-directory"></a>
 ##### 2.2 Setting up Export Directory
 <img align="right" width="300" height="180" src=https://github.com/JsonAsAsset/JsonAsAsset/assets/73559984/aad4e86a-6f0b-4e66-aef1-13d30d8215de)>
-Upon launching your unreal engine project, you should of seen a notification asking you to change your export directory in the plugin settings, if you've already done that, skip this part.
 
-<br>We need to change the export directory to allow the plugin to differentiate between what's your directory, and what's the game path it should put it in.
+> [!NOTE]
+> Upon launching your unreal engine project, you should of seen a notification asking you to change your export directory in the plugin settings, if you've already done that, skip this part.
+
+We need to change the export directory to allow the plugin to differentiate between what's your directory, and what's the game path it should put it in.
 
 First, open up to the JsonAsAsset plugin settings (basically do what's on the picture on the right) and make sure you are looking at the property "Export Directory".
 
-Now open up FModel, and go to your settings. `(Settings -> General)` There will be a setting called "Output Directory", copy that and go back to Unreal Engine. Now you need to click on the three dots and jump to the folder you copied and go to the folder named "Exports", then press "Select Folder".
+Now open up FModel, and go to your settings. `(Settings -> General)` There will be a setting called `Output Directory`, copy that and go back to Unreal Engine. Now you need to click on the three dots and jump to the folder you copied and go to the folder named `Exports`, then press `Select Folder`.
 
 -------------------
 
