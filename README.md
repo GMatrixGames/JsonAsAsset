@@ -1,9 +1,9 @@
 # JsonAsAsset
 
 [![Discord](https://img.shields.io/badge/Join%20Discord-Collector?color=7289DA&label=JsonAsAsset&logo=discord&logoColor=7289DA&style=for-the-badge)](https://discord.gg/h9s6qpBnUT)
-![GitHub Repo stars](https://img.shields.io/github/stars/JsonAsAsset/JsonAsAsset?style=for-the-badge&logo=&color=lightblue)
-![Repo size](https://img.shields.io/github/repo-size/JsonAsAsset/JsonAsAsset?label=total%20size&style=for-the-badge&logo=&color=lightblue&logoColor=lightblue)
-![Maintenance](https://img.shields.io/maintenance/yes/2025?style=for-the-badge&logo=&color=lightblue)
+![GitHub Repo stars](https://img.shields.io/github/stars/JsonAsAsset/JsonAsAsset?style=for-the-badge&logo=&color=lightgrey)
+![Repo size](https://img.shields.io/github/repo-size/JsonAsAsset/JsonAsAsset?label=total%20size&style=for-the-badge&logo=&color=lightgrey&logoColor=lightgrey)
+![Maintenance](https://img.shields.io/maintenance/yes/2025?style=for-the-badge&logo=&color=lightgrey)
 
 Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/json-en.html) to [Unreal Engine](https://www.unrealengine.com/en-US).
 
@@ -81,7 +81,7 @@ In this short documentation, we will learn how to use this powerful Unreal Engin
 3. Extract the downloaded files to your project's Plugins folder. If there isn't a Plugins folder, create one in the root directory of your project.
 4. Open your Unreal Engine project.
 5. Click on Edit -> Plugins.
-6. In the Plugins window, search for **"JsonAsAsset"** and enable it.
+6. In the Plugins window, search for `JsonAsAsset` and enable it.
 7. Restart the editor for the changes to take effect.
 
 <a name="setup-jaa"></a>
