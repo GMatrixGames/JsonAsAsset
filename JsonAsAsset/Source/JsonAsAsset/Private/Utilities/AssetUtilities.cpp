@@ -48,7 +48,7 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 	FString ModifiablePath;
 
 	// References Automatically Formatted
-	if ((!OutputPath.StartsWith("/Game/") && !OutputPath.StartsWith("/Plugins/")) && OutputPath.Contains("/Content/"))
+	if ((!OutputPath.StartsWith("/Game/") && !OutputPath.StartsWith("/Plugins/")) && OutputPath.Contains("Content"))
 	{
 		OutputPath.Split(*(Settings->ExportDirectory.Path + "/"), nullptr, &ModifiablePath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		ModifiablePath.Split("/", nullptr, &ModifiablePath, ESearchCase::IgnoreCase, ESearchDir::FromStart);
@@ -73,7 +73,7 @@ UPackage* FAssetUtilities::CreateAssetPackage(const FString& Name, const FString
 			ModifiablePath = PluginName + "/" + RemaningPath;
 		}
 		// Content/Athena -> Game/Athena
-		else ModifiablePath = ModifiablePath.Replace(TEXT("/Content/"), TEXT("Game"));
+		else ModifiablePath = ModifiablePath.Replace(TEXT("Content"), TEXT("Game"));
 
 		// ContentLibraries/EpicBaseTextures -> /ContentLibraries/EpicBaseTextures/
 		ModifiablePath = "/" + ModifiablePath + "/";
