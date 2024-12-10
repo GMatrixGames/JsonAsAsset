@@ -82,6 +82,9 @@ private:
 		"ReverbEffect",
 		"SoundAttenuation",
 		"SoundConcurrency",
+		"SoundClass",
+		"SoundMix",
+		"SoundModulationPatch",
 
 		// separator
 

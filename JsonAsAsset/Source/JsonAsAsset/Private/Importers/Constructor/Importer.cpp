@@ -32,6 +32,9 @@
 #include "Importers/Types/TextureImporter.h"
 #include "Importers/Types/DataAssetImporter.h"
 #include "Importers/Types/CurveTableImporter.h"
+#include "Importers/Types/SoundClassImporter.h"
+#include "Importers/Types/SoundMixImporter.h"
+#include "Importers/Types/SoundModulationPatchImporter.h"
 // <---- Importers
 
 
@@ -293,6 +296,9 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 				else if (Type == "ReverbEffect") Importer = new UReverbEffectImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SoundAttenuation") Importer = new USoundAttenuationImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 				else if (Type == "SoundConcurrency") Importer = new USoundConcurrencyImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else if (Type == "SoundClass") Importer = new USoundClassImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+				else if (Type == "SoundMix") Importer = new USoundMixImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+				else if (Type == "SoundModulationPatch") Importer = new USoundModulationPatchImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 
 				else if (Type == "Material") Importer = new UMaterialImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 				else if (Type == "MaterialFunction") Importer = new UMaterialFunctionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
