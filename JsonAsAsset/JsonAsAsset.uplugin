@@ -46,6 +46,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "AudioModulation",
+			"Enabled": true
+		},
+		{
 			"Name": "PluginUtils",
 			"Enabled": true
 		}

@@ -4,6 +4,9 @@
 
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Dom/JsonObject.h"
+#if ENGINE_MINOR_VERSION >= 5
+#include "PhysicsEngine/SkeletalBodySetup.h"
+#endif
 #include "Utilities/AssetUtilities.h"
 
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"

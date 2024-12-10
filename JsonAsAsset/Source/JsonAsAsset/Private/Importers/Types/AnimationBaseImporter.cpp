@@ -10,6 +10,9 @@
 
 #if ENGINE_MAJOR_VERSION == 5
 #include "Animation/AnimData/IAnimationDataController.h"
+#if ENGINE_MINOR_VERSION >= 4
+#include "Animation/AnimData/IAnimationDataModel.h"
+#endif
 #include "AnimDataController.h"
 #endif
 
@@ -25,10 +28,27 @@ bool UAnimationBaseImporter::ImportData()
 
 		UAnimSequenceBase* AnimSequenceBase = Cast<UAnimSequenceBase>(FAssetUtilities::GetSelectedAsset());
 
+		ensure(AnimSequenceBase);
+		if (!AnimSequenceBase)
+		{
+			UE_LOG(LogJson, Error, TEXT("Could not get valid AnimSequenceBase"));
+			return false;
+		}
+
+		USkeleton* Skeleton = AnimSequenceBase->GetSkeleton();
+		ensure(Skeleton);
+		if (!Skeleton)
+		{
+			UE_LOG(LogJson, Error, TEXT("Could not get valid Skeleton"));
+			return false;
+		}
 		/* In Unreal Engine 5, a new data model has been added to edit animation curves */
 		// Unreal Engine 5.2 changed handling getting a data model
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 		IAnimationDataController& Controller = AnimSequenceBase->GetController();
+#if ENGINE_MINOR_VERSION >= 3
+		IAnimationDataModel* DataModel = AnimSequenceBase->GetDataModel();
+#endif
 #endif
 
 		// Some FModel versions have different named objects for curves
@@ -45,26 +65,46 @@ bool UAnimationBaseImporter::ImportData()
 				DisplayName = FloatCurveObject->AsObject()->GetStringField("CurveName");
 			}
 
-			USkeleton* Skeleton = AnimSequenceBase->GetSkeleton();
-			FSmartName NewTrackName;
-
-			// Included to add the curve's name to the skeleton's data
-			Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, FName(*DisplayName), NewTrackName);
-
 			// Curve Type Flags:
 			//	Used to define if a curve
 			//  if a curve is metadata
 			//  or not.
 			int CurveTypeFlags = FloatCurveObject->AsObject()->GetIntegerField("CurveTypeFlags");
-			ensureAlways(Skeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, NewTrackName.UID, NewTrackName));
-
 			// Unreal Engine 5 uses the controller, while Unreal Engine 4 directly uses RawCurveData
 #if ENGINE_MAJOR_VERSION == 5
+#if ENGINE_MINOR_VERSION <= 3
+			FSmartName NewTrackName;
+
+			// Included to add the curve's name to the skeleton's data
+			Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, FName(*DisplayName), NewTrackName);
+			
+			ensureAlways(Skeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, NewTrackName.UID, NewTrackName));
+			FAnimationCurveIdentifier CurveId = FAnimationCurveIdentifier(NewTrackName.DisplayName, ERawCurveTrackTypes::RCT_Float);
+#endif
+#if ENGINE_MINOR_VERSION >= 4
+			// Create Curve Identifier
+			FName CurveName = FName(*DisplayName);
+			FAnimationCurveIdentifier CurveId(CurveName, ERawCurveTrackTypes::RCT_Float);
+
+			// Add curve metadata to skeleton
+			Skeleton->AddCurveMetaData(CurveName);
+			// Add or update the curve
+			const FFloatCurve* ExistingCurve = DataModel->FindFloatCurve(CurveId);
+			if (ExistingCurve == nullptr)
+			{
+				Controller.AddCurve(CurveId, CurveTypeFlags, true);
+			}
+			else 
+			{
+				// Update existing curve flags if needed
+				Controller.SetCurveFlags(CurveId, CurveTypeFlags, true);
+			}
+#endif
 			// For Unreal Engine 5.3 and above, the smart name's display name is required
 #if ENGINE_MINOR_VERSION == 3 && ENGINE_PATCH_VERSION < 2
-			Controller->AddCurve(FAnimationCurveIdentifier(NewTrackName.DisplayName, ERawCurveTrackTypes::RCT_Float), CurveTypeFlags);
-#elif (ENGINE_MINOR_VERSION == 3 && ENGINE_PATCH_VERSION == 2) || ENGINE_MINOR_VERSION > 3
-			Controller.AddCurve(FAnimationCurveIdentifier(NewTrackName.DisplayName, ERawCurveTrackTypes::RCT_Float), CurveTypeFlags);
+			Controller->AddCurve(CurveId, CurveTypeFlags);
+#elif (ENGINE_MINOR_VERSION == 3 && ENGINE_PATCH_VERSION == 2)
+			Controller.AddCurve(CurveId, CurveTypeFlags);
 #endif
 			// For Unreal Engine 5.2 and below, just the smart name is required
 #if ENGINE_MINOR_VERSION < 3
@@ -102,7 +142,12 @@ bool UAnimationBaseImporter::ImportData()
 
 		for (TSharedPtr<FJsonValue> FloatCurveObject : FloatCurves)
 		{
-			FString DisplayName = FloatCurveObject->AsObject()->GetObjectField("Name")->GetStringField("DisplayName");
+			FString DisplayName = "";
+			if (FloatCurveObject->AsObject()->HasField("Name")) {
+				DisplayName = FloatCurveObject->AsObject()->GetObjectField("Name")->GetStringField("DisplayName");
+			} else {
+				DisplayName = FloatCurveObject->AsObject()->GetStringField("CurveName");
+			}
 
 			TArray<TSharedPtr<FJsonValue>> Keys = FloatCurveObject->AsObject()->GetObjectField("FloatCurve")->GetArrayField("Keys");
 			TArray<FRichCurveKey> _Keys;
@@ -129,20 +174,21 @@ bool UAnimationBaseImporter::ImportData()
 #endif
 			}
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+#if ENGINE_MAJOR_VERSION == 5
+#if ENGINE_MINOR_VERSION <= 3
 			FSmartName NewTrackName;
 			{
 				// Create SmartName
-				USkeleton* Skeleton = AnimSequenceBase->GetSkeleton();
 				Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, FName(*DisplayName), NewTrackName);
 			}
-
+#elif  ENGINE_MINOR_VERSION >= 4
+			FName NewTrackName = FName(*DisplayName);
+#endif
 			AnimSequenceBase->Modify(true);
 
 			FAnimationCurveIdentifier CurveId(NewTrackName, ERawCurveTrackTypes::RCT_Float);
 			IAnimationDataController& LocalController = AnimSequenceBase->GetController();
 			LocalController.SetCurveKeys(CurveId, _Keys);
-
 			AnimSequenceBase->PostEditChange();
 			GLog->Log("JsonAsAsset: Added animation curve: " + DisplayName);
 #endif
@@ -163,11 +209,17 @@ bool UAnimationBaseImporter::ImportData()
 			}
 		}
 
-		// TODO: Incompatible with UE5
+#if ENGINE_MAJOR_VERSION == 5
+		if (ITargetPlatform* RunningPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform())
+		{
+			CastedAnimSequence->CacheDerivedData(RunningPlatform);
+		}
+#else
 		if (CastedAnimSequence)
 		{
 			CastedAnimSequence->RequestSyncAnimRecompression();
 		}
+#endif
 
 		UAnimMontage* CastedAnimMontage = Cast<UAnimMontage>(AnimSequenceBase);
 

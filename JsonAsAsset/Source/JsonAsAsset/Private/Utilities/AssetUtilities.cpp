@@ -166,6 +166,9 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 		Type == "ReverbEffect" ||
 		Type == "SoundAttenuation" ||
 		Type == "SoundConcurrency" ||
+		Type == "SoundClass" ||
+		Type == "SoundMix" ||
+		Type == "SoundModulationPatch" ||
 		Type == "DataTable" ||
 		Type == "SubsurfaceProfile" ||
 		Type == "MaterialFunction" ||

@@ -34,6 +34,12 @@
 #include "Importers/Types/CurveTableImporter.h"
 // <---- Importers
 
+
+#include "Engine/SubsurfaceProfile.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Sound/SoundNode.h"
+#include "Curves/CurveLinearColor.h"
+
 #include "Utilities/AssetUtilities.h"
 #include "Misc/MessageDialog.h"
 #include "UObject/SavePackage.h"
@@ -227,13 +233,19 @@ bool IImporter::HandleAssetCreation(UObject* Asset) const {
 
 void IImporter::SavePackage() {
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-	Package->FullyLoad();
+	//Package->FullyLoad(); //Causes crashes on Anim Curve Import didn't get any issue commenting this
 
 	FSavePackageArgs SaveArgs; {
 		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+		SaveArgs.Error = GError;
 		SaveArgs.SaveFlags = SAVE_NoError;
 	}
 
+	if(Package == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Package is null"));
+		return;
+	}
 	const FString PackageName = Package->GetName();
 	const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
 
