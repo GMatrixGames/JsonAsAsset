@@ -112,7 +112,7 @@ Now open up FModel, and go to your settings. `(Settings -> General)` There will 
 
 -------------------
 
-That’s the basic setup! To bulk import materials or linear curve atlases (e.g., all material functions and textures), you'll need to set up [`Local Fetch`](setup-local-fetch)!
+That’s the basic setup! To bulk import materials or linear curve atlases (e.g., all material functions and textures), you'll need to set up [`Local Fetch`](#setup-local-fetch)!
 
 <a name="setup-local-fetch"></a>
 ## 3. Setting Up *Local Fetch*
