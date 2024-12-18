@@ -7,6 +7,12 @@
 #include "IContentBrowserSingleton.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 
+#include "Curves/CurveLinearColor.h"
+
+#include "Utilities/AssetUtilities.h"
+#include "Misc/MessageDialog.h"
+#include "UObject/SavePackage.h"
+
 // ----> Importers
 #include "Importers/Types/CurveFloatImporter.h"
 #include "Importers/Types/CurveVectorImporter.h"
@@ -15,37 +21,30 @@
 #include "Importers/Types/DataTableImporter.h"
 #include "Importers/Types/SkeletalMeshLODSettingsImporter.h"
 #include "Importers/Types/SkeletonImporter.h"
-#include "Importers/Types/SoundAttenuationImporter.h"
 #include "Importers/Types/PhysicsImporter.h"
-#include "Importers/Types/SoundConcurrencyImporter.h"
-#include "Importers/Types/ReverbEffectImporter.h"
-#include "Importers/Types/SubsurfaceProfileImporter.h"
 #include "Importers/Types/AnimationBaseImporter.h"
-#include "Importers/Types/LandscapeGrassTypeImporter.h"
 #include "Importers/Types/MaterialFunctionImporter.h"
 #include "Importers/Types/MaterialImporter.h"
 #include "Importers/Types/MaterialParameterCollectionImporter.h"
 #include "Importers/Types/NiagaraParameterCollectionImporter.h"
 #include "Importers/Types/MaterialInstanceConstantImporter.h"
 #include "Importers/Types/SoundCueImporter.h"
-#include "Importers/Types/PhysicalMaterialImporter.h"
 #include "Importers/Types/TextureImporter.h"
 #include "Importers/Types/DataAssetImporter.h"
 #include "Importers/Types/CurveTableImporter.h"
-#include "Importers/Types/SoundClassImporter.h"
-#include "Importers/Types/SoundMixImporter.h"
-#include "Importers/Types/SoundModulationPatchImporter.h"
 // <---- Importers
 
-
+// Templated Class
+#include "Importers/Constructor/TemplatedImporter.h"
+// ----------------------- Templated Engine Classes
+#include "Sound/SoundMix.h"
+#include "Sound/SoundNode.h"
+#include "Sound/ReverbEffect.h"
+#include "LandscapeGrassType.h"
+#include "SoundModulationPatch.h"
 #include "Engine/SubsurfaceProfile.h"
 #include "Materials/MaterialParameterCollection.h"
-#include "Sound/SoundNode.h"
-#include "Curves/CurveLinearColor.h"
-
-#include "Utilities/AssetUtilities.h"
-#include "Misc/MessageDialog.h"
-#include "UObject/SavePackage.h"
+#include "Sound/SoundClass.h"
 
 #define LOCTEXT_NAMESPACE "IImporter"
 
@@ -283,36 +282,58 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 				UPackage* LocalOutermostPkg;
 				UPackage* LocalPackage = FAssetUtilities::CreateAssetPackage(Name, File, LocalOutermostPkg);
 
-				if (Type == "CurveFloat") Importer = new UCurveFloatImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "CurveTable") Importer = new UCurveTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "CurveVector") Importer = new UCurveVectorImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "CurveLinearColor") Importer = new UCurveLinearColorImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "CurveLinearColorAtlas") Importer = new UCurveLinearColorAtlasImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				// Curve Importers
+				if (Type == "CurveFloat") 
+					Importer = new UCurveFloatImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else if (Type == "CurveTable") 
+					Importer = new UCurveTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else if (Type == "CurveVector") 
+					Importer = new UCurveVectorImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else if (Type == "CurveLinearColor") 
+					Importer = new UCurveLinearColorImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else if (Type == "CurveLinearColorAtlas") 
+					Importer = new UCurveLinearColorAtlasImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
-				else if (Type == "Skeleton") Importer = new USkeletonImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "SkeletalMeshLODSettings") Importer = new USkeletalMeshLODSettingsImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else if (Type == "Skeleton") 
+					Importer = new USkeletonImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+				else if (Type == "SkeletalMeshLODSettings") 
+					Importer = new USkeletalMeshLODSettingsImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
-				else if (Type == "SoundCue") Importer = new USoundCueImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "ReverbEffect") Importer = new UReverbEffectImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "SoundAttenuation") Importer = new USoundAttenuationImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "SoundConcurrency") Importer = new USoundConcurrencyImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "SoundClass") Importer = new USoundClassImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "SoundMix") Importer = new USoundMixImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "SoundModulationPatch") Importer = new USoundModulationPatchImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+				else if (Type == "SoundCue") 
+					Importer = new USoundCueImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+				
+				else if (Type == "Material") 
+					Importer = new UMaterialImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+				else if (Type == "MaterialFunction") 
+					Importer = new UMaterialFunctionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+				else if (Type == "MaterialInstanceConstant") 
+					Importer = new UMaterialInstanceConstantImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+				else if (Type == "MaterialParameterCollection") 
+					Importer = new UMaterialParameterCollectionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+				
+				// Other Importers
+				else if (Type == "NiagaraParameterCollection") 
+				    Importer = new UNiagaraParameterCollectionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else if (Type == "PhysicsAsset") 
+				    Importer = new UPhysicsImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+				else if (Type == "DataTable") 
+				    Importer = new UDataTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
-				else if (Type == "Material") Importer = new UMaterialImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "MaterialFunction") Importer = new UMaterialFunctionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "MaterialInstanceConstant") Importer = new UMaterialInstanceConstantImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "MaterialParameterCollection") Importer = new UMaterialParameterCollectionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "PhysicalMaterial") Importer = new UPhysicalMaterialImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
+				else // Data Asset
+					if (bDataAsset)
+						Importer = new UDataAssetImporter(Class, Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 
-				else if (Type == "LandscapeGrassType") Importer = new ULandscapeGrassTypeImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "NiagaraParameterCollection") Importer = new UNiagaraParameterCollectionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "PhysicsAsset") Importer = new UPhysicsImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "DataTable") Importer = new UDataTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "SubsurfaceProfile") Importer = new USubsurfaceProfileImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (bDataAsset) Importer = new UDataAssetImporter(Class, Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else Importer = nullptr;
+				else { // Templates handled here
+					UClass* LoadedClass = FindObject<UClass>(ANY_PACKAGE, *Type);
+
+					if (LoadedClass != nullptr) {
+						Importer = new TemplatedImporter<UObject>(LoadedClass, Name, File, DataObject, LocalPackage, LocalOutermostPkg, AllJsonObjects);
+					} else { // No template found
+						UE_LOG(LogTemp, Error, TEXT("Failed to load class for type: %s"), *Type);
+						
+						Importer = nullptr;
+					}
+				}
 			}
 
 			FMessageLog MessageLogger = FMessageLog(FName("JsonAsAsset"));
