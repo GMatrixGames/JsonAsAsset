@@ -1,9 +1,9 @@
 # Local Fetch
-/JsonAsAsset/ExternalSource/LocalFetch/.vs
-/JsonAsAsset/ExternalSource/LocalFetch/.config
-/JsonAsAsset/Binaries/Win64/LocalFetch/web.config
+/ExternalSource/LocalFetch/*
+/ExternalSource/CUE4Parse/*
+/Binaries/Win64/LocalFetch/web.config
 
-/JsonAsAsset/Intermediate/*
+/Intermediate/*
 
 # VS Code Settings
 .vscode/settings.json
@@ -83,3 +83,4 @@ _[Ss]cripts
 *.v1
 *.sln
 .idea/
+Binaries/Win64/UnrealEditor.modules
