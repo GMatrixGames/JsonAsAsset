@@ -30,4 +30,42 @@ public:
 	static void CreatePlugin(FString PluginName);
 
 	static const TSharedPtr<FJsonObject> API_RequestExports(const FString& Path);
+
+public:
+	inline static TArray<FString> AcceptedTypes = {
+		"Texture2D",
+		// "TextureCube",
+		// "VolumeTexture",
+		"TextureRenderTarget2D",
+
+		"", // separator
+
+		"Material",
+		"MaterialFunction",
+		"MaterialInstanceConstant",
+
+		"", // separator
+
+		"CurveFloat",
+		"CurveTable",
+		"CurveVector",
+		"CurveLinearColorAtlas",
+		"CurveLinearColor",
+
+		"", // separator
+
+		"ReverbEffect",
+		"SoundAttenuation",
+		"SoundConcurrency",
+		"SoundClass",
+		"SoundMix",
+		"SoundModulationPatch",
+		
+		"", // separator
+
+		"PhysicalMaterial",
+		"SubsurfaceProfile",
+		"LandscapeGrassType",
+		"DataTable",
+	};
 };

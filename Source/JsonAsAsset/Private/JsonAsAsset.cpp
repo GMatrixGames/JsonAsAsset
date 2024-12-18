@@ -23,6 +23,7 @@
 #include <TlHelp32.h>
 
 #include "Modules/AboutJsonAsAsset.h"
+#include "Utilities/AssetUtilities.h"
 // <------------------------------------------------------------------------------------------------------------
 
 #ifdef _MSC_VER
@@ -326,16 +327,22 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
 				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Asset Classes"));
 				{
-					for (FString& Asset : IImporter::GetAcceptedTypes()) {
-						InnerMenuBuilder.AddMenuEntry(
-							FText::FromString(Asset),
-							FText::FromString(Asset),
-							FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail")),
-							FUIAction()
-						);
-
-						if (Asset == "CurveLinearColorAtlas" || Asset == "Skeleton" || Asset == "AnimMontage" || Asset == "NiagaraParameterCollection" || Asset == "LandscapeGrassType" || Asset == "SoundConcurrency" || Asset == "SubsurfaceProfile") {
+					for (FString& Asset : IImporter::GetAcceptedTypes())
+					{
+						if (Asset == "") { // Seperator
 							InnerMenuBuilder.AddSeparator();
+						}
+						
+						else {
+							UClass* Class = FindObject<UClass>(nullptr, *("/Script/Engine." + Asset));
+							FText Description = Class ? Class->GetToolTipText() : FText::FromString(Asset);
+
+							InnerMenuBuilder.AddMenuEntry(
+								FText::FromString(Asset),
+								Description,
+								FSlateIconFinder::FindCustomIconForClass(Class, TEXT("ClassThumbnail")),
+								FUIAction()
+							);
 						}
 					}
 				}
@@ -410,41 +417,24 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InnerMenuBuilder) {
 				InnerMenuBuilder.BeginSection("JsonAsAssetSection", LOCTEXT("JsonAsAssetSection", "Asset Classes"));
 				{
-					TArray<FString> AcceptedTypes;
+					TArray<FString> AcceptedTypes = FAssetUtilities::AcceptedTypes;
 					const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
-					if (Settings->bEnableLocalFetch) {
-						AcceptedTypes.Add("Texture2D");
-						AcceptedTypes.Add("TextureCube");
-						AcceptedTypes.Add("VolumeTexture");
-						AcceptedTypes.Add("TextureRenderTarget2D");
-						AcceptedTypes.Add("CurveFloat");
-						AcceptedTypes.Add("CurveLinearColor");
-						AcceptedTypes.Add("CurveLinearColorAtlas");
-
-						AcceptedTypes.Add("ReverbEffect");
-						AcceptedTypes.Add("SoundAttenuation");
-						AcceptedTypes.Add("SoundConcurrency");
-
-						AcceptedTypes.Add("DataTable");
-						AcceptedTypes.Add("SubsurfaceProfile");
-
-						AcceptedTypes.Add("MaterialParameterCollection");
-						AcceptedTypes.Add("MaterialFunction");
-						AcceptedTypes.Add("Material");
-						AcceptedTypes.Add("PhysicalMaterial");
-					}
-
 					for (FString& Asset : AcceptedTypes) {
-						InnerMenuBuilder.AddMenuEntry(
-							FText::FromString(Asset),
-							FText::FromString(Asset),
-							FSlateIconFinder::FindCustomIconForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Asset)), TEXT("ClassThumbnail")),
-							FUIAction()
-						);
-
-						if (Asset == "TextureRenderTarget2D" || Asset == "CurveLinearColorAtlas" || Asset == "SubsurfaceProfile") {
+						if (Asset == "") { // Seperator
 							InnerMenuBuilder.AddSeparator();
+						}
+						
+						else {
+							UClass* Class = FindObject<UClass>(nullptr, *("/Script/Engine." + Asset));
+							FText Description = Class ? Class->GetToolTipText() : FText::FromString(Asset);
+							
+							InnerMenuBuilder.AddMenuEntry(
+								FText::FromString(Asset),
+								Description,
+								FSlateIconFinder::FindCustomIconForClass(Class, TEXT("ClassThumbnail")),
+								FUIAction()
+							);
 						}
 					}
 				}

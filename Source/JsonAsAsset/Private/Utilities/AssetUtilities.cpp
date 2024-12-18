@@ -148,32 +148,13 @@ template bool FAssetUtilities::ConstructAsset<UCurveLinearColor>(const FString& 
 template <typename T>
 bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, TObjectPtr<T>& OutObject, bool& bSuccess)
 {
+	// Skip if no type provided
+	if (Type == "") {
+		return false;
+	}
+	
 	// Supported Assets
-	if (Type == "Texture2D" ||
-		// Type == "TextureCube" ||
-		// Type == "VolumeTexture" ||
-		Type == "TextureRenderTarget2D" ||
-		Type == "MaterialParameterCollection" ||
-		Type == "CurveFloat" ||
-		Type == "CurveTable" ||
-		Type == "CurveVector" ||
-		Type == "CurveLinearColorAtlas" ||
-		Type == "CurveLinearColor" ||
-		Type == "PhysicalMaterial" ||
-		Type == "SubsurfaceProfile" ||
-		Type == "LandscapeGrassType" ||
-		Type == "MaterialInstanceConstant" ||
-		Type == "ReverbEffect" ||
-		Type == "SoundAttenuation" ||
-		Type == "SoundConcurrency" ||
-		Type == "SoundClass" ||
-		Type == "SoundMix" ||
-		Type == "SoundModulationPatch" ||
-		Type == "DataTable" ||
-		Type == "SubsurfaceProfile" ||
-		Type == "MaterialFunction" ||
-		Type == "Material" // might cause issues
-	)
+	if (AcceptedTypes.Contains(Type))
 	{
 		//		Manually supported asset types
 		// (ex: textures have to be handled separately)

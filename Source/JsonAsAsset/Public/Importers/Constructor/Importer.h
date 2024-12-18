@@ -51,32 +51,36 @@ private:
 		"CurveLinearColor",
 		"CurveLinearColorAtlas",
 
-		// separator
+		"", // separator
 
 		"SkeletalMeshLODSettings",
 		"Skeleton",
 
-		// separator
+		"", // separator
 
 		"AnimSequence",
 		"AnimMontage",
 
-		// separator
+		"", // separator
 
 		"Material",
 		"MaterialFunction",
 		"MaterialInstanceConstant",
 		"MaterialParameterCollection",
 		"NiagaraParameterCollection",
-		"PhysicsAsset",
 
-		// separator
+		"", // separator
 
 		"DataAsset",
-		"DataTable",
 		"LandscapeGrassType",
+		"DataTable",
 
-		// separator
+		"", // separator
+		
+		"PhysicsAsset",
+		"PhysicalMaterial",
+
+		"", // separator
 
 		// "SoundCue", // TBD
 		"ReverbEffect",
@@ -86,14 +90,13 @@ private:
 		"SoundMix",
 		"SoundModulationPatch",
 
-		// separator
+		"", // separator
 
 		"SubsurfaceProfile",
 
-		// separator
+		"", // separator
 
-		"TextureRenderTarget2D",
-		"PhysicalMaterial"
+		"TextureRenderTarget2D"
 	};
 
 public:
