@@ -168,10 +168,12 @@ public:
 #endif
 
 	/**
-	* Export directory for FModel (Output/Exports)
-	* 
-	* NOTE: Please use the file selector, do not manually paste it
-	*		or replace "\" with "/"
+	 * Directory path for exporting FModel assets.
+	 * (Output/Exports)
+	 *
+	 * NOTE: Use the file selector to choose a directory. 
+	 *       Avoid manually entering the path or replacing "\" with "/". 
+	 *       The file selector ensures proper formatting.
 	*/
 	UPROPERTY(EditAnywhere, Config, Category="Configuration")
 	FDirectoryPath ExportDirectory;
@@ -180,22 +182,21 @@ public:
 	FAssetSettings AssetSettings;
 
 	/**
-	* Fetches assets from a local service and automatically imports
-	* them into your project, without having them locally
-	* 
-	* NOTE: Please set all the settings correctly to properly start
-	*		Local Fetch, read more at the README.md file.
-	*/
+	 * Fetches assets from a local hosted API and imports them directly into your project.
+	 * 
+	 * NOTE: Ensure all settings are correctly configured before starting Local Fetch. 
+	 *       Please refer to the README.md file.
+	 */
 	UPROPERTY(EditAnywhere, Config, Category="Local Fetch")
 	bool bEnableLocalFetch;
 
 	/**
-	* Paks folder location where all the assets are
-	* (Content/Paks)
-	*
-	* NOTE: Please use the file selector, do not manually paste it
-	*		or replace "\" with "/"
-	*/
+	 * Location of the Paks folder containing all the assets.
+	 * (Content/Paks)
+	 * 
+	 * NOTE: Use the file selector to choose the folder location. 
+	 *       Avoid manually pasting the path or replacing "\" with "/".
+	 */
 	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Configuration", meta=(EditCondition="bEnableLocalFetch"))
 	FDirectoryPath ArchiveDirectory;
 
@@ -206,8 +207,10 @@ public:
 	UFUNCTION(CallInEditor)
 	static TArray<FString> GetParseVersions();
 
-	// Mappings file
-	// NOTE: Please use the file selector, do not manually paste it 
+	// Path to the mappings file.
+	//
+	// NOTE: Use the file selector to choose the file location. 
+	//       Avoid manually pasting the path.
 	UPROPERTY(EditAnywhere, Config, Category="Local Fetch - Configuration", meta=(EditCondition="bEnableLocalFetch", FilePathFilter="usmap", RelativeToGameDir))
 	FFilePath MappingFilePath;
 
@@ -223,6 +226,8 @@ public:
 	TArray<FParseKey> DynamicKeys;
 
 	// Enables the option to change the api's URL
+	//
+	// DO NOT CHANGE IF YOU DO NOT KNOW WHAT YOU ARE DOING
 	UPROPERTY(EditAnywhere, Config, Category = "Local Fetch", meta = (EditCondition = "bEnableLocalFetch"), AdvancedDisplay)
 	bool bChangeURL;
 
