@@ -103,10 +103,6 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 
             return FReply::Handled();
         })
-        .IsEnabled_Lambda([this, Settings]()
-        {
-            return Settings->bEnableLocalFetch;
-        })
     ];
 
 	DetailBuilder.EditCategory("Local Fetch", FText::GetEmpty(), ECategoryPriority::Important);
