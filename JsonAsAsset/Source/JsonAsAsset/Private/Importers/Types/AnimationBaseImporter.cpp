@@ -79,7 +79,7 @@ bool UAnimationBaseImporter::ImportData()
 			Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, FName(*DisplayName), NewTrackName);
 			
 			ensureAlways(Skeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, NewTrackName.UID, NewTrackName));
-			FAnimationCurveIdentifier CurveId = FAnimationCurveIdentifier(NewTrackName.DisplayName, ERawCurveTrackTypes::RCT_Float);
+			FAnimationCurveIdentifier CurveId = FAnimationCurveIdentifier(NewTrackName, ERawCurveTrackTypes::RCT_Float);
 #endif
 #if ENGINE_MINOR_VERSION >= 4
 			// Create Curve Identifier
