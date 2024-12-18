@@ -5,7 +5,7 @@
 	"FriendlyName": "JsonAsAsset",
 	"Description": "A editor plugin to allow JSON files from FModel to a asset in the Content Browser.",
 	"Category": "Asset Import",
-	"CreatedBy": "Tector, GMatrix, TajGames",
+	"CreatedBy": "Tector, GMatrix",
 	"CreatedByURL": "https://github.com/JsonAsAsset",
 	"DocsURL": "https://github.com/JsonAsAsset/JsonAsAsset",
 	"MarketplaceURL": "",
