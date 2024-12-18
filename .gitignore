@@ -3,7 +3,9 @@
 /ExternalSource/CUE4Parse/*
 /Binaries/Win64/LocalFetch/web.config
 
-/Intermediate/*
+# Binaries / Intermediate
+Intermediate/*
+Binaries/Win64/UnrealEditor.modules
 
 # VS Code Settings
 .vscode/settings.json
@@ -83,4 +85,3 @@ _[Ss]cripts
 *.v1
 *.sln
 .idea/
-Binaries/Win64/UnrealEditor.modules
