@@ -87,7 +87,7 @@ In this short documentation, we will learn how to use this powerful Unreal Engin
 <a name="setup-jaa"></a>
 #### 2.1 Setting Up JAA Settings
 If you haven't already, install FModel and setup it up correctly.
-<img align="left" width="150" height="150" src="./JsonAsAsset/Resources/FModelLogo.png?raw=true">
+<img align="left" width="150" height="150" src="./Resources/FModelLogo.png?raw=true">
 The JSON format/file has to be from a program that fits the format of FModel's JSON export files:
 <br><br>
 
