@@ -6,10 +6,6 @@
 #include "Materials/MaterialInstanceConstant.h"
 #include "Utilities/MathUtilities.h"
 #include "RHIDefinitions.h"
-
-#include "Materials/MaterialExpressionStaticSwitchParameter.h"
-#include "Materials/MaterialExpressionStaticBoolParameter.h"
-#include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
 #include "MaterialShared.h"
 
 bool UMaterialInstanceConstantImporter::ImportData() {

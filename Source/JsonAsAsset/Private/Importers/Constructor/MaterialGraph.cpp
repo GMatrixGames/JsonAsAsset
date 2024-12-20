@@ -8,16 +8,12 @@
 #include "Materials/MaterialExpressionFeatureLevelSwitch.h"
 #include "Materials/MaterialExpressionShadingPathSwitch.h"
 #include "Materials/MaterialExpressionQualitySwitch.h"
-#include "Materials/MaterialExpressionFunctionOutput.h"
-#include "Materials/MaterialExpressionFunctionInput.h"
-#include "Materials/MaterialExpressionGetMaterialAttributes.h"
-#include "Materials/MaterialExpressionSetMaterialAttributes.h"
-#include "Materials/MaterialExpressionCollectionParameter.h"
 #include "Materials/MaterialExpressionReroute.h"
 
 #if ENGINE_MINOR_VERSION >= 5
 #include "Materials/MaterialExpressionTextureBase.h"
 #endif
+
 static TWeakPtr<SNotificationItem> MaterialGraphNotification;
 
 TSharedPtr<FJsonObject> IMaterialGraph::FindEditorOnlyData(const FString& Type, const FString& Outer, TMap<FName, FExportData>& OutExports, TArray<FName>& ExpressionNames, bool bFilterByOuter) {

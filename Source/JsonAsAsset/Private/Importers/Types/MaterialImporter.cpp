@@ -13,7 +13,6 @@
 #include "Framework/Notifications/NotificationManager.h"
 
 #include "Factories/MaterialFactoryNew.h"
-#include "Utilities/MathUtilities.h"
 #include "MaterialGraph/MaterialGraph.h"
 #include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphNode_Composite.h>
 #include <Editor/UnrealEd/Classes/MaterialGraph/MaterialGraphSchema.h>

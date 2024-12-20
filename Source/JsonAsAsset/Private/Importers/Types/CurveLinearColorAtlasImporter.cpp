@@ -3,24 +3,14 @@
 #include "Importers/Types/CurveLinearColorAtlasImporter.h"
 #include "Importers/Types/TextureImporter.h"
 #include "Curves/CurveLinearColor.h"
-
 #include "JsonGlobals.h"
-#include "AssetRegistry/AssetRegistryModule.h"
 #include "Curves/CurveLinearColorAtlas.h"
 #include "Dom/JsonObject.h"
-#include "Factories/CurveLinearColorAtlasFactory.h"
-#include "Utilities/AssetUtilities.h"
-#include <Runtime/CoreUObject/Public/UObject/UnrealTypePrivate.h>
-
-#include "UObject/SavePackage.h"
 
 bool UCurveLinearColorAtlasImporter::ImportData() {
 	try {
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 		
-		// Create UTextureImporters to add UTexture2D properties
-		const UTextureImporter* Importer = new UTextureImporter(FString(), FString(), JsonObject, Package, OutermostPkg);
-
 		float Width = 256;
 		float Height = 256;
 

@@ -24,13 +24,10 @@
 #include "Importers/Types/CurveLinearColorImporter.h"
 #include "Importers/Types/CurveLinearColorAtlasImporter.h"
 #include "Importers/Types/DataTableImporter.h"
-#include "Importers/Types/SkeletalMeshLODSettingsImporter.h"
 #include "Importers/Types/SkeletonImporter.h"
-#include "Importers/Types/PhysicsImporter.h"
 #include "Importers/Types/AnimationBaseImporter.h"
 #include "Importers/Types/MaterialFunctionImporter.h"
 #include "Importers/Types/MaterialImporter.h"
-#include "Importers/Types/MaterialParameterCollectionImporter.h"
 #include "Importers/Types/NiagaraParameterCollectionImporter.h"
 #include "Importers/Types/MaterialInstanceConstantImporter.h"
 #include "Importers/Constructor/SoundGraph.h"
@@ -94,8 +91,6 @@ bool IImporter::ImportExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 
 				else if (Type == "Skeleton") 
 					Importer = new USkeletonImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "SkeletalMeshLODSettings") 
-					Importer = new USkeletalMeshLODSettingsImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
 				else if (Type == "SoundCue") 
 					Importer = new ISoundGraph(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
@@ -106,15 +101,11 @@ bool IImporter::ImportExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 					Importer = new UMaterialFunctionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 				else if (Type == "MaterialInstanceConstant") 
 					Importer = new UMaterialInstanceConstantImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "MaterialParameterCollection") 
-					Importer = new UMaterialParameterCollectionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 				
 				// Other Importers
 				else if (Type == "NiagaraParameterCollection") 
 				    Importer = new UNiagaraParameterCollectionImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
-				else if (Type == "PhysicsAsset") 
-				    Importer = new UPhysicsImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
-				else if (Type == "DataTable") 
+ 				else if (Type == "DataTable") 
 				    Importer = new UDataTableImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
 				else // Data Asset

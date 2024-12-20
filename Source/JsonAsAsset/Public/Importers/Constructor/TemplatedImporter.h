@@ -10,6 +10,12 @@ class TemplatedImporter : public IImporter {
 public:
 	const UClass* AssetClass;
 
+	// We mash these properties back into the properties object if needed
+	// [basically when FModel doesn't format it properly]
+	TArray<FString> PropertyMash = {
+		"ChildClasses"
+	};
+
 	TemplatedImporter(UClass* AssetClass, const FString& FileName, const FString& FilePath, const TSharedPtr<FJsonObject>& JsonObject, UPackage* Package, UPackage* OutermostPkg, const TArray<TSharedPtr<FJsonValue>>& AllJsonObjects) :
 		IImporter(FileName, FilePath, JsonObject, Package, OutermostPkg, AllJsonObjects),
 		AssetClass(AssetClass) {}

@@ -1,9 +1,7 @@
 ﻿// Copyright JAA Contributors 2024-2025
 
 #include "Importers/Types/DataTableImporter.h"
-
 #include "Dom/JsonObject.h"
-#include "Utilities/AssetUtilities.h"
 
 // Shout-out to UEAssetToolkit
 bool UDataTableImporter::ImportData() {

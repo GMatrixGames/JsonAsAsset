@@ -19,11 +19,9 @@
 #include "HttpModule.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "./Importers/Types/TextureImporter.h"
-#include "./Importers/Types/MaterialParameterCollectionImporter.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
-#include "Utilities/AssetUtilities.h"
 #include "Utilities/RemoteUtilities.h"
 #include "PluginUtils.h"
 

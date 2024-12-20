@@ -3,8 +3,6 @@
 #include "Importers/Types/MaterialFunctionImporter.h"
 #include "Factories/MaterialFunctionFactoryNew.h"
 
-#include "UObject/SavePackage.h"
-
 bool UMaterialFunctionImporter::ImportData() {
 	try {
 		// Create Material Function Factory (factory automatically creates the MF)
