@@ -133,7 +133,7 @@ void ISoundGraph::SetupNodes(USoundCue* SoundCueAsset, TMap<FString, USoundNode*
 
 				if (NodeProperties->HasField("SoundWaveAssetPtr")) {
 					FString AssetPtr = NodeProperties->TryGetField("SoundWaveAssetPtr")->AsObject()->GetStringField("AssetPathName");
-					
+
 					USoundWave* SoundWave = Cast<USoundWave>(StaticLoadObject(USoundWave::StaticClass(), nullptr, *AssetPtr));
 
 					// Already exists
@@ -142,9 +142,9 @@ void ISoundGraph::SetupNodes(USoundCue* SoundCueAsset, TMap<FString, USoundNode*
 					} else {
 						// Import SoundWave
 						FString AudioURL = FString::Format(TEXT("http://localhost:1500/api/v1/export?raw=false&path={0}"), { AssetPtr });
-						FString AbsoluteSavePath = FString::Format(TEXT("{0}Cache/{1}.wav"), { FPaths::ProjectDir(), FPaths::GetBaseFilename(AssetPtr) });
+						FString AbsoluteSavePath = FString::Format(TEXT("{0}Cache/{1}.ogg"), { FPaths::ProjectDir(), FPaths::GetBaseFilename(AssetPtr) });
 
-						// ImportSoundWave(AudioURL, AbsoluteSavePath, AssetPtr, WavePlayerNode);
+						ImportSoundWave(AudioURL, AbsoluteSavePath, AssetPtr, WavePlayerNode);
 					}
 				}
 			}
