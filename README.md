@@ -26,6 +26,7 @@ Unreal Engine plugin to allow conversion between [JSON](https://www.json.org/jso
 >    2.1 [Setting Up JAA Settings](#setup-jaa)  
 >    2.2 [Export Directory](#export-directory)  
 > 3. [Local Fetch](#setup-local-fetch)
+> 4. [Contributions](#contribute)
 
 -----------------
 
@@ -142,3 +143,23 @@ After fully setting up the Local Fetch settings, you can launch the API without 
 Go ahead and click on the JsonAsAsset logo (<img width="25" height="25" src=https://github.com/JsonAsAsset/JsonAsAsset/assets/73559984/b90ab71f-d9ac-4349-96eb-620aadf7812f>) and hover over the list `"Command-line Application"` and press `"Execute Local Fetch API (.EXE)"`.
 
 A window should pop-up, and once the console says `[CORE] Running API`, Local Fetch has been successfully started!
+
+<a name="contribute"></a>
+## 4. Contributing to JsonAsAsset
+
+If you would like to contribute to JsonAsAsset, here's some key information:
+
+> [!NOTE]
+>
+> `Local Fetch`'s API is located at [JsonAsAsset/LocalFetch](https://github.com/JsonAsAsset/LocalFetch)
+> 
+> Normal Asset types are found in [`JsonAsAsset/Public/Importers/Constructor/Importer.h`](https://github.com/JsonAsAsset/JsonAsAsset/tree/main/Source/JsonAsAsset/Public/Importers/Constructor/Importer.h)
+> 
+> Adding support for Local Fetch of asset types [`JsonAsAsset/Public/Importers/Utilities/AssetUtilities.h`](https://github.com/JsonAsAsset/JsonAsAsset/tree/main/Source/JsonAsAsset/Public/Utilities/AssetUtilities.h)
+>
+> + Asset types without manual code will use **basic** importing, meaning it will only take the properties of the base object and import them.
+>
+> Adding **manual** asset type imports is done in the [`JsonAsAsset/Public/Importers/Types`](https://github.com/JsonAsAsset/JsonAsAsset/tree/main/Source/JsonAsAsset/Public/Importers/Types) folder.
+>
+> JsonAsAsset's settings are in [`Private/Settings/JsonAsAssetSettings.h`](https://github.com/JsonAsAsset/JsonAsAsset/tree/main/Source/JsonAsAsset/Private/Settings/JsonAsAssetSettings.h)
+>
