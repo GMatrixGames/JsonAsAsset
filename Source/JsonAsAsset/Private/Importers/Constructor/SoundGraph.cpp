@@ -15,7 +15,7 @@ bool ISoundGraph::ImportData() {
 	try {
 		// Create Sound Cue
 		USoundCue* SoundCue = NewObject<USoundCue>(Package, *FileName, RF_Public | RF_Standalone);
-		SoundCue->PostEditChange();
+		SoundCue->PreEditChange(nullptr);
 
 		TSharedPtr<FJsonObject> Properties = JsonObject->GetObjectField("Properties");
 
@@ -31,7 +31,8 @@ bool ISoundGraph::ImportData() {
 		}
 		// END ---------------------------------------------
 		
-		SoundCue->PreEditChange(nullptr);
+		SoundCue->PostEditChange();
+		SoundCue->CompileSoundNodesFromGraphNodes();
 		SavePackage();
 		HandleAssetCreation(SoundCue);
 	} catch (const char* Exception) {
@@ -47,7 +48,8 @@ void ISoundGraph::ConnectEdGraphNode(UEdGraphNode* NodeToConnect, UEdGraphNode* 
 }
 
 void ISoundGraph::ConnectSoundNode(USoundNode* NodeToConnect, USoundNode* NodeToConnectTo, int Pin = 1) {
-	NodeToConnect->GetGraphNode()->Pins[0]->MakeLinkTo(NodeToConnectTo->GetGraphNode()->Pins[Pin]);
+	if (NodeToConnectTo->GetGraphNode()->Pins.IsValidIndex(Pin))
+		NodeToConnect->GetGraphNode()->Pins[0]->MakeLinkTo(NodeToConnectTo->GetGraphNode()->Pins[Pin]);
 }
 
 void ISoundGraph::SetupNodes(USoundCue* SoundCueAsset, TMap<FString, USoundNode*> SoundCueNodes, TArray<TSharedPtr<FJsonValue>> JsonObjectArray) {
@@ -99,7 +101,8 @@ void ISoundGraph::SetupNodes(USoundCue* SoundCueAsset, TMap<FString, USoundNode*
 				for (TSharedPtr<FJsonValue> CurrentNodeValue : CurrentNodeChildNodes) {
 					auto CurrentNodeChildNode = CurrentNodeValue->AsObject();
 
-					(*CurrentNode)->InsertChildNode(ConnectionIndex);
+					if (!(*CurrentNode)->ChildNodes.IsValidIndex(ConnectionIndex))
+						(*CurrentNode)->InsertChildNode(ConnectionIndex);
 
 					if (CurrentNodeChildNode->HasField("ObjectName")) {
 						auto CurrentChildNodeObjectName = CurrentNodeChildNode->TryGetField("ObjectName")->AsString();
