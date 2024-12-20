@@ -8,6 +8,7 @@
 // We use this to set variables in the blend space asset
 class UBlendSpaceDerived : public UBlendSpace {
 public:
+	void AddSampleOnly(UAnimSequence* AnimationSequence, const FVector& SampleValue);
 	void SetAxisToScaleAnimationInput(const EBlendSpaceAxis AxisToScaleAnimationInput);
 	void SetBlendParameterPrimary(const FBlendParameter& BlendParametersInput);
 	void SetBlendParameterSecondary(const FBlendParameter& BlendParametersInput);
