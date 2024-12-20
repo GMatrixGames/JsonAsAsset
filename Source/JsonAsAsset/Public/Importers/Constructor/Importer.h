@@ -37,14 +37,57 @@ protected:
 
 private:
     inline static TArray<FString> AcceptedTypes = {
-        "CurveTable", "CurveFloat", "CurveVector", "CurveLinearColor", 
-        "CurveLinearColorAtlas", "", "SkeletalMeshLODSettings", "Skeleton", 
-        "", "AnimSequence", "AnimMontage", "", "Material", "MaterialFunction", 
-        "MaterialInstanceConstant", "MaterialParameterCollection", 
-        "NiagaraParameterCollection", "", "DataAsset", "LandscapeGrassType", 
-        "DataTable", "", "PhysicsAsset", "PhysicalMaterial", "", "SoundCue", 
-        "ReverbEffect", "SoundAttenuation", "SoundConcurrency", "SoundClass", 
-        "SoundMix", "SoundModulationPatch", "", "SubsurfaceProfile", "", 
+        "CurveTable",
+        "CurveFloat",
+        "CurveVector",
+        "CurveLinearColor",
+        "CurveLinearColorAtlas",
+
+        "", // separator
+
+        "SkeletalMeshLODSettings",
+        "Skeleton",
+
+        "", // separator
+
+        "AnimSequence",
+        "AnimMontage",
+
+        "", // separator
+
+        "Material",
+        "MaterialFunction",
+        "MaterialInstanceConstant",
+        "MaterialParameterCollection",
+        "NiagaraParameterCollection",
+
+        "", // separator
+
+        "DataAsset",
+        "LandscapeGrassType",
+        "DataTable",
+
+        "", // separator
+		
+        "PhysicsAsset",
+        "PhysicalMaterial",
+
+        "", // separator
+
+        "SoundCue",
+        "ReverbEffect",
+        "SoundAttenuation",
+        "SoundConcurrency",
+        "SoundClass",
+        "SoundMix",
+        "SoundModulationPatch",
+
+        "", // separator
+
+        "SubsurfaceProfile",
+
+        "", // separator
+
         "TextureRenderTarget2D"
     };
 

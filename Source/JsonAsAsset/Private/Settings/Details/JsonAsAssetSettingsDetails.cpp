@@ -117,7 +117,7 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 		[
 			// This defines the name/title of the row
 			SNew(STextBlock)
-				.Text(LOCTEXT("UseFModelAppSettings", "Fetches Encryption from a API"))
+				.Text(LOCTEXT("UseFModelAppSettings", "Fetch Encryption from a API"))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()[
