@@ -218,7 +218,7 @@ bool FAssetUtilities::ConstructAsset(const FString& Path, const FString& Type, T
 
 				// Import asset by IImporter
 				IImporter* Importer = new IImporter();
-				bSuccess = Importer->HandleExports(Response->GetArrayField("jsonOutput"), PackagePath, true);
+				bSuccess = Importer->ImportExports(Response->GetArrayField("jsonOutput"), PackagePath, true);
 
 				// Define found object
 				OutObject = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *Path));

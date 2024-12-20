@@ -98,7 +98,7 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
             }
 
             PluginSettings->SaveConfig();
-            PluginSettings->UpdateDefaultConfigFile();
+            PluginSettings->TryUpdateDefaultConfigFile();
             PluginSettings->LoadConfig();
 
             return FReply::Handled();
@@ -155,7 +155,7 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 			}
 
 			PluginSettings->SaveConfig();
-			PluginSettings->UpdateDefaultConfigFile();
+			PluginSettings->TryUpdateDefaultConfigFile();
 			PluginSettings->LoadConfig();
 
 			FString LocalExportDirectory = PluginSettings->ExportDirectory.Path;
@@ -205,7 +205,7 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 								UJsonAsAssetSettings>();
 							PluginSettings->MappingFilePath.FilePath = DataFolder + "/" + FileName;
 							PluginSettings->SaveConfig();
-							PluginSettings->UpdateDefaultConfigFile();
+							PluginSettings->TryUpdateDefaultConfigFile();
 							PluginSettings->LoadConfig();
 						}
 					};
@@ -218,7 +218,7 @@ void FJsonAsAssetSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 					MappingsRequest->ProcessRequest();
 
 					PluginSettings->SaveConfig();
-					PluginSettings->UpdateDefaultConfigFile();
+					PluginSettings->TryUpdateDefaultConfigFile();
 					PluginSettings->LoadConfig();
 				}
 			}

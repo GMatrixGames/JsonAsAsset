@@ -5,8 +5,7 @@
 #include "../Constructor/Importer.h"
 #include "Animation/BlendSpace.h"
 
-// We use this to set variables
-// in the blend space asset
+// We use this to set variables in the blend space asset
 class UBlendSpaceDerived : public UBlendSpace {
 public:
 	void SetAxisToScaleAnimationInput(const EBlendSpaceAxis AxisToScaleAnimationInput);

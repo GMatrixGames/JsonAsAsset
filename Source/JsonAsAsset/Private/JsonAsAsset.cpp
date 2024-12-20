@@ -18,7 +18,6 @@
 #include "IMessageLogListing.h"
 #include "ISettingsModule.h"
 #include "MessageLogModule.h"
-#include "Utilities/RemoteUtilities.h"
 #include "Styling/SlateIconFinder.h"
 #include <TlHelp32.h>
 
@@ -33,93 +32,9 @@
 #define LOCTEXT_NAMESPACE "FJsonAsAssetModule"
 
 #if PLATFORM_WINDOWS
-static TWeakPtr<SNotificationItem> ImportantNotificationPtr;
-static TWeakPtr<SNotificationItem> LocalFetchNotificationPtr;
+    static TWeakPtr<SNotificationItem> ImportantNotificationPtr;
+    static TWeakPtr<SNotificationItem> LocalFetchNotificationPtr;
 #endif
-
-void FJsonAsAssetModule::StartupModule() {
-	FJsonAsAssetStyle::Initialize();
-	FJsonAsAssetStyle::ReloadTextures();
-	FJsonAsAssetCommands::Register();
-
-	PluginCommands = MakeShareable(new FUICommandList);
-	PluginCommands->MapAction(
-		FJsonAsAssetCommands::Get().PluginAction,
-		FExecuteAction::CreateRaw(this, &FJsonAsAssetModule::PluginButtonClicked),
-		FCanExecuteAction());
-
-	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FJsonAsAssetModule::RegisterMenus));
-
-	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
-	if (Settings->ExportDirectory.Path.IsEmpty()) {
-		const FText TitleText = LOCTEXT("JsonAsAssetNotificationTitle", "Missing export directory for JsonAsAsset");
-		const FText MessageText = LOCTEXT("JsonAsAssetNotificationText",
-			"JsonAsAsset requires an export directory to handle references and to locally check for files to import. The plugin may not function properly without this set.\n\nFor more information, please see the documentation for JsonAsAsset."
-		);
-
-		FNotificationInfo Info(TitleText);
-		Info.SubText = MessageText;
-
-		Info.HyperlinkText = LOCTEXT("UnrealSoftwareRequirements", "JsonAsAsset Docs");
-		Info.Hyperlink = FSimpleDelegate::CreateStatic([]() { 
-			FString TheURL = "https://github.com/JsonAsAsset/JsonAsAsset";
-			FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr); 
-		});
-
-		Info.bFireAndForget = false;
-		Info.FadeOutDuration = 3.0f;
-		Info.ExpireDuration = 0.0f;
-		Info.bUseLargeFont = false;
-		Info.bUseThrobber = false;
-
-		Info.ButtonDetails.Add(
-			FNotificationButtonInfo(LOCTEXT("OpenPluginSettings", "Open Settings"), FText::GetEmpty(),
-				FSimpleDelegate::CreateStatic([]() {
-					TSharedPtr<SNotificationItem> NotificationItem = ImportantNotificationPtr.Pin();
-
-					if (NotificationItem.IsValid())
-					{
-						NotificationItem->Fadeout();
-						ImportantNotificationPtr.Reset();
-					}
-
-					// Send user to plugin
-					FModuleManager::LoadModuleChecked<ISettingsModule>("Settings")
-						.ShowViewer("Editor", "Plugins", "JsonAsAsset");
-				})
-			)
-		);
-
-		ImportantNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-		ImportantNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
-	}
-
-	// Message Log
-	{
-		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-		FMessageLogInitializationOptions InitOptions;
-		InitOptions.bShowPages = true;
-		InitOptions.bAllowClear = true;
-		InitOptions.bShowFilters = true;
-		MessageLogModule.RegisterLogListing("JsonAsAsset", NSLOCTEXT("JsonAsAsset", "JsonAsAssetLogLabel", "JsonAsAsset"), InitOptions);
-	}
-
-	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	PropertyModule.RegisterCustomClassLayout(UJsonAsAssetSettings::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FJsonAsAssetSettingsDetails::MakeInstance));
-}
-
-void FJsonAsAssetModule::ShutdownModule() {
-	UToolMenus::UnRegisterStartupCallback(this);
-	UToolMenus::UnregisterOwner(this);
-	FJsonAsAssetStyle::Shutdown();
-	FJsonAsAssetCommands::Unregister();
-
-	if (FModuleManager::Get().IsModuleLoaded("MessageLog")) {
-		FMessageLogModule& MessageLogModule = FModuleManager::GetModuleChecked<FMessageLogModule>("MessageLog");
-		MessageLogModule.UnregisterLogListing("JsonAsAsset");
-	}
-}
 
 void FJsonAsAssetModule::PluginButtonClicked() {
 	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
@@ -236,15 +151,114 @@ void FJsonAsAssetModule::PluginButtonClicked() {
 	}
 }
 
+void FJsonAsAssetModule::StartupModule() {
+    // Initialize plugin style, reload textures, and register commands
+    FJsonAsAssetStyle::Initialize();
+    FJsonAsAssetStyle::ReloadTextures();
+    FJsonAsAssetCommands::Register();
+
+    // Set up plugin command list and map actions
+    PluginCommands = MakeShareable(new FUICommandList);
+    PluginCommands->MapAction(
+        FJsonAsAssetCommands::Get().PluginAction,
+        FExecuteAction::CreateRaw(this, &FJsonAsAssetModule::PluginButtonClicked),
+        FCanExecuteAction()
+    );
+
+    // Register menus on startup
+    UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FJsonAsAssetModule::RegisterMenus));
+
+    // Check for export directory in settings
+    const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+    if (Settings->ExportDirectory.Path.IsEmpty()) {
+        const FText TitleText = LOCTEXT("JsonAsAssetNotificationTitle", "Missing export directory for JsonAsAsset");
+        const FText MessageText = LOCTEXT("JsonAsAssetNotificationText",
+            "JsonAsAsset requires an export directory to handle references and to locally check for files to import. "
+            "The plugin may not function properly without this set.\n\nFor more information, please see the documentation for JsonAsAsset."
+        );
+
+        FNotificationInfo Info(TitleText);
+        Info.SubText = MessageText;
+
+        // Set up hyperlink for documentation
+        Info.HyperlinkText = LOCTEXT("UnrealSoftwareRequirements", "JsonAsAsset Docs");
+        Info.Hyperlink = FSimpleDelegate::CreateStatic([]() { 
+            FString TheURL = "https://github.com/JsonAsAsset/JsonAsAsset";
+            FPlatformProcess::LaunchURL(*TheURL, nullptr, nullptr); 
+        });
+
+        // Notification settings
+        Info.bFireAndForget = false;
+        Info.FadeOutDuration = 3.0f;
+        Info.ExpireDuration = 0.0f;
+        Info.bUseLargeFont = false;
+        Info.bUseThrobber = false;
+
+        // Add button to open plugin settings
+        Info.ButtonDetails.Add(
+            FNotificationButtonInfo(
+                LOCTEXT("OpenPluginSettings", "Open Settings"),
+                FText::GetEmpty(),
+                FSimpleDelegate::CreateStatic([]() {
+                    TSharedPtr<SNotificationItem> NotificationItem = ImportantNotificationPtr.Pin();
+                    if (NotificationItem.IsValid()) {
+                        NotificationItem->Fadeout();
+                        ImportantNotificationPtr.Reset();
+                    }
+
+                    // Send user to plugin settings
+                    FModuleManager::LoadModuleChecked<ISettingsModule>("Settings")
+                        .ShowViewer("Editor", "Plugins", "JsonAsAsset");
+                })
+            )
+        );
+
+        ImportantNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+        ImportantNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
+    }
+
+    // Set up message log for JsonAsAsset
+    {
+        FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+        FMessageLogInitializationOptions InitOptions;
+        InitOptions.bShowPages = true;
+        InitOptions.bAllowClear = true;
+        InitOptions.bShowFilters = true;
+        MessageLogModule.RegisterLogListing("JsonAsAsset", NSLOCTEXT("JsonAsAsset", "JsonAsAssetLogLabel", "JsonAsAsset"), InitOptions);
+    }
+
+    // Register custom class layout for settings
+    FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+    PropertyModule.RegisterCustomClassLayout(UJsonAsAssetSettings::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FJsonAsAssetSettingsDetails::MakeInstance));
+}
+
+void FJsonAsAssetModule::ShutdownModule() {
+	// Unregister startup callback and tool menus
+	UToolMenus::UnRegisterStartupCallback(this);
+	UToolMenus::UnregisterOwner(this);
+
+	// Shutdown the plugin style and unregister commands
+	FJsonAsAssetStyle::Shutdown();
+	FJsonAsAssetCommands::Unregister();
+
+	// Unregister message log listing if the module is loaded
+	if (FModuleManager::Get().IsModuleLoaded("MessageLog")) {
+		FMessageLogModule& MessageLogModule = FModuleManager::GetModuleChecked<FMessageLogModule>("MessageLog");
+		MessageLogModule.UnregisterLogListing("JsonAsAsset");
+	}
+}
+
 void FJsonAsAssetModule::RegisterMenus() {
 	FToolMenuOwnerScoped OwnerScoped(this);
 
-	// Register JsonAsAsset toolbar dropdown button
+	// Extend the Level Editor toolbar
 	UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
 	FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("JsonAsAsset");
 
+	// Retrieve plugin info
 	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("JsonAsAsset");
 
+	// Add combo button to toolbar
 	FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitComboButton(
 		"JsonAsAsset",
 		FUIAction(
@@ -259,8 +273,8 @@ void FJsonAsAssetModule::RegisterMenus() {
 		false,
 		"JsonAsAsset"
 	));
-	Entry.StyleNameOverride = "CalloutToolbar";
 
+	Entry.StyleNameOverride = "CalloutToolbar";
 	Entry.SetCommandList(PluginCommands);
 }
 
@@ -329,7 +343,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 				{
 					for (FString& Asset : IImporter::GetAcceptedTypes())
 					{
-						if (Asset == "") { // Seperator
+						if (Asset == "") { // Separator
 							InnerMenuBuilder.AddSeparator();
 						}
 						
@@ -421,7 +435,7 @@ TSharedRef<SWidget> FJsonAsAssetModule::CreateToolbarDropdown() {
 					const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
 
 					for (FString& Asset : AcceptedTypes) {
-						if (Asset == "") { // Seperator
+						if (Asset == "") { // Separator
 							InnerMenuBuilder.AddSeparator();
 						}
 						

@@ -13,19 +13,19 @@ struct FSlateBrush;
 
 class FJsonAsAssetModule : public IModuleInterface {
 public:
-	virtual void StartupModule() override;
-	virtual void ShutdownModule() override;
+    virtual void StartupModule() override;
+    virtual void ShutdownModule() override;
 
-	// Executes File Dialog
-	void PluginButtonClicked();
+    // Executes File Dialog
+    void PluginButtonClicked();
 
 private:
-	void RegisterMenus();
+    void RegisterMenus();
 
-	TSharedPtr<FUICommandList> PluginCommands;
-	TSharedRef<SWidget> CreateToolbarDropdown();
+    TSharedPtr<FUICommandList> PluginCommands;
+    TSharedRef<SWidget> CreateToolbarDropdown();
 
-	// Creates a dialog for a file
-	TArray<FString> OpenFileDialog(FString Title, FString Type);
-	bool IsProcessRunning(const FString& ProcessName);
+    // Creates a dialog for a file
+    TArray<FString> OpenFileDialog(FString Title, FString Type);
+    bool IsProcessRunning(const FString& ProcessName);
 };

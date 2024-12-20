@@ -15,6 +15,7 @@ public:
 	virtual bool ImportData() override;
 
 	// Subgraph Functions
+	// still not done :[
 	void ComposeExpressionPinBase(UMaterialExpressionPinBase* Pin, TMap<FName, UMaterialExpression*>& CreatedExpressionMap, const TSharedPtr<FJsonObject>& _JsonObject, TMap<FName, FExportData>& Exports);
 	TArray<TSharedPtr<FJsonValue>> FilterGraphNodesBySubgraphExpression(const FString& Outer);
 };

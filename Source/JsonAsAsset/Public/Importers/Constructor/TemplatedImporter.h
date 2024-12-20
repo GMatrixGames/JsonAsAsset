@@ -4,9 +4,7 @@
 
 #include "./Importer.h"
 
-/**
-* Basic template importer using Asset Class.
-*/
+// Basic template importer using Asset Class.
 template <typename AssetType>
 class TemplatedImporter : public IImporter {
 public:

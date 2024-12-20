@@ -117,6 +117,7 @@ struct FParseKey
 	FString Guid;
 };
 
+// Settings for materials
 USTRUCT()
 struct FMaterialImportSettings
 {
@@ -136,6 +137,13 @@ struct FMaterialImportSettings
 	bool bSkipResultNodeConnection;
 };
 
+// Settings for sounds
+USTRUCT()
+struct FSoundImportSettings
+{
+	GENERATED_BODY()
+};
+
 USTRUCT()
 struct FAssetSettings
 {
@@ -143,6 +151,9 @@ struct FAssetSettings
 
 	UPROPERTY(EditAnywhere, Config)
 	FMaterialImportSettings MaterialImportSettings;
+
+	UPROPERTY(EditAnywhere, Config)
+	FSoundImportSettings SoundImportSettings;
 
 	UPROPERTY(EditAnywhere, Config, meta = (DisplayName = "Save Assets On Import"))
 	bool bSavePackagesOnImport;
@@ -154,7 +165,7 @@ struct FAssetSettings
 	FString GameName;
 };
 
-// A editor plugin to allow JSON files from FModel to a asset in the Content Browser
+// An editor plugin to allow JSON files from FModel to an asset in the Content Browser
 UCLASS(Config=EditorPerProjectUserSettings, DefaultConfig)
 class UJsonAsAssetSettings : public UDeveloperSettings
 {

@@ -3,15 +3,20 @@
 #include "Importers/Constructor/Importer.h"
 
 #include "Settings/JsonAsAssetSettings.h"
+
+// Content Browser Modules
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 
-#include "Curves/CurveLinearColor.h"
-
+// Utilities
 #include "Utilities/AssetUtilities.h"
+
 #include "Misc/MessageDialog.h"
 #include "UObject/SavePackage.h"
+
+// Slate Icons
+#include "Styling/SlateIconFinder.h"
 
 // ----> Importers
 #include "Importers/Types/CurveFloatImporter.h"
@@ -29,233 +34,26 @@
 #include "Importers/Types/NiagaraParameterCollectionImporter.h"
 #include "Importers/Types/MaterialInstanceConstantImporter.h"
 #include "Importers/Constructor/SoundGraph.h"
-#include "Importers/Types/TextureImporter.h"
 #include "Importers/Types/DataAssetImporter.h"
 #include "Importers/Types/CurveTableImporter.h"
 // <---- Importers
 
 // Templated Class
 #include "Importers/Constructor/TemplatedImporter.h"
+
 // ----------------------- Templated Engine Classes
-#include "Sound/SoundMix.h"
 #include "Sound/SoundNode.h"
-#include "Sound/ReverbEffect.h"
-#include "LandscapeGrassType.h"
-#include "SoundModulationPatch.h"
 #include "Engine/SubsurfaceProfile.h"
 #include "Materials/MaterialParameterCollection.h"
-#include "Sound/SoundClass.h"
+#include "Curves/CurveLinearColor.h"
+#include "Logging/MessageLog.h"
 
+// -----------------------------------------------------------------------------------------------
 #define LOCTEXT_NAMESPACE "IImporter"
 
-template <typename T>
-TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, FString Name, FString Path) {
-	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
-	// If the asset can be found locally
-	if (InObject == nullptr && HandleReference(Path)) {
-		TObjectPtr<T> Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
-
-		return Object;
-	}
-
-	bool bEnableLocalFetch = Settings->bEnableLocalFetch;
-	FMessageLog MessageLogger = FMessageLog(FName("JsonAsAsset"));
-
-	if (bEnableLocalFetch && (
-		InObject == nullptr ||
-			Settings->bDownloadExistingTextures &&
-			Type == "Texture2D"
-		)
-	) {
-		const UObject* DefaultObject = T::StaticClass()->ClassDefaultObject;
-
-		if (DefaultObject != nullptr) {
-			bool bRemoteDownloadStatus = false;
-			bool bTriedDownload = false;
-
-			bTriedDownload = FAssetUtilities::ConstructAsset(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Type, InObject, bRemoteDownloadStatus);
-
-			// Notification
-			if (bTriedDownload) {
-				if (bRemoteDownloadStatus) {
-					AppendNotification(
-						FText::FromString("Locally Downloaded: " + Type),
-						FText::FromString(Name),
-						2.0f,
-						FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
-						SNotificationItem::CS_Success,
-						false,
-						310.0f
-					);
-
-					MessageLogger.Message(EMessageSeverity::Info, FText::FromString("Downloaded asset: " + Name + " (" + Type + ")"));
-				} else {
-					AppendNotification(
-						FText::FromString("Download Failed: " + Type),
-						FText::FromString(Name),
-						5.0f,
-						FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail")),
-						SNotificationItem::CS_Fail,
-						false,
-						310.0f
-					);
-
-					MessageLogger.Error(FText::FromString("Failed to download asset: " + Name + " (" + Type + ")"));
-				}
-			}
-		}
-	}
-
-	return InObject;
-}
-
-template void IImporter::LoadObject<UMaterialInterface>(const TSharedPtr<FJsonObject>*, TObjectPtr<UMaterialInterface>&);
-template void IImporter::LoadObject<USubsurfaceProfile>(const TSharedPtr<FJsonObject>*, TObjectPtr<USubsurfaceProfile>&);
-template void IImporter::LoadObject<UTexture>(const TSharedPtr<FJsonObject>*, TObjectPtr<UTexture>&);
-template void IImporter::LoadObject<UMaterialParameterCollection>(const TSharedPtr<FJsonObject>*, TObjectPtr<UMaterialParameterCollection>&);
-template void IImporter::LoadObject<UAnimSequence>(const TSharedPtr<FJsonObject>*, TObjectPtr<UAnimSequence>&);
-template void IImporter::LoadObject<USoundWave>(const TSharedPtr<FJsonObject>*, TObjectPtr<USoundWave>&);
-template void IImporter::LoadObject<UObject>(const TSharedPtr<FJsonObject>*, TObjectPtr<UObject>&);
-template void IImporter::LoadObject<UMaterialFunctionInterface>(const TSharedPtr<FJsonObject>*, TObjectPtr<UMaterialFunctionInterface>&);
-template void IImporter::LoadObject<USoundNode>(const TSharedPtr<FJsonObject>*, TObjectPtr<USoundNode>&);
-
-template <typename T>
-void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object) {
-	FString Type;
-	FString Name;
-	PackageIndex->Get()->GetStringField(TEXT("ObjectName")).Split("'", &Type, &Name);
-	FString Path;
-	PackageIndex->Get()->GetStringField(TEXT("ObjectPath")).Split(".", &Path, nullptr);
-
-	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
-	if (Settings->AssetSettings.GameName != "") {
-		Path = Path.Replace(*(Settings->AssetSettings.GameName + "/Content"), TEXT("/Game"));
-	}
-
-	Path = Path.Replace(TEXT("Engine/Content"), TEXT("/Engine"));
-
-	Name = Name.Replace(TEXT("'"), TEXT(""));
-
-#pragma warning( push )
-#pragma warning( disable : 4101) // Hide LoadObject Fail
-	// Define found object
-	TObjectPtr<T> Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
-
-	// Material Expressions may be formatted differently
-	if (Obj == nullptr && Name.Contains("MaterialExpression")) {
-		FString AssetName; 
-			Path.Split("/", nullptr, &AssetName, ESearchCase::Type::IgnoreCase, ESearchDir::FromEnd);
-
-		// Load Object with :
-		Obj = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + AssetName + ":" + Name)));
-	}
-#pragma warning( pop )
-	
-	Object = DownloadWrapper(Obj, Type, Name, Path);
-}
-
-template TArray<TObjectPtr<UCurveLinearColor>> IImporter::LoadObject<UCurveLinearColor>(const TArray<TSharedPtr<FJsonValue>>&, TArray<TObjectPtr<UCurveLinearColor>>);
-
-template <typename T>
-TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array) {
-	for (const TSharedPtr<FJsonValue> ArrayElement : PackageArray) {
-		const TSharedPtr<FJsonObject> Ptr = ArrayElement->AsObject();
-
-		FString Type;
-		FString Name;
-		Ptr->GetStringField(TEXT("ObjectName")).Split("'", &Type, &Name);
-		FString Path;
-		Ptr->GetStringField(TEXT("ObjectPath")).Split(".", &Path, nullptr);
-		Name = Name.Replace(TEXT("'"), TEXT(""));
-
-		TObjectPtr<T> Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
-		Array.Add(DownloadWrapper(Object, Type, Name, Path));
-	}
-
-	return Array;
-}
-
-bool IImporter::HandleReference(const FString& GamePath) {
-	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-
-	FString UnSanitizedCodeName;
-	FilePath.Split(Settings->ExportDirectory.Path + "/", nullptr, &UnSanitizedCodeName);
-	UnSanitizedCodeName.Split("/", &UnSanitizedCodeName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
-
-	FString UnSanitizedPath = GamePath.Replace(TEXT("/Game/"), *(UnSanitizedCodeName + "/Content/"));
-	UnSanitizedPath = Settings->ExportDirectory.Path + "/" + UnSanitizedPath + ".json";
-
-	FString ContentBefore;
-	if (FFileHelper::LoadFileToString(ContentBefore, *UnSanitizedPath)) {
-		ImportReference(UnSanitizedPath);
-
-		return true;
-	}
-
-	return false;
-}
-
-void IImporter::ImportReference(const FString& File) {
-	/* ----  Parse JSON into UE JSON Reader ---- */
-	FString ContentBefore;
-	FFileHelper::LoadFileToString(ContentBefore, *File);
-
-	FString Content = FString(TEXT("{\"data\": "));
-	Content.Append(ContentBefore);
-	Content.Append(FString("}"));
-
-	TSharedPtr<FJsonObject> JsonParsed;
-	const TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Content);
-	/* ---------------------------------------- */
-
-	if (FJsonSerializer::Deserialize(JsonReader, JsonParsed)) {
-		const TArray<TSharedPtr<FJsonValue>> DataObjects = JsonParsed->GetArrayField(TEXT("data"));
-
-		HandleExports(DataObjects, File);
-	}
-}
-
-bool IImporter::HandleAssetCreation(UObject* Asset) const {
-	FAssetRegistryModule::AssetCreated(Asset);
-	if (!Asset->MarkPackageDirty()) return false;
-	Package->SetDirtyFlag(true);
-	Asset->PostEditChange();
-	Asset->AddToRoot();
-	Package->FullyLoad();
-
-	// Browse to newly added Asset
-	const TArray<FAssetData>& Assets = {Asset};
-	const FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	ContentBrowserModule.Get().SyncBrowserToAssets(Assets);
-
-	return true;
-}
-
-void IImporter::SavePackage() {
-	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
-	//Package->FullyLoad(); //Causes crashes on Anim Curve Import didn't get any issue commenting this
-
-	FSavePackageArgs SaveArgs; {
-		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-		SaveArgs.Error = GError;
-		SaveArgs.SaveFlags = SAVE_NoError;
-	}
-
-	if(Package == nullptr)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Package is null"));
-		return;
-	}
-	const FString PackageName = Package->GetName();
-	const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
-
-	if (Settings->AssetSettings.bSavePackagesOnImport)
-		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
-}
-
-bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, const bool bHideNotifications) {
+// Handles the JSON of a file.
+// I want to replace Handle with Import in most of these functions
+bool IImporter::ImportExports(TArray<TSharedPtr<FJsonValue>> Exports, FString File, const bool bHideNotifications) {
 	TArray<FString> Types;
 	for (const TSharedPtr<FJsonValue>& Obj : Exports) Types.Add(Obj->AsObject()->GetStringField(TEXT("Type")));
 
@@ -377,28 +175,234 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 	return true;
 }
 
+// This is called at the end of asset creation, bringing the user to the asset and fully loading it
+bool IImporter::HandleAssetCreation(UObject* Asset) const {
+	FAssetRegistryModule::AssetCreated(Asset);
+	if (!Asset->MarkPackageDirty()) return false;
+	
+	Package->SetDirtyFlag(true);
+	Asset->PostEditChange();
+	Asset->AddToRoot();
+	
+	Package->FullyLoad();
+
+	// Browse to newly added Asset
+	const TArray<FAssetData>& Assets = {Asset};
+	const FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	ContentBrowserModule.Get().SyncBrowserToAssets(Assets);
+
+	return true;
+}
+
+// Function to check if an asset needs to be imported. Once imported, the asset will be set and returned.
+template <typename T>
+TObjectPtr<T> IImporter::DownloadWrapper(TObjectPtr<T> InObject, FString Type, FString Name, FString Path) {
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+	// If the asset can be found locally
+	if (InObject == nullptr && ImportAssetReference(Path)) {
+		TObjectPtr<T> Object = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(Path + "." + Name)));
+
+		return Object;
+	}
+
+	bool bEnableLocalFetch = Settings->bEnableLocalFetch;
+	FMessageLog MessageLogger = FMessageLog(FName("JsonAsAsset"));
+
+	if (bEnableLocalFetch && (
+		InObject == nullptr ||
+			Settings->bDownloadExistingTextures &&
+			Type == "Texture2D"
+		)
+	) {
+		const UObject* DefaultObject = T::StaticClass()->ClassDefaultObject;
+
+		if (DefaultObject != nullptr) {
+			bool bRemoteDownloadStatus = false;
+
+			// Notification
+			if (FAssetUtilities::ConstructAsset(FSoftObjectPath(Type + "'" + Path + "." + Name + "'").ToString(), Type, InObject, bRemoteDownloadStatus)) {
+				const FText AssetNameText = FText::FromString(Name);
+				const FSlateBrush* IconBrush = FSlateIconFinder::FindCustomIconBrushForClass(FindObject<UClass>(nullptr, *("/Script/Engine." + Type)), TEXT("ClassThumbnail"));
+
+				if (bRemoteDownloadStatus) {
+					AppendNotification(
+						FText::FromString("Locally Downloaded: " + Type),
+						AssetNameText,
+						2.0f,
+						IconBrush,
+						SNotificationItem::CS_Success,
+						false,
+						310.0f
+					);
+
+					MessageLogger.Message(EMessageSeverity::Info, FText::FromString("Downloaded asset: " + Name + " (" + Type + ")"));
+				} else {
+					AppendNotification(
+						FText::FromString("Download Failed: " + Type),
+						AssetNameText,
+						5.0f,
+						IconBrush,
+						SNotificationItem::CS_Fail,
+						false,
+						310.0f
+					);
+
+					MessageLogger.Error(FText::FromString("Failed to download asset: " + Name + " (" + Type + ")"));
+				}
+			}
+		}
+	}
+
+	return InObject;
+}
+
+// Loads a single <T> object ptr -------------------------------------------------------
+template void IImporter::LoadObject<UMaterialInterface>(const TSharedPtr<FJsonObject>*, TObjectPtr<UMaterialInterface>&);
+template void IImporter::LoadObject<USubsurfaceProfile>(const TSharedPtr<FJsonObject>*, TObjectPtr<USubsurfaceProfile>&);
+template void IImporter::LoadObject<UTexture>(const TSharedPtr<FJsonObject>*, TObjectPtr<UTexture>&);
+template void IImporter::LoadObject<UMaterialParameterCollection>(const TSharedPtr<FJsonObject>*, TObjectPtr<UMaterialParameterCollection>&);
+template void IImporter::LoadObject<UAnimSequence>(const TSharedPtr<FJsonObject>*, TObjectPtr<UAnimSequence>&);
+template void IImporter::LoadObject<USoundWave>(const TSharedPtr<FJsonObject>*, TObjectPtr<USoundWave>&);
+template void IImporter::LoadObject<UObject>(const TSharedPtr<FJsonObject>*, TObjectPtr<UObject>&);
+template void IImporter::LoadObject<UMaterialFunctionInterface>(const TSharedPtr<FJsonObject>*, TObjectPtr<UMaterialFunctionInterface>&);
+template void IImporter::LoadObject<USoundNode>(const TSharedPtr<FJsonObject>*, TObjectPtr<USoundNode>&);
+
+template <typename T>
+void IImporter::LoadObject(const TSharedPtr<FJsonObject>* PackageIndex, TObjectPtr<T>& Object) {
+	FString ObjectType, ObjectName, ObjectPath;
+	PackageIndex->Get()->GetStringField(TEXT("ObjectName")).Split("'", &ObjectType, &ObjectName);
+	PackageIndex->Get()->GetStringField(TEXT("ObjectPath")).Split(".", &ObjectPath, nullptr);
+
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+	// Rare case of needing a GameName
+	if (!Settings->AssetSettings.GameName.IsEmpty()) {
+		ObjectPath = ObjectPath.Replace(*(Settings->AssetSettings.GameName + "/Content"), TEXT("/Game"));
+	}
+
+	ObjectPath = ObjectPath.Replace(TEXT("Engine/Content"), TEXT("/Engine"));
+	ObjectName = ObjectName.Replace(TEXT("'"), TEXT(""));
+
+	// Try to load object using the object path and the object name combined
+	TObjectPtr<T> LoadedObject = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(ObjectPath + "." + ObjectName)));
+
+	// Material Expression case
+	if (!LoadedObject && ObjectName.Contains("MaterialExpression")) {
+		FString AssetName;
+		ObjectPath.Split("/", nullptr, &AssetName, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+		LoadedObject = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(ObjectPath + "." + AssetName + ":" + ObjectName)));
+	}
+
+	Object = DownloadWrapper(LoadedObject, ObjectType, ObjectName, ObjectPath);
+}
+
+// Loads an array of <T> object ptrs -------------------------------------------------------
+template TArray<TObjectPtr<UCurveLinearColor>> IImporter::LoadObject<UCurveLinearColor>(const TArray<TSharedPtr<FJsonValue>>&, TArray<TObjectPtr<UCurveLinearColor>>);
+
+template <typename T>
+TArray<TObjectPtr<T>> IImporter::LoadObject(const TArray<TSharedPtr<FJsonValue>>& PackageArray, TArray<TObjectPtr<T>> Array) {
+	for (const TSharedPtr<FJsonValue>& ArrayElement : PackageArray) {
+		const TSharedPtr<FJsonObject> ObjectPtr = ArrayElement->AsObject();
+
+		FString ObjectType, ObjectName, ObjectPath;
+		ObjectPtr->GetStringField(TEXT("ObjectName")).Split("'", &ObjectType, &ObjectName);
+		ObjectPtr->GetStringField(TEXT("ObjectPath")).Split(".", &ObjectPath, nullptr);
+		ObjectName = ObjectName.Replace(TEXT("'"), TEXT(""));
+
+		TObjectPtr<T> LoadedObject = Cast<T>(StaticLoadObject(T::StaticClass(), nullptr, *(ObjectPath + "." + ObjectName)));
+		Array.Add(DownloadWrapper(LoadedObject, ObjectType, ObjectName, ObjectPath));
+	}
+
+	return Array;
+}
+
+// Handles the import of an asset
+bool IImporter::ImportAssetReference(const FString& GamePath) {
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+	FString UnSanitizedCodeName;
+	FilePath.Split(Settings->ExportDirectory.Path + "/", nullptr, &UnSanitizedCodeName);
+	UnSanitizedCodeName.Split("/", &UnSanitizedCodeName, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+
+	FString UnSanitizedPath = GamePath.Replace(TEXT("/Game/"), *(UnSanitizedCodeName + "/Content/"));
+	UnSanitizedPath = FPaths::Combine(Settings->ExportDirectory.Path, UnSanitizedPath + ".json");
+
+	FString ContentBefore;
+	if (FFileHelper::LoadFileToString(ContentBefore, *UnSanitizedPath)) {
+		ImportReference(UnSanitizedPath);
+		return true;
+	}
+
+	return false;
+}
+
+// Sends off to the ImportExports function once read
+void IImporter::ImportReference(const FString& File) {
+	/* ----  Parse JSON into UE JSON Reader ---- */
+	FString ContentBefore;
+	FFileHelper::LoadFileToString(ContentBefore, *File);
+
+	FString Content = FString(TEXT("{\"data\": "));
+	Content.Append(ContentBefore);
+	Content.Append(FString("}"));
+
+	TSharedPtr<FJsonObject> JsonParsed;
+	const TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Content);
+	/* ---------------------------------------- */
+
+	if (FJsonSerializer::Deserialize(JsonReader, JsonParsed)) {
+		const TArray<TSharedPtr<FJsonValue>> DataObjects = JsonParsed->GetArrayField(TEXT("data"));
+
+		ImportExports(DataObjects, File);
+	}
+}
+
+// Called before HandleAssetCreation, simply saves the asset if user opted
+void IImporter::SavePackage() {
+	const UJsonAsAssetSettings* Settings = GetDefault<UJsonAsAssetSettings>();
+
+	FSavePackageArgs SaveArgs; {
+		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+		SaveArgs.Error = GError;
+		SaveArgs.SaveFlags = SAVE_NoError;
+	}
+
+	// Ensure the package is valid before proceeding
+	if (Package == nullptr) {
+		UE_LOG(LogTemp, Error, TEXT("Package is null"));
+		return;
+	}
+
+	const FString PackageName = Package->GetName();
+	const FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+
+	// User option to save packages on import
+	if (Settings->AssetSettings.bSavePackagesOnImport) {
+		UPackage::SavePackage(Package, nullptr, *PackageFileName, SaveArgs);
+	}
+}
+
 TSharedPtr<FJsonObject> IImporter::GetExport(FJsonObject* PackageIndex) {
 	FString ObjectName = PackageIndex->GetStringField(TEXT("ObjectName")); // Class'Asset:ExportName'
 	FString ObjectPath = PackageIndex->GetStringField(TEXT("ObjectPath")); // Path/Asset.Index
 
-	// Class'Asset:ExportName' --> Asset:ExportName
+	// Clean up ObjectName (Class'Asset:ExportName' --> Asset:ExportName --> ExportName)
 	ObjectName.Split("'", nullptr, &ObjectName);
 	ObjectName.Split("'", &ObjectName, nullptr);
 
-	// Asset:ExportName --> ExportName
-	if (ObjectName.Contains(":"))
-		ObjectName.Split(":", nullptr, &ObjectName);
+	if (ObjectName.Contains(":")) {
+		ObjectName.Split(":", nullptr, &ObjectName); // Asset:ExportName --> ExportName
+	}
 
-	// Path/Asset.Index --> Index
-	ObjectPath.Split(".", nullptr, &ObjectPath);
+	// Search for the object in the AllJsonObjects array
+	for (const TSharedPtr<FJsonValue>& Value : AllJsonObjects) {
+		const TSharedPtr<FJsonObject> ValueObject = Value->AsObject();
 
-	int ExportIndex = FCString::Atoi(*ObjectPath);
-
-	for (const TSharedPtr<FJsonValue> Value : AllJsonObjects) {
-		const TSharedPtr<FJsonObject> ValueObject = TSharedPtr(Value->AsObject());
-
-		if (FString Name; ValueObject->TryGetStringField(TEXT("Name"), Name) && Name == ObjectName)
+		FString Name;
+		if (ValueObject->TryGetStringField(TEXT("Name"), Name) && Name == ObjectName) {
 			return ValueObject;
+		}
 	}
 
 	return nullptr;
@@ -435,6 +439,7 @@ TSharedPtr<FJsonValue> IImporter::GetExportByObjectPath(const TSharedPtr<FJsonOb
 	return AllJsonObjects[FCString::Atod(*StringIndex)];
 }
 
+// Show the user a Notification
 void IImporter::AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons, float WidthOverride) {
 	FNotificationInfo Info = FNotificationInfo(Text);
 	Info.ExpireDuration = ExpireDuration;
@@ -447,6 +452,7 @@ void IImporter::AppendNotification(const FText& Text, const FText& SubText, floa
 	NotificationPtr->SetCompletionState(CompletionState);
 }
 
+// Show the user a Notification with Subtext
 void IImporter::AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, const FSlateBrush* SlateBrush, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons, float WidthOverride) {
 	FNotificationInfo Info = FNotificationInfo(Text);
 	Info.ExpireDuration = ExpireDuration;

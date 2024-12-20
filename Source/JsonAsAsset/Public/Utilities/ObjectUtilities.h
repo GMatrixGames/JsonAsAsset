@@ -1,6 +1,7 @@
 // Copyright JAA Contributors 2024-2025
 
 #pragma once
+
 #include "UObject/Object.h"
 #include "Json.h"
 #include "ObjectUtilities.generated.h"

@@ -14,6 +14,7 @@
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
 #include "Materials/MaterialExpressionReroute.h"
+
 #if ENGINE_MINOR_VERSION >= 5
 #include "Materials/MaterialExpressionTextureBase.h"
 #endif
@@ -131,7 +132,7 @@ void IMaterialGraph::PropagateExpressions(UObject* Parent, TArray<FName>& Expres
 				if (MaterialFunctionCall->MaterialFunction == nullptr) {
 					FString ObjectPath;
 					MaterialFunctionPtr->Get()->GetStringField("ObjectPath").Split(".", &ObjectPath, nullptr);
-					if (!HandleReference(ObjectPath)) {} // AppendNotification(FText::FromString("Material Function Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
+					if (!ImportAssetReference(ObjectPath)) {} // AppendNotification(FText::FromString("Material Function Missing: " + ObjectPath), FText::FromString("Material Graph"), 2.0f, SNotificationItem::CS_Fail, true);
 					else LoadObject(MaterialFunctionPtr, MaterialFunctionCall->MaterialFunction);
 				}
 			}

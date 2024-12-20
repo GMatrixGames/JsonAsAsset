@@ -3,7 +3,7 @@
 	"Version": 1,
 	"VersionName": "1.3.6",
 	"FriendlyName": "JsonAsAsset",
-	"Description": "A editor plugin to allow JSON files from FModel to a asset in the Content Browser.",
+	"Description": "An editor plugin to allow JSON files from FModel to an asset in the Content Browser.",
 	"Category": "Asset Import",
 	"CreatedBy": "Tector, GMatrix",
 	"CreatedByURL": "https://github.com/JsonAsAsset",
@@ -12,7 +12,7 @@
 	"SupportURL": "",
 	"CanContainContent": false,
 	"IsBetaVersion": true,
-	"IsExperimentalVersion": true,
+	"IsExperimentalVersion": false,
 	"Installed": false,
 	"Modules": [
 		{

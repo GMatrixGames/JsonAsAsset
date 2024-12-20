@@ -16,11 +16,18 @@ public:
 	}
 
 	virtual bool ImportData() override;
+
+	// Graph Functions
 	static void ConnectEdGraphNode(UEdGraphNode* NodeToConnect, UEdGraphNode* NodeToConnectTo, int Pin);
 	static void ConnectSoundNode(USoundNode* NodeToConnect, USoundNode* NodeToConnectTo, int Pin);
+
+	// Creates a empty USoundNode
 	static USoundNode* CreateEmptyNode(FName Name, FName Type, USoundCue* SoundCue);
+	
 	void ConstructNodes(USoundCue* SoundCue, TArray<TSharedPtr<FJsonValue>> JsonArray, TMap<FString, USoundNode*>& OutNodes);
 	void SetupNodes(USoundCue* SoundCueAsset, TMap<FString, USoundNode*> SoundCueNodes, TArray<TSharedPtr<FJsonValue>> JsonObjectArray);
+
+	// Sound Wave Import
 	void ImportSoundWave(FString URL, FString SavePath, FString AssetPtr, USoundNodeWavePlayer* Node);
 	void OnDownloadSoundWave(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString SavePath, FString AssetPtr, USoundNodeWavePlayer* Node);
 };

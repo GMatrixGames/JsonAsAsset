@@ -4,8 +4,7 @@
 
 #include "../Constructor/Importer.h"
 
-// We use this to set variables
-// in the skeletal asset
+// We use this to set variables in the skeletal asset
 class USkeletonAssetDerived : public USkeleton {
 public:
 	bool AddVirtualBone(const FName SourceBoneName, const FName TargetBoneName, const FName VirtualBoneRootName);

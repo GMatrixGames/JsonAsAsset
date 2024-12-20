@@ -1,10 +1,17 @@
 // Copyright JAA Contributors 2024-2025
 
 #include "Importers/Types/CurveTableImporter.h"
-
 #include "Dom/JsonObject.h"
-#include "Factories/CurveTableFactory.h"
-#include "Utilities/AssetUtilities.h"
+
+// Unfortunately these variables are privated, so we had to make a "bypass" by making
+// an asset then casting to subclass that has these functions to modify them.
+void UCurveTableDerived::AddRow(FName Name, FRealCurve* Curve) {
+	RowMap.Add(Name, Curve);
+}
+
+void UCurveTableDerived::ChangeTableMode(ECurveTableMode Mode) {
+	CurveTableMode = Mode;
+}
 
 bool UCurveTableImporter::ImportData() {
 	try {
@@ -101,12 +108,4 @@ bool UCurveTableImporter::ImportData() {
 	}
 
 	return true;
-}
-
-void UCurveTableDerived::AddRow(FName Name, FRealCurve* Curve) {
-	RowMap.Add(Name, Curve);
-}
-
-void UCurveTableDerived::ChangeTableMode(ECurveTableMode Mode) {
-	CurveTableMode = Mode;
 }
