@@ -82,7 +82,7 @@ private:
 
 		"", // separator
 
-		// "SoundCue", // TBD
+		"SoundCue",
 		"ReverbEffect",
 		"SoundAttenuation",
 		"SoundConcurrency",
@@ -142,6 +142,8 @@ public:
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
 	virtual void AppendNotification(const FText& Text, const FText& SubText, float ExpireDuration, const FSlateBrush* SlateBrush, SNotificationItem::ECompletionState CompletionState, bool bUseSuccessFailIcons = false, float WidthOverride = 500);
 
+	TSharedPtr<FJsonObject> RemovePropertiesShared(TSharedPtr<FJsonObject> Input, TArray<FString> RemovedProperties) const;
+	
 protected:
 	bool HandleAssetCreation(UObject* Asset) const;
 	void SavePackage();

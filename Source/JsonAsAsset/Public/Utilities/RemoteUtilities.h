@@ -1,6 +1,7 @@
 // Copyright JAA Contributors 2024-2025
 
 #pragma once
+
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 

@@ -54,6 +54,7 @@ public:
 
 		"", // separator
 
+		"SoundWave",
 		"ReverbEffect",
 		"SoundAttenuation",
 		"SoundConcurrency",

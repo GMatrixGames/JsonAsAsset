@@ -28,7 +28,7 @@
 #include "Importers/Types/MaterialParameterCollectionImporter.h"
 #include "Importers/Types/NiagaraParameterCollectionImporter.h"
 #include "Importers/Types/MaterialInstanceConstantImporter.h"
-#include "Importers/Types/SoundCueImporter.h"
+#include "Importers/Constructor/SoundGraph.h"
 #include "Importers/Types/TextureImporter.h"
 #include "Importers/Types/DataAssetImporter.h"
 #include "Importers/Types/CurveTableImporter.h"
@@ -300,7 +300,7 @@ bool IImporter::HandleExports(TArray<TSharedPtr<FJsonValue>> Exports, FString Fi
 					Importer = new USkeletalMeshLODSettingsImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg);
 
 				else if (Type == "SoundCue") 
-					Importer = new USoundCueImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
+					Importer = new ISoundGraph(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
 				
 				else if (Type == "Material") 
 					Importer = new UMaterialImporter(Name, File, DataObject, LocalPackage, LocalOutermostPkg, Exports);
@@ -458,6 +458,16 @@ void IImporter::AppendNotification(const FText& Text, const FText& SubText, floa
 
 	const TSharedPtr<SNotificationItem> NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 	NotificationPtr->SetCompletionState(CompletionState);
+}
+
+TSharedPtr<FJsonObject> IImporter::RemovePropertiesShared(TSharedPtr<FJsonObject> Input, TArray<FString> RemovedProperties) const {
+	const TSharedPtr<FJsonObject> RawSharedPtrData = TSharedPtr(Input);
+	for (FString Property : RemovedProperties) {
+		if (RawSharedPtrData->HasField(Property))
+			RawSharedPtrData->RemoveField(Property);
+	}
+
+	return RawSharedPtrData;
 }
 
 #undef LOCTEXT_NAMESPACE
