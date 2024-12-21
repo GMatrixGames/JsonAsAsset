@@ -179,7 +179,7 @@ void ISoundGraph::SetupNodes(USoundCue* SoundCueAsset, TMap<FString, USoundNode*
 
 					// Import SoundWave
 					FString AudioURL = FString::Format(*(Settings->Url + "/api/v1/export?raw=false&path={0}"), { AssetPtr });
-					FString AbsoluteSavePath = FString::Format(*("{0}Cache/{1}" + Settings->AssetSettings.SoundImportSettings.AudioFileExtension), { FPaths::ProjectDir(), FPaths::GetBaseFilename(AssetPtr) });
+					FString AbsoluteSavePath = FString::Format(*("{0}Cache/{1}." + Settings->AssetSettings.SoundImportSettings.AudioFileExtension), { FPaths::ProjectDir(), FPaths::GetBaseFilename(AssetPtr) });
 
 					ImportSoundWave(AudioURL, AbsoluteSavePath, AssetPtr, WavePlayerNode);
 				}
