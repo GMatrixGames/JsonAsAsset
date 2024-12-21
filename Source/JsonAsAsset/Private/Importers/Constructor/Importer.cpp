@@ -374,6 +374,12 @@ void IImporter::SavePackage() {
 	}
 }
 
+bool IImporter::OnAssetCreation(UObject* Asset) {
+	SavePackage();
+	
+	return HandleAssetCreation(Asset);
+}
+
 TSharedPtr<FJsonObject> IImporter::GetExport(FJsonObject* PackageIndex) {
 	FString ObjectName = PackageIndex->GetStringField(TEXT("ObjectName")); // Class'Asset:ExportName'
 	FString ObjectPath = PackageIndex->GetStringField(TEXT("ObjectPath")); // Path/Asset.Index
@@ -459,6 +465,7 @@ void IImporter::AppendNotification(const FText& Text, const FText& SubText, floa
 
 TSharedPtr<FJsonObject> IImporter::RemovePropertiesShared(TSharedPtr<FJsonObject> Input, TArray<FString> RemovedProperties) const {
 	const TSharedPtr<FJsonObject> RawSharedPtrData = TSharedPtr(Input);
+	
 	for (FString Property : RemovedProperties) {
 		if (RawSharedPtrData->HasField(Property))
 			RawSharedPtrData->RemoveField(Property);

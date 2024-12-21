@@ -229,7 +229,7 @@ bool UAnimationBaseImporter::ImportData()
 		AnimSequenceBase->Modify();
 		AnimSequenceBase->PostEditChange();
 
-		SavePackage();
+		return OnAssetCreation(AnimSequenceBase);
 	}
 	catch (const char* Exception)
 	{

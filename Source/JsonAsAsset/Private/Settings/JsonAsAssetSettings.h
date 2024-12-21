@@ -142,6 +142,9 @@ USTRUCT()
 struct FSoundImportSettings
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Config, meta = (DisplayName = "Audio File Name Extension"))
+	FString AudioFileExtension = "ogg";
 };
 
 USTRUCT()

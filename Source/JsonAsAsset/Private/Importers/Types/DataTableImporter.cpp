@@ -43,12 +43,10 @@ bool UDataTableImporter::ImportData() {
 		}
 
 		// Handle edit changes, and add it to the content browser
-		SavePackage();
-		if (!HandleAssetCreation(DataTable)) return false;
+		return OnAssetCreation(DataTable);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
-		return false;
 	}
 
-	return true;
+	return false;
 }

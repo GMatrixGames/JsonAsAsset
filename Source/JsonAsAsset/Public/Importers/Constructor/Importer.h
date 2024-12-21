@@ -127,6 +127,10 @@ protected:
     bool HandleAssetCreation(UObject* Asset) const;
     void SavePackage();
 
+    // Handle edit changes, and add it to the content browser
+    // Shortcut to calling SavePackage and HandleAssetCreation
+    bool OnAssetCreation(UObject* Asset);
+
     template <class T = UObject>
     TObjectPtr<T> DownloadWrapper(TObjectPtr<T> InObject, FString Type, FString Name, FString Path);
 

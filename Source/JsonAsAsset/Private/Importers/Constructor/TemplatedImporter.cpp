@@ -27,12 +27,10 @@ bool TemplatedImporter<AssetType>::ImportData() {
 
 		GetObjectSerializer()->DeserializeObjectProperties(Properties, Asset);
 
-		SavePackage();
-		if (!HandleAssetCreation(Asset)) return false;
+		return OnAssetCreation(Asset);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
-		return false;
 	}
 
-	return true;
+	return false;
 }

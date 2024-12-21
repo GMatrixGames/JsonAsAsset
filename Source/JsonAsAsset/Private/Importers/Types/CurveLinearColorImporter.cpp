@@ -30,12 +30,10 @@ bool UCurveLinearColorImporter::ImportData() {
 			}
 		}
 
-		SavePackage();
-		if (!HandleAssetCreation(LinearCurveAsset)) return false;
+		return OnAssetCreation(LinearCurveAsset);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
-		return false;
 	}
 
-	return true;
+	return false;
 }

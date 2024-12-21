@@ -125,12 +125,10 @@ bool UBlendSpaceImporter::ImportData() {
 
 		GetObjectSerializer()->DeserializeObjectProperties(AssetData, BlendSpace);
 
-		// Handle edit changes, and add it to the content browser
-		if (!HandleAssetCreation(BlendSpace)) return false;
+		return OnAssetCreation(BlendSpace);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
-		return false;
 	}
 
-	return true;
+	return false;
 }

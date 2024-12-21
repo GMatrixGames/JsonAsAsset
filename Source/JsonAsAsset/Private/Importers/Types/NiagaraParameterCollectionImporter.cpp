@@ -45,12 +45,10 @@ bool UNiagaraParameterCollectionImporter::ImportData() {
         }
 
         // Handle edit changes, and add it to the content browser
-        SavePackage();
-        if (!HandleAssetCreation(NiagaraParameterCollection)) return false;
+        return OnAssetCreation(NiagaraParameterCollection);
     } catch (const char* Exception) {
         UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
-        return false;
     }
 
-    return true;
+    return false;
 }

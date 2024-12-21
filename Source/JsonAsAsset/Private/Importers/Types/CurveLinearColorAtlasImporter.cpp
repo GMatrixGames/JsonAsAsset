@@ -56,12 +56,10 @@ bool UCurveLinearColorAtlasImporter::ImportData() {
 		Object->PostEditChangeProperty(PropertyChangedEvent);
 
 		// Handle edit changes, and add it to the content browser
-		SavePackage();
-		if (!HandleAssetCreation(Object)) return false;
+		return OnAssetCreation(Object);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
-		return false;
 	}
 
-	return true;
+	return false;
 }

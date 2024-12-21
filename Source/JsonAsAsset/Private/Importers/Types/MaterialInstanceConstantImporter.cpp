@@ -229,11 +229,10 @@ bool UMaterialInstanceConstantImporter::ImportData() {
 		MaterialInstanceConstant->InitStaticPermutation();
 #endif
 
-		SavePackage();
+		return OnAssetCreation(MaterialInstanceConstant);
 	} catch (const char* Exception) {
 		UE_LOG(LogJson, Error, TEXT("%s"), *FString(Exception));
-		return false;
 	}
 
-	return true;
+	return false;
 }
