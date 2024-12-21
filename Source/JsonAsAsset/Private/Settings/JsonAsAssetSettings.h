@@ -122,6 +122,12 @@ USTRUCT()
 struct FMaterialImportSettings
 {
 	GENERATED_BODY()
+	
+public:
+	// Constructor to initialize default values
+	FMaterialImportSettings()
+		: bSkipResultNodeConnection(false)
+	{}
 
 	/**
 	* When importing/downloading the asset type Material, a error may occur
@@ -151,7 +157,16 @@ USTRUCT()
 struct FAssetSettings
 {
 	GENERATED_BODY()
-
+public:
+	
+	// Constructor to initialize default values
+	FAssetSettings()
+		: bSavePackagesOnImport(false)
+	{
+		MaterialImportSettings = FMaterialImportSettings();
+		SoundImportSettings = FSoundImportSettings();
+	}
+	
 	UPROPERTY(EditAnywhere, Config)
 	FMaterialImportSettings MaterialImportSettings;
 
