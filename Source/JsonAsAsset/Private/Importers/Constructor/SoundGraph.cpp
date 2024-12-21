@@ -166,12 +166,9 @@ void ISoundGraph::SetupNodes(USoundCue* SoundCueAsset, TMap<FString, USoundNode*
 				FString AssetPtr = NodeProperties->TryGetField("SoundWaveAssetPtr")->AsObject()->GetStringField("AssetPathName");
 
 				USoundWave* SoundWave = Cast<USoundWave>(StaticLoadObject(USoundWave::StaticClass(), nullptr, *AssetPtr));
-
-				FSoftObjectPath SoftObjectPath(AssetPtr);
-				FString PackageName = SoftObjectPath.GetLongPackageName();
-
+				
 				// Already exists
-				if (FPackageName::DoesPackageExist(PackageName)) {
+				if (SoundWave != nullptr) {
 					WavePlayerNode->SetSoundWave(SoundWave);
 				} else {
 					// Get URL from Settings
@@ -222,7 +219,15 @@ void ISoundGraph::OnDownloadSoundWave(FHttpRequestPtr Request, FHttpResponsePtr 
 		}
 
 		IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
-		USoundWave* ImportedWave = Cast<USoundWave>(AssetTools.ImportAssets({ SavePath }, FPaths::GetPath(AssetPtr))[0]);
+		auto AssetsImported = AssetTools.ImportAssets({ SavePath }, FPaths::GetPath(AssetPtr));
+		if (!AssetsImported.IsValidIndex(0)) {
+			USoundWave* SoundWave = Cast<USoundWave>(StaticLoadObject(USoundWave::StaticClass(), nullptr, *AssetPtr));
+			Node->SetSoundWave(SoundWave);
+
+			return;
+		}
+		
+		USoundWave* ImportedWave = Cast<USoundWave>(AssetsImported[0]);
 
 		if (!ImportedWave) {
 			FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FString::Format(TEXT("Failed To Import Wave {0}!"), { AssetPtr })));
